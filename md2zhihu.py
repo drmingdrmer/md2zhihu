@@ -254,12 +254,12 @@ def extract_math(n, typ='math_inline'):
     children.append({'type':'text', 'text':t})
     return children
 
-def import_img(nodes, host_conf, sess):
+def import_img(nodes, host_conf, sess, path):
 
     for n in nodes:
 
         if 'children' in n:
-            import_img(n['children'], host_conf, sess)
+            import_img(n['children'], host_conf, sess, path)
 
         #  {'alt': 'openacid',
         #   'src': 'https://tva1.sinaimg.cn/large/0081Kckwly1gls09bbfnij30m8096gnt.jpg',
@@ -270,8 +270,10 @@ def import_img(nodes, host_conf, sess):
             if re.match(r'https?://', src):
                 continue
 
-            if src.startswith('/post-res'):
+            if src.startswith('/'):
                 src = src[1:]
+            else:
+                src = os.path.join(os.path.split(path)[0], src)
 
             srcfn = os.path.split(src)[1]
             dst = os.path.join(sess['dstdir'], srcfn)
@@ -422,7 +424,7 @@ if __name__ == "__main__":
             'reldir': '/zhihu/{folder}'.format(folder=folder), 
             'dstdir': output_folder,
     }
-    import_img(ast, host_conf, sess)
+    import_img(ast, host_conf, sess, path)
 
     #  TODO build ref
 
