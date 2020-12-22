@@ -1,4 +1,6 @@
--r _building/requirements.txt
+PyYAML~=5.3.1
 
 
+k3proc
+k3down2
 k3ut~=0.1.7
