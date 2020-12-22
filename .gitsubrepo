@@ -1,0 +1,10 @@
+[ remote_suffix: .git ]
+[ remote: https://github.com/ ]
+
+[ base: ]
+mistune            drmingdrmer/            modi   mistune
+
+
+# git-subrepo
+#   for maintaining sub git repo
+#   https://github.com/baishancloud/git-subrepo
