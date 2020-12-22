@@ -3,7 +3,7 @@ import setuptools
 setuptools.setup(
     name="md2zhihu",
     packages=["md2zhihu"],
-    version="0.1.1",
+    version="0.1.2",
     license='MIT',
     description='convert markdown to zhihu compatible format.',
     long_description='# md2zhihu\nConvert markdown to zhihu compatible format\n',
