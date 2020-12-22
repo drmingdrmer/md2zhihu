@@ -375,7 +375,9 @@ if __name__ == "__main__":
     path, sshurl = sys.argv[1], sys.argv[2]
 
     fn = os.path.split(path)[-1]
-    fn = re.match(r'\d\d\d\d-\d\d-\d\d-(.*)', fn).groups()[0]
+    fnm = re.match(r'\d\d\d\d-\d\d-\d\d-(.*)', fn)
+    if fnm:
+        fn = fnm.groups()[0]
     folder  = fn.rsplit('.', 1)[0]
 
     xxdir = 'importable'
