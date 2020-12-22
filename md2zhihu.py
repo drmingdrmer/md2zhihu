@@ -372,7 +372,7 @@ def parse_githost(sshurl):
     }
 
 
-if __name__ == "__main__":
+def main():
 
     path, sshurl = sys.argv[1], sys.argv[2]
 
@@ -455,3 +455,6 @@ if __name__ == "__main__":
     k3proc.command_ex('git', 'commit', '--allow-empty',  '-m', 'Commit by drdrxp', cwd=xxdir)
     k3proc.command_ex('git', 'push', '-f', sshurl, 'HEAD:refs/heads/' + host_conf['branch'], cwd=xxdir)
     shutil.rmtree(xxdir + '/.git')
+
+if __name__ == "__main__":
+    main()

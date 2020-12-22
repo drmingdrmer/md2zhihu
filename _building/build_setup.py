@@ -119,6 +119,12 @@ setuptools.setup(
     keywords=$topics,
     python_requires='>=3.0',
 
+    entry_points = {
+        'console_scripts': [
+            'command-name = ${name}:main',                  
+        ],              
+    },
+
     install_requires=$req,
     classifiers=[
         'Development Status :: 4 - Beta',
