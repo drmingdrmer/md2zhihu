@@ -121,7 +121,7 @@ setuptools.setup(
 
     entry_points = {
         'console_scripts': [
-            'command-name = ${name}:main',                  
+            'md2zhihu = ${name}:main',                  
         ],              
     },
 
