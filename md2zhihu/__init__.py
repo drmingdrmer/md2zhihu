@@ -540,8 +540,8 @@ def main():
     join_math_block(ast)
     ast = parse_math(ast)
 
-    with open('ooo', 'w') as f:
-        f.write(pprint.pformat(ast))
+    #  with open('ooo', 'w') as f:
+    #      f.write(pprint.pformat(ast))
 
     out = render(ast)
 
