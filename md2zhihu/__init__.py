@@ -1,22 +1,35 @@
-from .. import mistune
-import pprint
-import yaml
-import re
-import sys
 import os
+import pprint
+import re
 import shutil
+import argparse
+import hashlib
 
 import k3down2
-import k3proc
+import yaml
+from k3color import green
+from k3color import darkyellow
+from k3handy import pjoin
+from k3handy import cmd0
+from k3handy import to_bytes
+from k3handy import cmdpass
+
+from .. import mistune
 
 
+def sj(*args):
+    return ''.join([str(x) for x in args])
 
-def pad(line):
+def msg(*args):
+    print('>', ''.join([str(x) for x in args]))
+
+def indent(line):
     if line == '':
         return ''
     return '    ' + line
 
-def para_end(lines):
+
+def add_paragraph_end(lines):
     #  add blank line to a paragraph block
     if lines[-1] == '':
         return lines
@@ -24,118 +37,111 @@ def para_end(lines):
     lines.append('')
     return lines
 
-def strip_para_end(lines):
+
+def strip_paragraph_end(lines):
     #  remove last blank lines
     if lines[-1] == '':
-        return strip_para_end(lines[:-1])
+        return strip_paragraph_end(lines[:-1])
 
     return lines
 
 
 def render_node(n, ctx=None):
+    typ = n['type']
 
-    if n['type'] == 'thematic_break':
+    if typ == 'thematic_break':
         return ['---', '']
 
-    if n['type'] == 'paragraph':
+    if typ == 'paragraph':
         lines = render(n['children'])
         return ''.join(lines).split('\n') + ['']
 
-    if n['type'] == 'text':
+    if typ == 'text':
         return [n['text']]
 
-    if n['type'] == 'strong':
+    if typ == 'strong':
         lines = render(n['children'])
         lines[0] = '**' + lines[0]
         lines[-1] = lines[-1] + '**'
         return lines
 
-    #  if n['type'] == 'math_inline':
-    #      #  return ['$$' + n['text'] + '$$']
-    #      return ['$$ - ' + n['text'] + ' - $$']
-
-    #  if n['type'] == 'math_block':
-    #      #  return ['$$' + n['text'] + '$$']
-    #      return ['$$ = ' + n['text'] + ' = $$']
-
-    if n['type'] == 'math_block':
+    if typ == 'math_block':
         return [k3down2.tex_to_zhihu(n['text'], True)]
 
-    if n['type'] == 'math_inline':
+    if typ == 'math_inline':
         return [k3down2.tex_to_zhihu(n['text'], False)]
 
-    if n['type'] == 'table':
+    if typ == 'table':
         return render(n['children']) + ['']
 
-    if n['type'] == 'table_head':
+    if typ == 'table_head':
         alignmap = {
-                'left': ':--',
-                'right': '--:',
-                'center': ':-:',
-                None: '---',
+            'left': ':--',
+            'right': '--:',
+            'center': ':-:',
+            None: '---',
         }
         lines = render(n['children'])
         aligns = [alignmap[x['align']] for x in n['children']]
         aligns = '| ' + ' | '.join(aligns) + ' |'
         return ['| ' + ' | '.join(lines) + ' |', aligns]
 
-    if n['type'] == 'table_cell':
+    if typ == 'table_cell':
         lines = render(n['children'])
         return [''.join(lines)]
 
-    if n['type'] == 'table_body':
+    if typ == 'table_body':
         return render(n['children'])
 
-    if n['type'] == 'table_row':
+    if typ == 'table_row':
         lines = render(n['children'])
         return ['| ' + ' | '.join(lines) + ' |']
 
-    if n['type'] == 'block_code':
+    if typ == 'block_code':
         # remove the last \n
         return ['```' + (n['info'] or '')] + n['text'][:-1].split('\n') + ['```', '']
 
-    if n['type'] == 'codespan':
+    if typ == 'codespan':
         return [('`' + n['text'] + '`')]
 
-    if n['type'] == 'image':
+    if typ == 'image':
         if n['title'] is None:
             return ['![{alt}]({src})'.format(**n)]
         else:
             return ['![{alt}]({src} {title})'.format(**n)]
 
-    if n['type'] == 'list':
+    if typ == 'list':
         head = '-   '
         if n['ordered']:
             head = '1.  '
 
         lines = render(n['children'], head)
-        return para_end(lines)
+        return add_paragraph_end(lines)
 
-    if n['type'] == 'list_item':
-
+    if typ == 'list_item':
         lines = render(n['children'])
         # ctx is head passed from list
         lines[0] = ctx + lines[0]
-        lines = lines[0:1] + [pad(x) for x in lines[1:]]
+        lines = lines[0:1] + [indent(x) for x in lines[1:]]
         return lines
 
-    if n['type'] == 'block_text':
+    if typ == 'block_text':
         lines = render(n['children'])
         return ''.join(lines).split('\n')
 
-    if n['type'] == 'block_quote':
+    if typ == 'block_quote':
         lines = render(n['children'])
-        lines = strip_para_end(lines)
+        lines = strip_paragraph_end(lines)
         lines = ['> ' + x for x in lines]
         return lines + ['']
 
-    if n['type'] == 'newline':
+    if typ == 'newline':
         return ['']
 
-    if n['type'] == 'block_html':
-        return para_end([n['text']])
+    if typ == 'block_html':
+        return add_paragraph_end([n['text']])
 
-    if n['type'] == 'link':
+    if typ == 'link':
         #  TODO title
         lines = render(n['children'])
         lines[0] = '[' + lines[0]
@@ -143,14 +149,15 @@ def render_node(n, ctx=None):
 
         return lines
 
-    if n['type'] == 'heading':
+    if typ == 'heading':
         lines = render(n['children'])
         lines[0] = '#' * n['level'] + ' ' + lines[0]
         return lines + ['']
 
-    print(n['type'], n.keys())
+    print(typ, n.keys())
     pprint.pprint(n)
-    return ['***:' + n['type']]
+    return ['***:' + typ]
+
 
 def render(nodes, ctx=None):
     rst = []
@@ -160,22 +167,18 @@ def render(nodes, ctx=None):
     return rst
 
 
-def parse_math_inline(nodes):
-    for n in nodes:
-        if 'children' in n:
-            parse_math_inline(n['children'])
-
-            children = []
-            for subn in n['children']:
-                if subn['type'] == 'text':
-                    new_children = extract_math(subn)
-                    children.extend(new_children)
-                else:
-                    children.append(subn)
-
-            n['children'] = children
-
 def join_math_block(nodes):
+    """
+    A tex segment may spans several paragraph:
+
+        $$        // paragraph 1
+        x = 5     //
+
+        y = 3     // paragraph 2
+        $$        //
+
+    This function finds out all such paragraph and merge them into a single one.
+    """
 
     for n in nodes:
 
@@ -185,55 +188,59 @@ def join_math_block(nodes):
     join_math_text(nodes)
 
 
-def parse_math_block(nodes):
+def parse_math(nodes):
+    """
+    Extract all math segment such as ``$$ ... $$`` from a text and build a
+    math_block or math_inline node.
+    """
 
     children = []
 
     for n in nodes:
 
         if 'children' in n:
-            n['children'] = parse_math_block(n['children'])
+            n['children'] = parse_math(n['children'])
 
         if n['type'] == 'text':
-            new_children = extract_math(n, 'math_block')
+            new_children = extract_math(n)
             children.extend(new_children)
         else:
             children.append(n)
 
     return children
 
-def join_math_text(nodes):
 
+def join_math_text(nodes):
     i = 0
-    while i < len(nodes)-1:
+    while i < len(nodes) - 1:
         n1 = nodes[i]
-        n2 = nodes[i+1]
+        n2 = nodes[i + 1]
         if ('children' in n1
-            and 'children' in n2
-            and n1['children'][-1]['type'] == 'text'
-            and n2['children'][0]['type'] == 'text'
-            and '$$' in n1['children'][-1]['text']):
+                and 'children' in n2
+                and n1['children'][-1]['type'] == 'text'
+                and n2['children'][0]['type'] == 'text'
+                and '$$' in n1['children'][-1]['text']):
 
             has_dd = '$$' in n2['children'][0]['text']
             n1['children'][-1]['text'] += '\n\n' + n2['children'][0]['text']
             n1['children'].extend(n2['children'][1:])
 
-            nodes.pop(i+1)
-            #  print('joint', nodes)
+            nodes.pop(i + 1)
 
             if has_dd:
-                i+=1
+                i += 1
         else:
-            i+=1
+            i += 1
 
 
 inline_math = r'\$\$(.*?)\$\$'
 
-def extract_math(n, typ='math_inline'):
-    '''
-    Extract ``$$ ... $$`` from a text node and build a new node with type ``typ``.
-    The original text node is split into two.
-    '''
+
+def extract_math(n):
+    """
+    Extract ``$$ ... $$`` from a text node and build a new node.
+    The original text node is split into multiple segments.
+    """
     children = []
 
     t = n['text']
@@ -244,43 +251,45 @@ def extract_math(n, typ='math_inline'):
             children.append({'type': 'math_inline', 'text': match.groups()[0]})
             t = t[match.end():]
 
-            l = children[-2]['text']
-            r = t
-            if (l == '' or l.endswith('\n\n')) and (r=='' or r.startswith('\n')):
+            left = children[-2]['text']
+            right = t
+            if (left == '' or left.endswith('\n\n')) and (right == '' or right.startswith('\n')):
                 children[-1]['type'] = 'math_block'
             continue
 
         break
-    children.append({'type':'text', 'text':t})
+    children.append({'type': 'text', 'text': t})
     return children
 
-def import_img(nodes, host_conf, sess, path):
 
+def import_img(nodes, conf):
     for n in nodes:
 
         if 'children' in n:
-            import_img(n['children'], host_conf, sess, path)
+            import_img(n['children'], conf)
 
         #  {'alt': 'openacid',
-        #   'src': 'https://tva1.sinaimg.cn/large/0081Kckwly1gls09bbfnij30m8096gnt.jpg',
+        #   'src': 'https://...',
         #   'title': None,
         #   'type': 'image'},
-        if n['type'] == 'image':
-            src = n['src']
-            if re.match(r'https?://', src):
-                continue
+        if n['type'] != 'image':
+            continue
 
-            if src.startswith('/'):
-                src = src[1:]
-            else:
-                src = os.path.join(os.path.split(path)[0], src)
+        src = n['src']
+        if re.match(r'https?://', src):
+            continue
 
-            srcfn = os.path.split(src)[1]
-            dst = os.path.join(sess['dstdir'], srcfn)
-            shutil.copyfile(src, dst)
+        if src.startswith('/'):
+            # absolute path from CWD.
+            src = src[1:]
+        else:
+            # relative path from markdown containing dir.
+            src = os.path.join(os.path.split(conf.md_path)[0], src)
 
-            url = host_conf['ptn'].format(path=sess['reldir'] + '/' + srcfn, **host_conf)
-            n['src'] = url
+        fn = os.path.split(src)[1]
+        shutil.copyfile(src, pjoin(conf.output_dir, fn))
+
+        n['src'] = conf.img_url(fn)
 
 
 def render_table(nodes):
@@ -308,26 +317,26 @@ def build_refs(meta):
         return dic
     return {}
 
-def fill_refs(nodes, refs):
+
+def replace_ref_with_def(nodes, refs):
     for n in nodes:
 
         if 'children' in n:
-            fill_refs(n['children'], refs)
+            replace_ref_with_def(n['children'], refs)
 
         if n['type'] == 'text':
             t = n['text']
             link = re.match(r'\[(.*?)\](\[\])?', t)
             if link:
                 txt = link.groups()[0]
-                #  print(link, txt)
-                #  print(refs)
                 if txt in refs:
                     n['type'] = 'link'
                     r = refs[txt]
                     n['link'] = r.split()[0]
-                    n['children'] = [{'type': 'text', 'text':txt}]
+                    n['children'] = [{'type': 'text', 'text': txt}]
 
-def extract_text_refs(cont):
+
+def extract_ref_definitions(cont):
     lines = cont.split('\n')
     rst = []
     refs = {}
@@ -341,71 +350,177 @@ def extract_text_refs(cont):
     return '\n'.join(rst), refs
 
 
-def parse_githost(sshurl):
-    match = re.match(r'git@(.*?):(.*?)/(.*?)\.git$', sshurl)
-    if not match:
-        raise ValueError('unknown url: {sshurl};'
-                         ' A valid one should be like "{tmpl}"'.format(
-                                 sshurl=sshurl,
-                                 tmpl='git@github.com:myname/myrepo.git'))
+def extract_jekyll_meta(cont):
+    meta = re.match(r'^ *--- *\n(.*?)\n---\n', cont,
+                    flags=re.DOTALL | re.UNICODE)
+    if meta:
+        cont = cont[meta.end():]
+        meta = meta.groups()[0]
+        meta = yaml.safe_load(meta)
 
-    host, user, repo = match.groups()
-
-    #  engines = {
-    #          'git@gitee.com:drdrxp/bed.git',
-    #          'https://gitee.com/drdrxp/openacid.github.io/raw/rr/importable/zhihu/slimarray/slim.jpg'
-    #          'git@github.com:openacid/openacid.github.io.git',
-    #          'https://raw.githubusercontent.com/miracleyoo/Markdown4Zhihu/master/Data/完美使用Markdown在知乎编辑内容/image-20191214174243537.png'
-    #  }
+    return cont, meta
 
 
-    hostpat = {
+class AssetRepo(object):
+
+    def __init__(self, repo_url, md_path, cdn=True):
+
+        self.cdn = cdn
+
+        sshurl_fmt = 'git@{host}:{user}/{repo}.git'
+
+
+        if repo_url is None:
+            repo_url = '.'
+
+        if repo_url == '.':
+            msg("Using current git to store assets...")
+            branch = cmd0('git', 'symbolic-ref', '--short', 'HEAD')
+            remote = cmd0('git', 'config','--get', 'branch.{}.remote'.format(branch))
+            repo_url = cmd0('git', 'remote', 'get-url', remote)
+
+
+        # git@github.com:openacid/slim.git
+        match = re.match(r'git@(.*?):(.*?)/(.*?)\.git(@.*?)?$', repo_url)
+
+        if not match:
+            # ssh://git@github.com/openacid/openacid.github.io
+            match = re.match(r'ssh://git@(.*?)/(.*?)/(.*?)(@.*?)?$', repo_url)
+
+        if not match:
+            # https://github.com/openacid/openacid.github.io.git
+            match = re.match(r'https://(.*?)/(.*?)/(.*?)\.git(@.*?)?$', repo_url)
+
+
+
+        if not match:
+            raise ValueError(
+                'unknown url: {sshurl};'
+                ' A valid one should be like "{tmpl}" or "{https}"'.format(
+                    sshurl=repo_url,
+                    tmpl='git@github.com:my_name/my_repo.git'),
+                https='https://github.com/my_name/my_repo.git'
+            )
+
+        host, user, repo, branch = match.groups()
+
+        url_patterns = {
             'github.com': 'https://raw.githubusercontent.com/{user}/{repo}/{branch}/{path}',
             'gitee.com': 'https://gitee.com/{user}/{repo}/raw/{branch}/{path}',
-    }
+        }
 
-    return {
-            'ptn':hostpat[host],
-            'user': user,
-            'repo':repo,
-            'branch': 'drdrxp_says_hi',
-    }
+        cdn_patterns = {
+            'github.com': 'https://cdn.jsdelivr.net/gh/{user}/{repo}@{branch}/{path}',
+
+        }
+
+        if branch is None:
+            branch = '_md2zhihu_' + (hashlib.md5(to_bytes(md_path)).hexdigest()[:6])
+        else:
+            # @some_branch
+            branch = branch[1:]
+            self.url = self.url[:-len(branch) - 1]
+
+        self.url = sshurl_fmt.format(host=host,user=user,repo=repo)
+
+        self.host = host
+        self.user = user
+        self.repo = repo
+        self.branch = branch
+
+        ptn = url_patterns[host]
+        if self.cdn and host == 'github.com':
+            ptn = cdn_patterns[host]
+
+        self.path_pattern = ptn.format(
+            user=user,
+            repo=repo,
+            branch=branch,
+            path='{path}')
+
+
+class Config(object):
+
+    def __init__(self, output_base, platform, md_path, asset_repo_url):
+        self.output_base = output_base
+        self.platform = platform
+        self.md_path = md_path
+
+        self.asset_repo = AssetRepo(asset_repo_url, md_path)
+
+        fn = os.path.split(self.md_path)[-1]
+
+        # jekyll style
+        fnm = re.match(r'\d\d\d\d-\d\d-\d\d-(.*)', fn)
+        if fnm:
+            fn = fnm.groups()[0]
+
+        self.output_fn = fn
+        self.article_name = fn.rsplit('.', 1)[0]
+
+        self.rel_dir = pjoin(self.platform, self.article_name)
+        self.output_dir = pjoin(self.output_base, self.rel_dir)
+
+    def img_url(self, fn):
+        return self.asset_repo.path_pattern.format(
+            path=pjoin(self.rel_dir, fn))
+
+    def push(self):
+        x = dict(cwd=self.output_base)
+
+        cmdpass('git', 'init', **x)
+        cmdpass('git', 'add', '.', **x)
+        cmdpass('git', 'commit', '--allow-empty', '-m', 'by md2zhihu by drdr.xp@gmail.com', **x)
+        cmdpass('git', 'push', '-f', self.asset_repo.url, 'HEAD:refs/heads/' + self.asset_repo.branch, **x)
+
+        msg("Removing tmp git dir: ",self.output_base + '/.git')
+        shutil.rmtree(self.output_base + '/.git')
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Convert markdown to zhihu compatible')
 
-    path, sshurl = sys.argv[1], sys.argv[2]
+    parser.add_argument('md_path', type=str,
+                        help='path to markdown to process')
 
-    fn = os.path.split(path)[-1]
-    fnm = re.match(r'\d\d\d\d-\d\d-\d\d-(.*)', fn)
-    if fnm:
-        fn = fnm.groups()[0]
-    folder  = fn.rsplit('.', 1)[0]
+    parser.add_argument('-o', '--output', action='store',
+                        default='_md2',
+                        help='sepcify output dir (default: "_md2")')
 
-    xxdir = 'importable'
-    output_folder = xxdir + '/zhihu/{folder}'.format(folder=folder)
-    #  print(output_folder, fn)
-    os.makedirs(output_folder, exist_ok=True)
+    parser.add_argument('-r', '--repo', action='store',
+                        required=False,
+                        default=".",
+                        help='sepcify the git url to store assets.'
+                             ' The url should be in a SSH form such as:'
+                             ' "git@github.com:openacid/openacid.github.io.git[@branch_name]".'
+                             ' If no branch is specified, a random branch "_md2zhihu_*" is used.'
+                             ' It has to be a public repo and you have the write access.'
+                             ' "-r ." to use the git in CWD to store the assets.'
+                        )
+
+    args = parser.parse_args()
+    msg("Build markdown: ", darkyellow(args.md_path), " into ", darkyellow(args.output))
+    msg("Assets will be stored in ", darkyellow(args.repo))
+
+    path = args.md_path
+
+    conf = Config(
+        args.output,
+        'zhihu',
+        path,
+        args.repo,
+    )
+
+    os.makedirs(conf.output_dir, exist_ok=True)
 
     with open(path, 'r') as f:
         cont = f.read()
 
-    meta = re.match(r'^ *--- *\n(.*?)\n---\n', cont, flags=re.DOTALL | re.UNICODE)
-    if meta:
-        cont = cont[meta.end():]
-        meta = meta.groups()[0]
-        meta = yaml.load(meta)
+    cont, meta = extract_jekyll_meta(cont)
+    cont, article_refs = extract_ref_definitions(cont)
 
     refs = build_refs(meta)
-
-    cont, article_refs = extract_text_refs(cont)
-
     refs.update(article_refs)
-    ref_lines = [
-            '[{id}]: {d}'.format(
-                    id=id, d=d
-            ) for id, d in refs.items()
-    ]
 
     rdr = mistune.create_markdown(
         escape=False,
@@ -414,27 +529,16 @@ def main():
     )
     ast = rdr(cont)
 
-    #  pprint.pprint(ast)
-    #  raise
-
-    fill_refs(ast, refs)
-
-    host_conf = parse_githost(sshurl)
-    sess = {
-            'reldir': '/zhihu/{folder}'.format(folder=folder), 
-            'dstdir': output_folder,
-    }
-    import_img(ast, host_conf, sess, path)
-
+    replace_ref_with_def(ast, refs)
+    import_img(ast, conf)
     render_table(ast)
 
-
     # extract already inlined math
-    ast = parse_math_block(ast)
+    ast = parse_math(ast)
 
     # join cross paragraph math
     join_math_block(ast)
-    ast = parse_math_block(ast)
+    ast = parse_math(ast)
 
     with open('ooo', 'w') as f:
         f.write(pprint.pformat(ast))
@@ -442,17 +546,25 @@ def main():
     out = render(ast)
 
     out.append('')
+
+    ref_lines = [
+        '[{id}]: {d}'.format(
+            id=_id, d=d
+        ) for _id, d in refs.items()
+    ]
     out.extend(ref_lines)
 
-    #  print(out)
-    with open(os.path.join(output_folder, fn), 'w') as f:
+    with open(pjoin(conf.output_dir, conf.output_fn), 'w') as f:
         f.write(str('\n'.join(out)))
 
-    k3proc.command_ex('git', 'init', cwd=xxdir)
-    k3proc.command_ex('git', 'add', '.', cwd=xxdir)
-    k3proc.command_ex('git', 'commit', '--allow-empty',  '-m', 'Commit by drdrxp', cwd=xxdir)
-    k3proc.command_ex('git', 'push', '-f', sshurl, 'HEAD:refs/heads/' + host_conf['branch'], cwd=xxdir)
-    shutil.rmtree(xxdir + '/.git')
+    msg(sj("Done building ", darkyellow(pjoin(conf.output_dir, conf.output_fn))))
+
+    msg("Pushing ", darkyellow(conf.output_base), " to ", darkyellow(conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
+    conf.push()
+
+    msg(green(sj("Great job!!!")), " Built version saved in:")
+    msg(darkyellow(pjoin(conf.output_dir, conf.output_fn)))
+
 
 if __name__ == "__main__":
     main()

@@ -6,7 +6,7 @@ setuptools.setup(
               "md2zhihu.mistune",
               "md2zhihu.md2zhihu",
               "md2zhihu.mistune.plugins"],
-    version="0.1.6",
+    version="0.1.7",
     license='MIT',
     description='convert markdown to zhihu compatible format.',
     long_description='# md2zhihu\nConvert markdown to zhihu compatible format\n',
