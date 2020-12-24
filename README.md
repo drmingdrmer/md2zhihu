@@ -17,6 +17,13 @@ md2zhihu your_great_work.md
 这个命令将markdown 转换成 知乎 文章编辑器可直接导入的格式, 存储到 `_md2/your_great_work/your_great_work.md`.
 `-o` 选项可以用来调整输出目录.
 
+## Requirements
+
+```
+# For rendering table to html
+brew install pandoc
+```
+
 ## Features
 
 - 公式转换:
