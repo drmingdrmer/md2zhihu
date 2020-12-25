@@ -2,6 +2,7 @@ import os
 import re
 import unittest
 
+import md2zhihu
 import k3proc
 import k3ut
 import skimage
@@ -25,6 +26,42 @@ class TestMd2zhihu(unittest.TestCase):
 
     def tearDown(self):
         self._clean()
+
+    def test_asset_repo(self):
+        for url in (
+                'git@github.com:drmingdrmer/home.git',
+                'ssh://git@github.com/drmingdrmer/home',
+                'https://github.com/drmingdrmer/home.git',
+        ):
+
+            a = md2zhihu.AssetRepo(url, "foo/bar.md", cdn=False)
+            self.assertEqual(False, a.cdn)
+            self.assertEqual('_md2zhihu_bar.md_61935910', a.branch)
+            self.assertEqual('github.com', a.host)
+            self.assertEqual('drmingdrmer', a.user)
+            self.assertEqual('home', a.repo)
+            self.assertEqual('https://raw.githubusercontent.com/drmingdrmer/home/_md2zhihu_bar.md_61935910/{path}', a.path_pattern)
+
+        # specify branch
+
+        url = 'git@github.com:drmingdrmer/home.git@abc'
+        a = md2zhihu.AssetRepo(url, "foo/bar.md", cdn=False)
+        self.assertEqual(False, a.cdn)
+        self.assertEqual('abc', a.branch)
+        self.assertEqual('github.com', a.host)
+        self.assertEqual('drmingdrmer', a.user)
+        self.assertEqual('home', a.repo)
+        self.assertEqual('https://raw.githubusercontent.com/drmingdrmer/home/abc/{path}', a.path_pattern)
+
+        #  with cdn
+
+        a = md2zhihu.AssetRepo('git@github.com:drmingdrmer/home.git', "foo/bar.md")
+        self.assertEqual(True, a.cdn)
+        self.assertEqual('_md2zhihu_bar.md_61935910', a.branch)
+        self.assertEqual('github.com', a.host)
+        self.assertEqual('drmingdrmer', a.user)
+        self.assertEqual('home', a.repo)
+        self.assertEqual('https://cdn.jsdelivr.net/gh/drmingdrmer/home@_md2zhihu_bar.md_61935910/{path}', a.path_pattern)
 
     def test_md2zhihu(self):
         d = 'test/data/simple'

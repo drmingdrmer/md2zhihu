@@ -415,11 +415,11 @@ class AssetRepo(object):
         }
 
         if branch is None:
-            branch = '_md2zhihu_' + (hashlib.md5(to_bytes(md_path)).hexdigest()[:6])
+            fn = os.path.split(md_path)[-1]
+            branch = '_md2zhihu_' + fn + '_' + (hashlib.md5(to_bytes(md_path)).hexdigest()[:8])
         else:
             # @some_branch
             branch = branch[1:]
-            self.url = self.url[:-len(branch) - 1]
 
         self.url = sshurl_fmt.format(host=host,user=user,repo=repo)
 
