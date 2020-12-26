@@ -22,16 +22,21 @@ md2zhihu your_great_work.md
 
 这个命令将markdown 转换成 知乎 文章编辑器可直接导入的格式, 存储到 `_md2/your_great_work/your_great_work.md`. 转换后的markdown文档不依赖任何本地的图片文件或其他文件.
 
-- `-o` 指定输出目录, 默认为`./_md2/`.
+- `-o` 指定输出目录, 默认为`./_md2/`; 所有文章都会保存在这个目录中,
+    名为`<article_name>` 的md转换之后保存在`_md2/zhihu/<article_name>/` 目录中,
+    包括一个名为`<article_name>.md` 的md文件以及所有使用的图片等在同一个目录下.
 
-- `-r` 指定用于存储图片等资源的git repo url; 要求是对这个repo有push权限.
+    转换后所有输出内容将会push到`-r`指定的git repo中或当前目录下的git的repo中.
 
-    例如要将图片等上传到`github.com/openacid/foo`项目中:
+- `-r` 指定用于存储图片等资源的git repo url和上传的分支名; 要求是对这个repo有push权限.
+
+    例如要将图片等上传到`github.com/openacid/foo`项目中的`bar`分支:
     ```
-    md2zhihu great.md -r https://github.com/openacid/foo.git
+    md2zhihu great.md -r https://github.com/openacid/foo.git@bar
     ```
 
-    默认使用当前目录下的git配置, (作者假设用户用git来保存自己的工作:DDD), md2zhihu 将建立一个随机分支来保存所有图片.
+    默认使用当前目录下的git配置, (作者假设用户用git来保存自己的工作:DDD),
+    如果没有指定分支名, md2zhihu 将建立一个`_md2zhihu`的分支来保存所有图片.
 
 
 ## Requirements

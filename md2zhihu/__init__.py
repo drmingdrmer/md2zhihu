@@ -363,7 +363,7 @@ def extract_jekyll_meta(cont):
 
 class AssetRepo(object):
 
-    def __init__(self, repo_url, md_path, cdn=True):
+    def __init__(self, repo_url, cdn=True):
 
         self.cdn = cdn
 
@@ -411,12 +411,10 @@ class AssetRepo(object):
 
         cdn_patterns = {
             'github.com': 'https://cdn.jsdelivr.net/gh/{user}/{repo}@{branch}/{path}',
-
         }
 
         if branch is None:
-            fn = os.path.split(md_path)[-1]
-            branch = '_md2zhihu_' + fn + '_' + (hashlib.md5(to_bytes(md_path)).hexdigest()[:8])
+            branch = '_md2zhihu'
         else:
             # @some_branch
             branch = branch[1:]
@@ -446,7 +444,7 @@ class Config(object):
         self.platform = platform
         self.md_path = md_path
 
-        self.asset_repo = AssetRepo(asset_repo_url, md_path)
+        self.asset_repo = AssetRepo(asset_repo_url)
 
         fn = os.path.split(self.md_path)[-1]
 
@@ -493,7 +491,7 @@ def main():
                         help='sepcify the git url to store assets.'
                              ' The url should be in a SSH form such as:'
                              ' "git@github.com:openacid/openacid.github.io.git[@branch_name]".'
-                             ' If no branch is specified, a random branch "_md2zhihu_*" is used.'
+                             ' If no branch is specified, a branch "_md2zhihu" is used.'
                              ' It has to be a public repo and you have the write access.'
                              ' "-r ." to use the git in CWD to store the assets.'
                         )
