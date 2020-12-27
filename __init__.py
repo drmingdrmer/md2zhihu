@@ -3,8 +3,8 @@ package-name is utility to create sub process.
 
 """
 
-__version__ = "0.1.10"
-__name__ = "md2zhihu"
+from .version import __version__
+from .version import __name__
 
 from . import md2zhihu
 from . import mistune
