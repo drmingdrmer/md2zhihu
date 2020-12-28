@@ -8,6 +8,11 @@ refs:
 
 # 场景和问题
 
+|       | md源文件 | 导入知乎的效果 |
+|:--    | :-:      | :-:            |
+|使用前 | a        |  c             |
+|转换后 | b        |  d             |
+
 ```mermaid
 graph LR
     A[Hard edge] -->|Link text| B(Round edge)
@@ -15,6 +20,9 @@ graph LR
     C -->|One| D[Result one]
     C -->|Two| E[Result two]
 ```
+
+例如 ` $$ ||X{\vec {\beta }}-Y||^{2} $$ `
+![](assets/slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
 例如 [slim] 这个项目按天统计的 star 数:

@@ -1,7 +1,28 @@
 
 # 场景和问题
 
+<table>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: center;">md源文件</th>
+<th style="text-align: center;">导入知乎的效果</th>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">使用前</td>
+<td style="text-align: center;">a</td>
+<td style="text-align: center;">c</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">转换后</td>
+<td style="text-align: center;">b</td>
+<td style="text-align: center;">d</td>
+</tr>
+</table>
+
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu/zhihu/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
+
+例如 `$$ ||X{\vec {\beta }}-Y||^{2} $$`
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu/zhihu/simple/slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
 例如 [slim](https://github.com/openacid/slim) 这个项目按天统计的 star 数:

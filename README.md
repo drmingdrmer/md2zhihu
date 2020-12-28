@@ -20,7 +20,7 @@ pip install md2zhihu
 md2zhihu your_great_work.md
 ```
 
-这个命令将markdown 转换成 知乎 文章编辑器可直接导入的格式, 存储到 `_md2/your_great_work/your_great_work.md`. 转换后的markdown文档不依赖任何本地的图片文件或其他文件.
+这个命令将markdown 转换成 知乎 文章编辑器可直接导入的格式, 存储到 `_md2/your_great_work/your_great_work.md`, 然后将图片等资源上传到**当前目录所在的git**的`_md2zhihu`分支. 转换后的markdown文档不依赖任何本地的图片文件或其他文件.
 
 - `-o` 指定输出目录, 默认为`./_md2/`; 所有文章都会保存在这个目录中,
     名为`<article_name>` 的md转换之后保存在`_md2/zhihu/<article_name>/` 目录中,
@@ -43,7 +43,8 @@ md2zhihu your_great_work.md
 
 ```
 # For rendering table to html
-brew install pandoc imagemagick
+brew install pandoc imagemagick node
+npm install -g @mermaid-js/mermaid-cli
 ```
 
 ## Features
@@ -63,6 +64,21 @@ brew install pandoc imagemagick
 - 表格: 将markdown表格转换成html 以便支持知乎直接导入.
 
 - 图片: md2zhihu 将图片上传到github, 并将markdown中的图片引用做替换.
+
+- mermaid: 将mermaid语法渲染成图片, 并上传. 例如:
+
+    ```mermaid
+    graph LR
+        A[Hard edge] -->|Link text| B(Round edge)
+        B --> C{Decision}
+        C -->|One| D[Result one]
+        C -->|Two| E[Result two]
+    ```
+
+    转换成:
+
+    ![](assets/mermaid.jpg)
+
 
 ## Limitation
 

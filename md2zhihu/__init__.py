@@ -217,6 +217,8 @@ def join_math_text(nodes):
         n2 = nodes[i + 1]
         if ('children' in n1
                 and 'children' in n2
+                and len(n1['children']) > 0
+                and len(n2['children']) > 0
                 and n1['children'][-1]['type'] == 'text'
                 and n2['children'][0]['type'] == 'text'
                 and '$$' in n1['children'][-1]['text']):
@@ -575,12 +577,15 @@ def main():
     # extract already inlined math
     ast = parse_math(ast)
 
+    #  with open('ooo', 'w') as f:
+    #      f.write(pprint.pformat(ast))
+
     # join cross paragraph math
     join_math_block(ast)
     ast = parse_math(ast)
 
     #  with open('ooo', 'w') as f:
-    #      f.write(pprint.pformat(ast))
+        #  f.write(pprint.pformat(ast))
 
     out = render(ast)
 
