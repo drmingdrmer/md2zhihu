@@ -1,6 +1,8 @@
 
 # 场景和问题
 
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu/zhihu/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
+
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
 例如 [slim](https://github.com/openacid/slim) 这个项目按天统计的 star 数:
 

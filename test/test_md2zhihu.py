@@ -88,14 +88,40 @@ class TestMd2zhihu(unittest.TestCase):
                 continue
             sim = cmp_image(pjoin(d, 'want/zhihu/simple', img),
                             pjoin(d, 'dst/zhihu/simple', img))
-            self.assertGreater(sim, 0.9)
+            self.assertGreater(sim, 0.8)
 
-def cmp_image(a, b):
+        for img in os.listdir(pjoin(d, 'dst/zhihu/simple')):
+            if img.split('.')[-1] not in ('jpg', 'png'):
+                continue
+            sim = cmp_image(pjoin(d, 'want/zhihu/simple', img),
+                            pjoin(d, 'dst/zhihu/simple', img))
+            self.assertGreater(sim, 0.8)
 
-    img1 = skimage.img_as_float(skimage.io.imread(a))
-    img2 = skimage.img_as_float(skimage.io.imread(b))
 
-    p = ssim(img1, img1, multichannel=True)
+def cmp_image(want, got):
+
+    da = skimage.io.imread(want)
+    db = skimage.io.imread(got)
+    if da.shape != db.shape:
+        k3proc.command_ex(
+            'convert',
+            # height then width
+            '-resize', '%dx%d!' % (da.shape[1], da.shape[0]),
+            got, got
+        )
+        db = skimage.io.imread(got)
+
+    img1 = skimage.img_as_float(da)
+    img2 = skimage.img_as_float(db)
+
+    print("img1:-------------", want)
+    print(img1.shape)
+    print(img1)
+    print("img2:-------------", got)
+    print(img2.shape)
+    print(img2)
+
+    p = ssim(img1, img2, multichannel=True)
     return p
 
 

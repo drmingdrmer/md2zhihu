@@ -8,6 +8,14 @@ refs:
 
 # 场景和问题
 
+```mermaid
+graph LR
+    A[Hard edge] -->|Link text| B(Round edge)
+    B --> C{Decision}
+    C -->|One| D[Result one]
+    C -->|Two| E[Result two]
+```
+
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
 例如 [slim] 这个项目按天统计的 star 数:
 

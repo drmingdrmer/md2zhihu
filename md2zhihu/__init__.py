@@ -262,6 +262,39 @@ def extract_math(n):
     return children
 
 
+def render_mermaid(nodes, conf):
+    for i, n in enumerate(nodes):
+
+        if 'children' in n:
+            render_mermaid(n['children'], conf)
+
+        if n['type'] != 'block_code':
+            continue
+
+        if n['info'] != 'mermaid':
+            continue
+
+        #  strip last \n
+        d = k3down2.convert('mermaid', n['text'][:-1], 'jpg')
+        fn = asset_fn(n['text'], 'jpg')
+        fwrite(conf.output_dir, fn, d)
+
+        nodes[i] = {
+                'type': 'paragraph',
+                'children': [{
+                        'type': 'image',
+                        'src': conf.img_url(fn),
+                        'title':None,
+                        'alt': '',
+                }]
+        }
+
+def asset_fn(text, suffix):
+    textmd5 = hashlib.md5(to_bytes(text)).hexdigest()
+    escaped = re.sub(r'[^a-zA-Z0-9_\-=]+', '', text)
+    fn = escaped[:32] + '-' + textmd5[:16] + '.' + suffix
+    return fn
+
 def import_img(nodes, conf):
     for n in nodes:
 
@@ -359,6 +392,13 @@ def extract_jekyll_meta(cont):
         meta = yaml.safe_load(meta)
 
     return cont, meta
+
+
+def fwrite(*p):
+    cont = p[-1]
+    p = p[:-1]
+    with open(os.path.join(*p), 'wb') as f:
+        f.write(cont)
 
 
 class AssetRepo(object):
@@ -529,6 +569,7 @@ def main():
 
     replace_ref_with_def(ast, refs)
     import_img(ast, conf)
+    render_mermaid(ast, conf)
     render_table(ast)
 
     # extract already inlined math
