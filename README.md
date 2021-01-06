@@ -79,6 +79,13 @@ npm install -g @mermaid-js/mermaid-cli
 
     ![](assets/mermaid.jpg)
 
+-   链接列表: 将 markdown 的 reference-style link 转成链接列表:
+
+    | 源文件 | 转换后 | 导入后 |
+    | :-: | :-: | :-: |
+    | ![](assets/ref-list/src.png) | ![](assets/ref-list/dst.png) | ![](assets/ref-list/imported.png) |
+
+
 
 ## Limitation
 

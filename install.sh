@@ -1,5 +1,7 @@
 #!/bin/sh
 
+pip uninstall md2zhihu
+
 cp setup.py ..
 (
 cd ..

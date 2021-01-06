@@ -342,15 +342,29 @@ def render_table(nodes):
 
 
 def build_refs(meta):
-    if meta is not None and 'refs' in meta:
+
+    dic = {}
+
+    if meta is None:
+        return dic
+
+    if 'refs' in meta:
         refs = meta['refs']
 
-        dic = {}
         for r in refs:
             dic.update(r)
 
-        return dic
-    return {}
+    platform = 'zhihu'
+
+    if 'platform_refs' in meta:
+        refs = meta['platform_refs']
+        if platform in refs:
+            refs = refs[platform]
+
+            for r in refs:
+                dic.update(r)
+
+    return dic
 
 
 def replace_ref_with_def(nodes, refs):
@@ -369,6 +383,44 @@ def replace_ref_with_def(nodes, refs):
                     r = refs[txt]
                     n['link'] = r.split()[0]
                     n['children'] = [{'type': 'text', 'text': txt}]
+
+def new_parser():
+    rdr = mistune.create_markdown(
+        escape=False,
+        renderer='ast',
+        plugins=['strikethrough', 'footnotes', 'table'],
+    )
+
+    return rdr
+
+
+def fix_tables(nodes):
+    for n in nodes:
+        if 'children' in n:
+            fix_tables(n['children'])
+
+        if n['type'] == 'paragraph':
+            children = n['children']
+            
+            if len(children) == 0:
+                continue
+
+            c0 = children[0]
+            if c0['type'] != 'text':
+                continue
+
+            txt = c0['text']
+
+            table_reg = r' {0,3}\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*'
+
+            match = re.match(table_reg, txt)
+            if match:
+                partialmd = render(children)
+                partialmd = ''.join(partialmd)
+                print(partialmd)
+                parser = new_parser()
+                new_children = parser(partialmd)
+                n['children'] = new_children
 
 
 def extract_ref_definitions(cont):
@@ -394,6 +446,23 @@ def extract_jekyll_meta(cont):
         meta = yaml.safe_load(meta)
 
     return cont, meta
+
+
+def render_ref_list(refs):
+
+    ref_lines = ["", "Reference:", ""]
+    for _id, d in refs.items():
+        #  d is in form "<url> <alt>"
+        url = d.split()[0]
+
+        ref_lines.append(
+                '- {id} : [{url}]({url})'.format(
+                        id=_id, url=url
+                )
+        )
+        ref_lines.append('')
+
+    return ref_lines
 
 
 def fwrite(*p):
@@ -562,12 +631,16 @@ def main():
     refs = build_refs(meta)
     refs.update(article_refs)
 
-    rdr = mistune.create_markdown(
-        escape=False,
-        renderer='ast',
-        plugins=['strikethrough', 'footnotes', 'table'],
-    )
+    rdr = new_parser()
     ast = rdr(cont)
+
+    with open('ast', 'w') as f:
+        f.write(pprint.pformat(ast))
+
+    fix_tables(ast)
+
+    with open('fixed-table', 'w') as f:
+        f.write(pprint.pformat(ast))
 
     replace_ref_with_def(ast, refs)
     import_img(ast, conf)
@@ -588,6 +661,11 @@ def main():
     #      f.write(pprint.pformat(ast))
 
     out = render(ast)
+
+    out.append('')
+
+    ref_list = render_ref_list(refs)
+    out.extend(ref_list)
 
     out.append('')
 

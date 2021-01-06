@@ -158,6 +158,42 @@ formula in list:
     当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么
     Q' = M(abcd) ∪ {ab, bc, ca};
 
+table in list:
+
+-   链接列表:
+
+    <table>
+    <tr class="header">
+    <th style="text-align: center;">源文件</th>
+    <th style="text-align: center;">转换后</th>
+    <th style="text-align: center;">导入后</th>
+    </tr>
+    <tr class="odd">
+    <td style="text-align: center;"><img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu/zhihu/simple/slim.jpg" /></td>
+    <td style="text-align: center;">fo</td>
+    <td style="text-align: center;">bar</td>
+    </tr>
+    <tr class="even">
+    <td style="text-align: center;">a</td>
+    <td style="text-align: center;">b</td>
+    <td style="text-align: center;">c</td>
+    </tr>
+    </table>
+
+
+
+Reference:
+
+- slim : [https://github.com/openacid/slim](https://github.com/openacid/slim)
+
+- slimarray : [https://github.com/openacid/slimarray](https://github.com/openacid/slimarray)
+
+- vlink : [https://vlink.zhihu](https://vlink.zhihu)
+
+- text-ref : [https://foo.com](https://foo.com)
+
 
 [slim]: https://github.com/openacid/slim "slim"
 [slimarray]: https://github.com/openacid/slimarray "slimarray"
+[vlink]: https://vlink.zhihu "vlink"
+[text-ref]:  https://foo.com

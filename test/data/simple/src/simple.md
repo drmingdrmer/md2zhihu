@@ -3,6 +3,11 @@
 refs:
     - "slim":      https://github.com/openacid/slim "slim"
     - "slimarray": https://github.com/openacid/slimarray "slimarray"
+    - "vlink": https://vlink "vlink"
+
+platform_refs:
+    zhihu:
+        - "vlink": https://vlink.zhihu "vlink"
 
 ---
 
@@ -150,3 +155,14 @@ formula in list:
 
     当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么
     Q' = M(abcd) ∪ {ab, bc, ca};
+
+table in list:
+
+-   链接列表:
+
+    | 源文件 | 转换后 | 导入后 |
+    | :-: | :-: | :-: |
+    | ![](assets/slim.jpg) | fo | bar |
+    | a | b | c |
+
+[text-ref]: https://foo.com
