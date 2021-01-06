@@ -577,15 +577,15 @@ def main():
     # extract already inlined math
     ast = parse_math(ast)
 
-    #  with open('ooo', 'w') as f:
+    #  with open('after-math-1', 'w') as f:
     #      f.write(pprint.pformat(ast))
 
     # join cross paragraph math
     join_math_block(ast)
     ast = parse_math(ast)
 
-    #  with open('ooo', 'w') as f:
-        #  f.write(pprint.pformat(ast))
+    #  with open('after-math-2', 'w') as f:
+    #      f.write(pprint.pformat(ast))
 
     out = render(ast)
 

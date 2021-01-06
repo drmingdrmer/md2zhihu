@@ -134,6 +134,30 @@ func (sm *SlimArray) Get(i int32) uint32 {
 }
 ```
 
+formula in list:
+
+-   对奇数节点, n = 2k+1, 还是沿用 **多数派** 节点的集合, 大部分场合都可以很好的工作:
+
+    <img src="https://www.zhihu.com/equation?tex=Q_%7Bodd%7D%28C%29%20%3D%20M%28C%29%20%3D%20%5C%7B%20q%20%3A%20q%20%5Csubseteq%20C%2C%20%20%7Cq%7C%20%5Cgt%20%7CC%7C/2%20%5C%7D%5C%5C" alt="Q_{odd}(C) = M(C) = \{ q : q \subseteq C,  |q| \gt |C|/2 \}\\" class="ee_img tr_noresize" eeimg="1">
+
+-   对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,
+    我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,
+
+    以本文的场景为例,
+
+    -   可以设置 Q' = M(abcd) ∪ {ab, bc, ca}, Q'中任意2个元素都有交集;
+    -   也可以是 Q' = M(abcd) ∪ {bc, cd, bd};
+
+    要找到一个更好的偶节点的 quorum 集合, 一个方法是可以把偶数节点的集群看做是一个奇数节点集群加上一个节点x:
+    <img src="https://www.zhihu.com/equation?tex=%20D%20%3D%20C%20%5Ccup%20%5C%7Bx%5C%7D%20" alt=" D = C \cup \{x\} " class="ee_img tr_noresize" eeimg="1">
+
+    于是偶数节点的 quorum 集合就可以是 M(D) 的一个扩张:
+
+    <img src="https://www.zhihu.com/equation?tex=Q_%7Beven%7D%28D%29_x%20%3D%20M%28D%29%20%5Ccup%20M%28D%20%5Csetminus%20%5C%7Bx%5C%7D%29%5C%5C" alt="Q_{even}(D)_x = M(D) \cup M(D \setminus \{x\})\\" class="ee_img tr_noresize" eeimg="1">
+
+    当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么
+    Q' = M(abcd) ∪ {ab, bc, ca};
+
 
 [slim]: https://github.com/openacid/slim "slim"
 [slimarray]: https://github.com/openacid/slimarray "slimarray"

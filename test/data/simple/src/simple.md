@@ -122,3 +122,31 @@ func (sm *SlimArray) Get(i int32) uint32 {
     return uint32(v + int64(d&bitmap.Mask[deltaWidth]))
 }
 ```
+
+formula in list:
+
+-   对奇数节点, n = 2k+1, 还是沿用 **多数派** 节点的集合, 大部分场合都可以很好的工作:
+
+    $$
+    Q_{odd}(C) = M(C) = \{ q : q \subseteq C,  |q| > |C|/2 \}
+    $$
+
+
+-   对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,
+    我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,
+
+    以本文的场景为例,
+    -   可以设置 Q' = M(abcd) ∪ {ab, bc, ca}, Q'中任意2个元素都有交集;
+    -   也可以是 Q' = M(abcd) ∪ {bc, cd, bd};
+
+    要找到一个更好的偶节点的 quorum 集合, 一个方法是可以把偶数节点的集群看做是一个奇数节点集群加上一个节点x:
+    $$ D = C \cup \{x\} $$
+
+    于是偶数节点的 quorum 集合就可以是 M(D) 的一个扩张:
+
+    $$
+    Q_{even}(D)_x = M(D) \cup M(D \setminus \{x\})
+    $$
+
+    当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么
+    Q' = M(abcd) ∪ {ab, bc, ca};
