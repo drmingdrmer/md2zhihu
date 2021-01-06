@@ -2,7 +2,7 @@ import re
 from .scanner import ScannerParser, escape_url, unikey
 
 #  PUNCTUATION = r'''\\!"#$%&'()*+,./:;<=>?@\[\]^`{}|_~-'''
-PUNCTUATION = r'''!"#$%&'()*+,./:;<=>?@\[\]^`{}|_~-'''
+PUNCTUATION = r'''!"#$%&'()*+,./:;<=>?@\[\]^`|_~-'''
 ESCAPE = r'\\[' + PUNCTUATION + ']'
 HTML_TAGNAME = r'[A-Za-z][A-Za-z0-9-]*'
 HTML_ATTRIBUTES = (
