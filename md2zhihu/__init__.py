@@ -58,11 +58,15 @@ def code_to_html(n, ctx=None):
     txt = code_join(n)
     return k3down2.convert('code', txt, 'html').split('\n')
 
-def code_to_jpg(conf, n, width, ctx=None):
+def code_to_jpg(conf, n, width=None, ctx=None):
     lang = n['info'] or ''
     txt = code_join(n)
 
-    d = k3down2.convert('code', txt, 'jpg', opt={'html': {'width':width}})
+    w = width
+    if w is None:
+        w = conf.code_width
+
+    d = k3down2.convert('code', txt, 'jpg', opt={'html': {'width':w}})
     fn = asset_fn(n['text'], 'jpg')
     fwrite(conf.output_dir, fn, d)
     return [r'<img src="{}" />'.format(conf.img_url(fn)), '']
@@ -133,9 +137,9 @@ def wechat_specific(conf, n, ctx=None):
             return code_mermaid_to_jpg(conf, n, ctx=ctx)
 
         if lang == '':
-            return code_to_jpg(conf, n, 1000, ctx=ctx)
+            return code_to_jpg(conf, n, ctx=ctx)
         else:
-            return code_to_jpg(conf, n, 600, ctx=ctx)
+            return code_to_jpg(conf, n, width=600, ctx=ctx)
 
     return None
 
@@ -144,7 +148,7 @@ class MDRender(object):
 
     # platform specific renderer
     platforms = {
-            'zhihu': zhihu_specific, 
+            'zhihu': zhihu_specific,
             #  {
             #          'math_block': math_block_to_imgtag,
             #          'math_inline': math_inline_to_imgtag,
@@ -654,12 +658,14 @@ class AssetRepo(object):
 
 class Config(object):
 
-    def __init__(self, output_base, platform, md_path, asset_repo_url):
+    def __init__(self, output_base, platform, md_path, asset_repo_url,
+                 code_width=1000):
         self.output_base = output_base
         self.platform = platform
         self.md_path = md_path
 
         self.asset_repo = AssetRepo(asset_repo_url)
+        self.code_width = code_width
 
         fn = os.path.split(self.md_path)[-1]
 
@@ -725,6 +731,13 @@ def main():
                         ' default: False'
     )
 
+    parser.add_argument('--code-width', action='store',
+                        required=False,
+                        default=1000,
+                        help='specifies code image width.'
+                        ' default: 1000'
+    )
+
     args = parser.parse_args()
     msg("Build markdown: ", darkyellow(args.md_path), " into ", darkyellow(args.output))
     msg("Assets will be stored in ", darkyellow(args.repo))
@@ -737,6 +750,7 @@ def main():
         args.platform,
         path,
         args.repo,
+        code_width=args.code_width,
     )
 
     os.makedirs(conf.output_dir, exist_ok=True)
