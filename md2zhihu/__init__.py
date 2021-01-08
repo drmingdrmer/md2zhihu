@@ -29,6 +29,15 @@ def indent(line):
     return '    ' + line
 
 
+def escape(s, quote=True):
+    s = s.replace("&", "&amp;")
+    s = s.replace("<", "&lt;")
+    s = s.replace(">", "&gt;")
+    if quote:
+        s = s.replace('"', "&quot;")
+    return s
+
+
 def add_paragraph_end(lines):
     #  add blank line to a paragraph block
     if lines[-1] == '':
@@ -87,6 +96,9 @@ def math_block_to_imgtag(n, ctx=None):
 def math_inline_to_imgtag(n, ctx=None):
     return [k3down2.tex_to_zhihu(n['text'], False)]
 
+def math_inline_to_plaintext(n, ctx=None):
+    return [escape(k3down2.convert('tex_inline', n['text'], 'plain'))]
+
 def table_to_barehtml(n, ctx=None):
 
     # create a pure markdown render to build markdown source
@@ -99,7 +111,21 @@ def table_to_barehtml(n, ctx=None):
     return [tablehtml, '']
 
 
-def zhihu_specific(conf, n, ctx=None):
+def table_to_jpg(mdrender, conf, n, ctx=None):
+
+    mdr = MDRender(conf, platform='')
+    md = mdr.render_node(n)
+    md = '\n'.join(md)
+
+    tablehtml = k3down2.md_to_html(md)
+
+    d = k3down2.convert('html', tablehtml, 'jpg')
+    fn = asset_fn(md, 'jpg')
+    fwrite(conf.output_dir, fn, d)
+
+    return [r'![]({})'.format(conf.img_url(fn)), '']
+
+def zhihu_specific(mdrender, conf, n, ctx=None):
     typ = n['type']
 
     if typ == 'math_block':
@@ -119,7 +145,7 @@ def zhihu_specific(conf, n, ctx=None):
     return None
 
 
-def wechat_specific(conf, n, ctx=None):
+def wechat_specific(mdrender, conf, n, ctx=None):
     typ = n['type']
 
     if typ == 'math_block':
@@ -143,25 +169,60 @@ def wechat_specific(conf, n, ctx=None):
 
     return None
 
+def weibo_specific(mdrender, conf, n, ctx=None):
+    typ = n['type']
+
+    if typ == 'math_block':
+        return math_block_to_imgtag(n, ctx=ctx)
+
+    if typ == 'math_inline':
+        return math_inline_to_plaintext(n, ctx=ctx)
+
+    if typ == 'table':
+        return table_to_jpg(mdrender, conf, n, ctx=ctx)
+
+    if typ == 'codespan':
+        return [escape(n['text'])]
+
+    #  weibo does not support pasting <p> in <li>
+
+    if typ == 'list':
+        lines = []
+        lines.extend(mdrender.render(n['children']))
+        lines.append('')
+        return lines
+
+    if typ == 'list_item':
+        lines = []
+        lines.extend(mdrender.render(n['children']))
+        lines.append('')
+        return lines
+
+    if typ == 'block_quote':
+        lines = mdrender.render(n['children'])
+        lines = strip_paragraph_end(lines)
+        return lines
+
+    if typ == 'block_code':
+        lang = n['info'] or ''
+        if lang == 'mermaid':
+            return code_mermaid_to_jpg(conf, n, ctx=ctx)
+
+        if lang == '':
+            return code_to_jpg(conf, n, ctx=ctx)
+        else:
+            return code_to_jpg(conf, n, width=600, ctx=ctx)
+
+    return None
+
 
 class MDRender(object):
 
     # platform specific renderer
     platforms = {
             'zhihu': zhihu_specific,
-            #  {
-            #          'math_block': math_block_to_imgtag,
-            #          'math_inline': math_inline_to_imgtag,
-            #          'table': table_to_barehtml,
-            #  },
             'wechat':wechat_specific,
-            #  {
-            #          'math_block': math_block_to_imgtag,
-            #          'math_inline': math_inline_to_imgtag,
-            #          'table': table_to_barehtml,
-
-            #          'block_code': code_to_html,
-            #  },
+            'weibo':weibo_specific,
     }
 
     def __init__(self, conf, platform='zhihu'):
@@ -176,7 +237,7 @@ class MDRender(object):
 
         #  customized renderers:
 
-        lines = self.handlers(self.conf, n, ctx=ctx)
+        lines = self.handlers(self, self.conf, n, ctx=ctx)
         if lines is not None:
             return lines
         else:
@@ -556,7 +617,7 @@ def extract_jekyll_meta(cont):
     return cont, meta, meta_text
 
 
-def render_ref_list(refs):
+def render_ref_list(refs, platform):
 
     ref_lines = ["", "Reference:", ""]
     for _id, d in refs.items():
@@ -568,7 +629,10 @@ def render_ref_list(refs):
                         id=_id, url=url
                 )
         )
-        ref_lines.append('')
+
+        #  disable paragraph list in weibo
+        if platform != 'weibo':
+            ref_lines.append('')
 
     return ref_lines
 
@@ -800,7 +864,7 @@ def main():
     ast = parse_math(ast)
 
     #  with open('after-math-2', 'w') as f:
-    #      f.write(pprint.pformat(ast))
+        #  f.write(pprint.pformat(ast))
 
     out = mdr.render(ast)
 
@@ -809,7 +873,7 @@ def main():
 
     out.append('')
 
-    ref_list = render_ref_list(refs)
+    ref_list = render_ref_list(refs, platform)
     out.extend(ref_list)
 
     out.append('')

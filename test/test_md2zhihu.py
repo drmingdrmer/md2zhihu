@@ -101,11 +101,12 @@ class TestMd2zhihu(unittest.TestCase):
         rm(d, 'specified.md')
 
 
-    def test_md2zhihu(self):
+    def test_platforms(self):
         for platform_type, args in (
                 ('zhihu', []),
                 ('zhihu-meta', ['--keep-meta']),
                 ('wechat', ['-p', 'wechat']),
+                ('weibo', ['-p', 'weibo']),
         ):
 
             segs = platform_type.split('-') + ['']
@@ -147,14 +148,14 @@ class TestMd2zhihu(unittest.TestCase):
                     continue
                 sim = cmp_image(pjoin(d, wantdir, img),
                                 pjoin(d, gotdir, img))
-                self.assertGreater(sim, 0.8)
+                self.assertGreater(sim, 0.7)
 
             for img in os.listdir(pjoin(d, gotdir)):
                 if img.split('.')[-1] not in ('jpg', 'png'):
                     continue
                 sim = cmp_image(pjoin(d, wantdir, img),
                                 pjoin(d, gotdir, img))
-                self.assertGreater(sim, 0.8)
+                self.assertGreater(sim, 0.7)
 
 
 def cmp_image(want, got):
