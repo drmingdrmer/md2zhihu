@@ -64,38 +64,54 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertEqual('https://cdn.jsdelivr.net/gh/drmingdrmer/home@_md2zhihu/{path}', a.path_pattern)
 
     def test_md2zhihu(self):
-        d = 'test/data/simple'
-        code, out, err = k3proc.command(
-                "md2zhihu",
-                "src/simple.md",
-                "-o", "dst",
-                "-r", "git@gitee.com:drdrxp/bed.git",
-                cwd=d
-        )
+        for platform, args in (
+                ('zhihu', []),
+                ('wechat', ['-p', 'wechat']),
+        ):
 
-        #  can not push on CI
-        _ = code
-        _ = out
-        _ = err
+            d = 'test/data/{}'.format(platform)
+            code, out, err = k3proc.command(
+                    "md2zhihu",
+                    "src/simple.md",
+                    "-o", "dst",
+                    "-r", "git@gitee.com:drdrxp/bed.git",
+                    *args,
+                    cwd=d
+            )
 
-        gotmd = fread(d, 'dst/zhihu/simple/simple.md')
-        wantmd = fread(d, 'want/zhihu/simple/simple.md')
-        wantmd = normalize_pandoc_output(wantmd, gotmd)
-        self.assertEqual(wantmd.strip(), gotmd.strip())
+            #  can not push on CI
+            _ = code
+            _ = out
+            _ = err
 
-        for img in os.listdir(pjoin(d, 'want/zhihu/simple')):
-            if img.split('.')[-1] not in ('jpg', 'png'):
-                continue
-            sim = cmp_image(pjoin(d, 'want/zhihu/simple', img),
-                            pjoin(d, 'dst/zhihu/simple', img))
-            self.assertGreater(sim, 0.8)
+            print(out)
+            print(err)
 
-        for img in os.listdir(pjoin(d, 'dst/zhihu/simple')):
-            if img.split('.')[-1] not in ('jpg', 'png'):
-                continue
-            sim = cmp_image(pjoin(d, 'want/zhihu/simple', img),
-                            pjoin(d, 'dst/zhihu/simple', img))
-            self.assertGreater(sim, 0.8)
+            if not is_ci():
+                self.assertEqual(0, code)
+
+            gotdir = 'dst/{}/simple'.format(platform)
+            wantdir = 'want/{}/simple'.format(platform)
+
+
+            gotmd = fread(d, gotdir, 'simple.md')
+            wantmd = fread(d, wantdir, 'simple.md')
+            wantmd = normalize_pandoc_output(wantmd, gotmd)
+            self.assertEqual(wantmd.strip(), gotmd.strip())
+
+            for img in os.listdir(pjoin(d, wantdir)):
+                if img.split('.')[-1] not in ('jpg', 'png'):
+                    continue
+                sim = cmp_image(pjoin(d, wantdir, img),
+                                pjoin(d, gotdir, img))
+                self.assertGreater(sim, 0.8)
+
+            for img in os.listdir(pjoin(d, gotdir)):
+                if img.split('.')[-1] not in ('jpg', 'png'):
+                    continue
+                sim = cmp_image(pjoin(d, wantdir, img),
+                                pjoin(d, gotdir, img))
+                self.assertGreater(sim, 0.8)
 
 
 def cmp_image(want, got):
@@ -116,10 +132,8 @@ def cmp_image(want, got):
 
     print("img1:-------------", want)
     print(img1.shape)
-    print(img1)
     print("img2:-------------", got)
     print(img2.shape)
-    print(img2)
 
     p = ssim(img1, img2, multichannel=True)
     return p

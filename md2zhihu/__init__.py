@@ -46,126 +46,294 @@ def strip_paragraph_end(lines):
     return lines
 
 
-def render_node(n, ctx=None):
+def code_join(n):
+    lang = n['info'] or ''
+    txt = '\n'.join(['```' + lang]
+                    + n['text'][:-1].split('\n')
+                    + ['```', ''])
+    return txt
+
+def code_to_html(n, ctx=None):
+    lang = n['info'] or ''
+    txt = code_join(n)
+    return k3down2.convert('code', txt, 'html').split('\n')
+
+def code_to_jpg(conf, n, width, ctx=None):
+    lang = n['info'] or ''
+    txt = code_join(n)
+
+    d = k3down2.convert('code', txt, 'jpg', opt={'html': {'width':width}})
+    fn = asset_fn(n['text'], 'jpg')
+    fwrite(conf.output_dir, fn, d)
+    return [r'<img src="{}" />'.format(conf.img_url(fn)), '']
+
+def code_mermaid_to_jpg(conf, n, ctx=None):
+
+    #  strip last \n
+    d = k3down2.convert('mermaid', n['text'][:-1], 'jpg')
+    fn = asset_fn(n['text'], 'jpg')
+    fwrite(conf.output_dir, fn, d)
+
+    return [r'![]({})'.format(conf.img_url(fn)), '']
+
+
+def math_block_to_imgtag(n, ctx=None):
+    return [k3down2.tex_to_zhihu(n['text'], True)]
+
+def math_inline_to_imgtag(n, ctx=None):
+    return [k3down2.tex_to_zhihu(n['text'], False)]
+
+def table_to_barehtml(n, ctx=None):
+
+    # create a pure markdown render to build markdown source
+    mdr = MDRender(None, platform='')
+
+    md = mdr.render_node(n)
+    md = '\n'.join(md)
+
+    tablehtml = k3down2.mdtable_to_barehtml(md)
+    return [tablehtml, '']
+
+
+def zhihu_specific(conf, n, ctx=None):
     typ = n['type']
 
-    if typ == 'thematic_break':
-        return ['---', '']
-
-    if typ == 'paragraph':
-        lines = render(n['children'])
-        return ''.join(lines).split('\n') + ['']
-
-    if typ == 'text':
-        return [n['text']]
-
-    if typ == 'strong':
-        lines = render(n['children'])
-        lines[0] = '**' + lines[0]
-        lines[-1] = lines[-1] + '**'
-        return lines
-
     if typ == 'math_block':
-        return [k3down2.tex_to_zhihu(n['text'], True)]
+        return math_block_to_imgtag(n, ctx=ctx)
 
     if typ == 'math_inline':
-        return [k3down2.tex_to_zhihu(n['text'], False)]
+        return math_inline_to_imgtag(n, ctx=ctx)
 
     if typ == 'table':
-        return render(n['children']) + ['']
-
-    if typ == 'table_head':
-        alignmap = {
-            'left': ':--',
-            'right': '--:',
-            'center': ':-:',
-            None: '---',
-        }
-        lines = render(n['children'])
-        aligns = [alignmap[x['align']] for x in n['children']]
-        aligns = '| ' + ' | '.join(aligns) + ' |'
-        return ['| ' + ' | '.join(lines) + ' |', aligns]
-
-    if typ == 'table_cell':
-        lines = render(n['children'])
-        return [''.join(lines)]
-
-    if typ == 'table_body':
-        return render(n['children'])
-
-    if typ == 'table_row':
-        lines = render(n['children'])
-        return ['| ' + ' | '.join(lines) + ' |']
+        return table_to_barehtml(n, ctx=ctx)
 
     if typ == 'block_code':
-        # remove the last \n
-        return ['```' + (n['info'] or '')] + n['text'][:-1].split('\n') + ['```', '']
+        lang = n['info'] or ''
+        if lang == 'mermaid':
+            return code_mermaid_to_jpg(conf, n, ctx=ctx)
 
-    if typ == 'codespan':
-        return [('`' + n['text'] + '`')]
+    return None
 
-    if typ == 'image':
-        if n['title'] is None:
-            return ['![{alt}]({src})'.format(**n)]
+
+def wechat_specific(conf, n, ctx=None):
+    typ = n['type']
+
+    if typ == 'math_block':
+        return math_block_to_imgtag(n, ctx=ctx)
+
+    if typ == 'math_inline':
+        return math_inline_to_imgtag(n, ctx=ctx)
+
+    if typ == 'table':
+        return table_to_barehtml(n, ctx=ctx)
+
+    if typ == 'block_code':
+        lang = n['info'] or ''
+        if lang == 'mermaid':
+            return code_mermaid_to_jpg(conf, n, ctx=ctx)
+
+        if lang == '':
+            return code_to_jpg(conf, n, 1000, ctx=ctx)
         else:
-            return ['![{alt}]({src} {title})'.format(**n)]
+            return code_to_jpg(conf, n, 600, ctx=ctx)
 
-    if typ == 'list':
-        head = '-   '
-        if n['ordered']:
-            head = '1.  '
-
-        lines = render(n['children'], head)
-        return add_paragraph_end(lines)
-
-    if typ == 'list_item':
-        lines = render(n['children'])
-        # ctx is head passed from list
-        lines[0] = ctx + lines[0]
-        lines = lines[0:1] + [indent(x) for x in lines[1:]]
-        return lines
-
-    if typ == 'block_text':
-        lines = render(n['children'])
-        return ''.join(lines).split('\n')
-
-    if typ == 'block_quote':
-        lines = render(n['children'])
-        lines = strip_paragraph_end(lines)
-        lines = ['> ' + x for x in lines]
-        return lines + ['']
-
-    if typ == 'newline':
-        return ['']
-
-    if typ == 'block_html':
-        return add_paragraph_end([n['text']])
-
-    if typ == 'link':
-        #  TODO title
-        lines = render(n['children'])
-        lines[0] = '[' + lines[0]
-        lines[-1] = lines[-1] + '](' + n['link'] + ')'
-
-        return lines
-
-    if typ == 'heading':
-        lines = render(n['children'])
-        lines[0] = '#' * n['level'] + ' ' + lines[0]
-        return lines + ['']
-
-    print(typ, n.keys())
-    pprint.pprint(n)
-    return ['***:' + typ]
+    return None
 
 
-def render(nodes, ctx=None):
-    rst = []
+class MDRender(object):
+
+    # platform specific renderer
+    platforms = {
+            'zhihu': zhihu_specific, 
+            #  {
+            #          'math_block': math_block_to_imgtag,
+            #          'math_inline': math_inline_to_imgtag,
+            #          'table': table_to_barehtml,
+            #  },
+            'wechat':wechat_specific,
+            #  {
+            #          'math_block': math_block_to_imgtag,
+            #          'math_inline': math_inline_to_imgtag,
+            #          'table': table_to_barehtml,
+
+            #          'block_code': code_to_html,
+            #  },
+    }
+
+    def __init__(self, conf, platform='zhihu'):
+        self.conf = conf
+        self.handlers = self.platforms.get(platform, lambda *x, **y:None)
+
+    def render_node(self, n, ctx=None):
+        """
+        Render a AST node into lines of text
+        """
+        typ = n['type']
+
+        #  customized renderers:
+
+        lines = self.handlers(self.conf, n, ctx=ctx)
+        if lines is not None:
+            return lines
+        else:
+            # can not render, continue with default handler
+            pass
+
+        # default renderers:
+
+        if typ == 'thematic_break':
+            return ['---', '']
+
+        if typ == 'paragraph':
+            lines = self.render(n['children'])
+            return ''.join(lines).split('\n') + ['']
+
+        if typ == 'text':
+            return [n['text']]
+
+        if typ == 'strong':
+            lines = self.render(n['children'])
+            lines[0] = '**' + lines[0]
+            lines[-1] = lines[-1] + '**'
+            return lines
+
+        if typ == 'math_block':
+            return ['$$', n['text'], '$$']
+            #  return [k3down2.tex_to_zhihu(n['text'], True)]
+
+        if typ == 'math_inline':
+            return ['$$ ' + n['text'].strip() + ' $$']
+            #  return [k3down2.tex_to_zhihu(n['text'], False)]
+
+        if typ == 'table':
+            return self.render(n['children']) + ['']
+
+        if typ == 'table_head':
+            alignmap = {
+                'left': ':--',
+                'right': '--:',
+                'center': ':-:',
+                None: '---',
+            }
+            lines = self.render(n['children'])
+            aligns = [alignmap[x['align']] for x in n['children']]
+            aligns = '| ' + ' | '.join(aligns) + ' |'
+            return ['| ' + ' | '.join(lines) + ' |', aligns]
+
+        if typ == 'table_cell':
+            lines = self.render(n['children'])
+            return [''.join(lines)]
+
+        if typ == 'table_body':
+            return self.render(n['children'])
+
+        if typ == 'table_row':
+            lines = self.render(n['children'])
+            return ['| ' + ' | '.join(lines) + ' |']
+
+        if typ == 'block_code':
+            # remove the last \n
+            return ['```' + (n['info'] or '')] + n['text'][:-1].split('\n') + ['```', '']
+
+        if typ == 'codespan':
+            return [('`' + n['text'] + '`')]
+
+        if typ == 'image':
+            if n['title'] is None:
+                return ['![{alt}]({src})'.format(**n)]
+            else:
+                return ['![{alt}]({src} {title})'.format(**n)]
+
+        if typ == 'list':
+            head = '-   '
+            if n['ordered']:
+                head = '1.  '
+
+            lines = self.render(n['children'], head)
+            return add_paragraph_end(lines)
+
+        if typ == 'list_item':
+            lines = self.render(n['children'])
+            # ctx is head passed from list
+            lines[0] = ctx + lines[0]
+            lines = lines[0:1] + [indent(x) for x in lines[1:]]
+            return lines
+
+        if typ == 'block_text':
+            lines = self.render(n['children'])
+            return ''.join(lines).split('\n')
+
+        if typ == 'block_quote':
+            lines = self.render(n['children'])
+            lines = strip_paragraph_end(lines)
+            lines = ['> ' + x for x in lines]
+            return lines + ['']
+
+        if typ == 'newline':
+            return ['']
+
+        if typ == 'block_html':
+            return add_paragraph_end([n['text']])
+
+        if typ == 'link':
+            #  TODO title
+            lines = self.render(n['children'])
+            lines[0] = '[' + lines[0]
+            lines[-1] = lines[-1] + '](' + n['link'] + ')'
+
+            return lines
+
+        if typ == 'heading':
+            lines = self.render(n['children'])
+            lines[0] = '#' * n['level'] + ' ' + lines[0]
+            return lines + ['']
+
+        print(typ, n.keys())
+        pprint.pprint(n)
+        return ['***:' + typ]
+
+
+    def render(self, nodes, ctx=None):
+        rst = []
+        for n in nodes:
+            rst.extend(self.render_node(n, ctx))
+
+        return rst
+
+
+def fix_tables(nodes):
+    """
+    mistune does not parse table in list item.
+    We need to recursively fix it.
+    """
+
     for n in nodes:
-        rst.extend(render_node(n, ctx))
+        if 'children' in n:
+            fix_tables(n['children'])
 
-    return rst
+        if n['type'] == 'paragraph':
+            children = n['children']
 
+            if len(children) == 0:
+                continue
+
+            c0 = children[0]
+            if c0['type'] != 'text':
+                continue
+
+            txt = c0['text']
+
+            table_reg = r' {0,3}\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*'
+
+            match = re.match(table_reg, txt)
+            if match:
+                mdr = MDRender(None, platform='')
+                partialmd = mdr.render(children)
+                partialmd = ''.join(partialmd)
+
+                parser = new_parser()
+                new_children = parser(partialmd)
+                n['children'] = new_children
 
 def join_math_block(nodes):
     """
@@ -264,33 +432,6 @@ def extract_math(n):
     return children
 
 
-def render_mermaid(nodes, conf):
-    for i, n in enumerate(nodes):
-
-        if 'children' in n:
-            render_mermaid(n['children'], conf)
-
-        if n['type'] != 'block_code':
-            continue
-
-        if n['info'] != 'mermaid':
-            continue
-
-        #  strip last \n
-        d = k3down2.convert('mermaid', n['text'][:-1], 'jpg')
-        fn = asset_fn(n['text'], 'jpg')
-        fwrite(conf.output_dir, fn, d)
-
-        nodes[i] = {
-                'type': 'paragraph',
-                'children': [{
-                        'type': 'image',
-                        'src': conf.img_url(fn),
-                        'title':None,
-                        'alt': '',
-                }]
-        }
-
 def asset_fn(text, suffix):
     textmd5 = hashlib.md5(to_bytes(text)).hexdigest()
     escaped = re.sub(r'[^a-zA-Z0-9_\-=]+', '', text)
@@ -327,18 +468,6 @@ def import_img(nodes, conf):
         n['src'] = conf.img_url(fn)
 
 
-def render_table(nodes):
-    for n in nodes:
-
-        if 'children' in n:
-            render_table(n['children'])
-
-        if n['type'] == 'table':
-            md = render_node(n)
-            md = '\n'.join(md)
-            tablehtml = k3down2.mdtable_to_barehtml(md)
-            n['type'] = 'block_html'
-            n['text'] = tablehtml
 
 
 def build_refs(meta):
@@ -394,33 +523,6 @@ def new_parser():
     return rdr
 
 
-def fix_tables(nodes):
-    for n in nodes:
-        if 'children' in n:
-            fix_tables(n['children'])
-
-        if n['type'] == 'paragraph':
-            children = n['children']
-            
-            if len(children) == 0:
-                continue
-
-            c0 = children[0]
-            if c0['type'] != 'text':
-                continue
-
-            txt = c0['text']
-
-            table_reg = r' {0,3}\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*'
-
-            match = re.match(table_reg, txt)
-            if match:
-                partialmd = render(children)
-                partialmd = ''.join(partialmd)
-                print(partialmd)
-                parser = new_parser()
-                new_children = parser(partialmd)
-                n['children'] = new_children
 
 
 def extract_ref_definitions(cont):
@@ -607,15 +709,23 @@ def main():
                              ' "-r ." to use the git in CWD to store the assets.'
                         )
 
+    parser.add_argument('-p', '--platform', action='store',
+                        required=False,
+                        default='zhihu',
+                        help='convert to a platform compatible format.'
+                        ' Supported platform: "zhihu", "wechat"'
+    )
+
     args = parser.parse_args()
     msg("Build markdown: ", darkyellow(args.md_path), " into ", darkyellow(args.output))
     msg("Assets will be stored in ", darkyellow(args.repo))
 
     path = args.md_path
 
+    platform = args.platform
     conf = Config(
         args.output,
-        'zhihu',
+        args.platform,
         path,
         args.repo,
     )
@@ -634,18 +744,17 @@ def main():
     rdr = new_parser()
     ast = rdr(cont)
 
-    with open('ast', 'w') as f:
-        f.write(pprint.pformat(ast))
+    #  with open('ast', 'w') as f:
+    #      f.write(pprint.pformat(ast))
 
+    mdr = MDRender(conf, platform=platform)
     fix_tables(ast)
 
-    with open('fixed-table', 'w') as f:
-        f.write(pprint.pformat(ast))
+    #  with open('fixed-table', 'w') as f:
+    #      f.write(pprint.pformat(ast))
 
     replace_ref_with_def(ast, refs)
     import_img(ast, conf)
-    render_mermaid(ast, conf)
-    render_table(ast)
 
     # extract already inlined math
     ast = parse_math(ast)
@@ -660,7 +769,7 @@ def main():
     #  with open('after-math-2', 'w') as f:
     #      f.write(pprint.pformat(ast))
 
-    out = render(ast)
+    out = mdr.render(ast)
 
     out.append('')
 
