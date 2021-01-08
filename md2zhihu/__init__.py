@@ -540,14 +540,16 @@ def extract_ref_definitions(cont):
 
 
 def extract_jekyll_meta(cont):
-    meta = re.match(r'^ *--- *\n(.*?)\n---\n', cont,
+    meta = None
+    meta_text = None
+    m = re.match(r'^ *--- *\n(.*?)\n---\n', cont,
                     flags=re.DOTALL | re.UNICODE)
-    if meta:
-        cont = cont[meta.end():]
-        meta = meta.groups()[0]
-        meta = yaml.safe_load(meta)
+    if m:
+        cont = cont[m.end():]
+        meta_text = m.groups()[0].strip()
+        meta = yaml.safe_load(meta_text)
 
-    return cont, meta
+    return cont, meta, meta_text
 
 
 def render_ref_list(refs):
@@ -716,6 +718,13 @@ def main():
                         ' Supported platform: "zhihu", "wechat"'
     )
 
+    parser.add_argument('--keep-meta', action='store_true',
+                        required=False,
+                        default=False,
+                        help='if keep meta header, which is wrapped with two "---" at file beginning.'
+                        ' default: False'
+    )
+
     args = parser.parse_args()
     msg("Build markdown: ", darkyellow(args.md_path), " into ", darkyellow(args.output))
     msg("Assets will be stored in ", darkyellow(args.repo))
@@ -735,7 +744,7 @@ def main():
     with open(path, 'r') as f:
         cont = f.read()
 
-    cont, meta = extract_jekyll_meta(cont)
+    cont, meta, meta_text = extract_jekyll_meta(cont)
     cont, article_refs = extract_ref_definitions(cont)
 
     refs = build_refs(meta)
@@ -770,6 +779,11 @@ def main():
     #      f.write(pprint.pformat(ast))
 
     out = mdr.render(ast)
+    for l in out:
+        print(l)
+
+    if args.keep_meta:
+        out = ['---', meta_text, '---'] + out
 
     out.append('')
 

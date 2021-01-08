@@ -64,12 +64,17 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertEqual('https://cdn.jsdelivr.net/gh/drmingdrmer/home@_md2zhihu/{path}', a.path_pattern)
 
     def test_md2zhihu(self):
-        for platform, args in (
+        for platform_type, args in (
                 ('zhihu', []),
+                ('zhihu-meta', ['--keep-meta']),
                 ('wechat', ['-p', 'wechat']),
         ):
 
-            d = 'test/data/{}'.format(platform)
+            segs = platform_type.split('-') + ['']
+            platform = segs[0]
+            typ = segs[1]
+
+            d = 'test/data/{}'.format(platform_type)
             code, out, err = k3proc.command(
                     "md2zhihu",
                     "src/simple.md",
