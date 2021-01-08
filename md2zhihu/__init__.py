@@ -658,9 +658,11 @@ class AssetRepo(object):
 
 class Config(object):
 
-    def __init__(self, output_base, platform, md_path, asset_repo_url,
+    def __init__(self, asset_dir, output_path,
+                 platform, md_path, asset_repo_url,
                  code_width=1000):
-        self.output_base = output_base
+        self.asset_dir = asset_dir
+        self.output_path = output_path
         self.platform = platform
         self.md_path = md_path
 
@@ -674,37 +676,44 @@ class Config(object):
         if fnm:
             fn = fnm.groups()[0]
 
-        self.output_fn = fn
         self.article_name = fn.rsplit('.', 1)[0]
 
         self.rel_dir = pjoin(self.platform, self.article_name)
-        self.output_dir = pjoin(self.output_base, self.rel_dir)
+        self.output_dir = pjoin(self.asset_dir, self.rel_dir)
+
+        if self.output_path is None:
+            self.output_path = pjoin(self.output_dir, fn)
+
 
     def img_url(self, fn):
         return self.asset_repo.path_pattern.format(
             path=pjoin(self.rel_dir, fn))
 
     def push(self):
-        x = dict(cwd=self.output_base)
+        x = dict(cwd=self.asset_dir)
 
         cmdpass('git', 'init', **x)
         cmdpass('git', 'add', '.', **x)
         cmdpass('git', 'commit', '--allow-empty', '-m', 'by md2zhihu by drdr.xp@gmail.com', **x)
         cmdpass('git', 'push', '-f', self.asset_repo.url, 'HEAD:refs/heads/' + self.asset_repo.branch, **x)
 
-        msg("Removing tmp git dir: ",self.output_base + '/.git')
-        shutil.rmtree(self.output_base + '/.git')
+        msg("Removing tmp git dir: ",self.asset_dir + '/.git')
+        shutil.rmtree(self.asset_dir + '/.git')
 
 
 def main():
     parser = argparse.ArgumentParser(description='Convert markdown to zhihu compatible')
 
     parser.add_argument('md_path', type=str,
-                        help='path to markdown to process')
+                        help='path to the markdown to process')
 
     parser.add_argument('-o', '--output', action='store',
+                        help='sepcify output path.'
+                        ' default: <asset_dir>/<platform>/<fn>/<fn>.md')
+
+    parser.add_argument('-d', '--asset-dir', action='store',
                         default='_md2',
-                        help='sepcify output dir (default: "_md2")')
+                        help='sepcify directory path to store assets (default: "_md2")')
 
     parser.add_argument('-r', '--repo', action='store',
                         required=False,
@@ -746,6 +755,7 @@ def main():
 
     platform = args.platform
     conf = Config(
+        args.asset_dir,
         args.output,
         args.platform,
         path,
@@ -793,8 +803,6 @@ def main():
     #      f.write(pprint.pformat(ast))
 
     out = mdr.render(ast)
-    for l in out:
-        print(l)
 
     if args.keep_meta:
         out = ['---', meta_text, '---'] + out
@@ -813,16 +821,16 @@ def main():
     ]
     out.extend(ref_lines)
 
-    with open(pjoin(conf.output_dir, conf.output_fn), 'w') as f:
+    with open(conf.output_path, 'w') as f:
         f.write(str('\n'.join(out)))
 
-    msg(sj("Done building ", darkyellow(pjoin(conf.output_dir, conf.output_fn))))
+    msg(sj("Done building ", darkyellow(conf.output_path)))
 
-    msg("Pushing ", darkyellow(conf.output_base), " to ", darkyellow(conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
+    msg("Pushing ", darkyellow(conf.asset_dir), " to ", darkyellow(conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
     conf.push()
 
     msg(green(sj("Great job!!!")), " Built version saved in:")
-    msg(darkyellow(pjoin(conf.output_dir, conf.output_fn)))
+    msg(darkyellow(conf.output_path))
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ md2zhihu your_great_work.md
 
 这个命令将markdown 转换成 知乎 文章编辑器可直接导入的格式, 存储到 `_md2/your_great_work/your_great_work.md`, 然后将图片等资源上传到**当前目录所在的git**的`_md2zhihu`分支. 转换后的markdown文档不依赖任何本地的图片文件或其他文件.
 
-- `-o` 指定输出目录, 默认为`./_md2/`; 所有文章都会保存在这个目录中,
+- `-d` 指定输出目录, 默认为`./_md2/`; 所有文章都会保存在这个目录中,
     名为`<article_name>` 的md转换之后保存在`_md2/zhihu/<article_name>/` 目录中,
     包括一个名为`<article_name>.md` 的md文件以及所有使用的图片等在同一个目录下.
 

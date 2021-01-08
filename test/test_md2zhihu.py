@@ -63,6 +63,44 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertEqual('home', a.repo)
         self.assertEqual('https://cdn.jsdelivr.net/gh/drmingdrmer/home@_md2zhihu/{path}', a.path_pattern)
 
+    def test_option_output(self):
+
+        platform_type = 'zhihu-meta'
+        segs = platform_type.split('-') + ['']
+        platform = segs[0]
+
+        d = 'test/data/{}'.format(platform_type)
+        code, out, err = k3proc.command(
+                "md2zhihu",
+                "src/simple.md",
+                "-d", "dst2",
+                "-o", "specified.md",
+                "-r", "git@gitee.com:drdrxp/bed.git",
+                '--keep-meta',
+                cwd=d
+        )
+
+        #  can not push on CI
+        _ = code
+        _ = out
+        _ = err
+
+        print(out)
+        print(err)
+
+        if not is_ci():
+            self.assertEqual(0, code)
+
+        wantdir = 'want/{}/simple'.format(platform)
+
+        gotmd = fread(d, 'specified.md')
+        wantmd = fread(d, wantdir, 'simple.md')
+        wantmd = normalize_pandoc_output(wantmd, gotmd)
+        self.assertEqual(wantmd.strip(), gotmd.strip())
+
+        rm(d, 'specified.md')
+
+
     def test_md2zhihu(self):
         for platform_type, args in (
                 ('zhihu', []),
@@ -78,7 +116,7 @@ class TestMd2zhihu(unittest.TestCase):
             code, out, err = k3proc.command(
                     "md2zhihu",
                     "src/simple.md",
-                    "-o", "dst",
+                    "-d", "dst",
                     "-r", "git@gitee.com:drdrxp/bed.git",
                     *args,
                     cwd=d
