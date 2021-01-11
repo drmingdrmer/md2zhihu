@@ -2,18 +2,17 @@ import os
 import re
 import unittest
 
-import md2zhihu
 import k3proc
 import k3ut
 import skimage
 import skimage.io
 from skimage.metrics import structural_similarity as ssim
 
+import md2zhihu
 
 dd = k3ut.dd
 
 this_base = os.path.dirname(__file__)
-
 
 
 class TestMd2zhihu(unittest.TestCase):
@@ -41,7 +40,8 @@ class TestMd2zhihu(unittest.TestCase):
             self.assertEqual('github.com', a.host)
             self.assertEqual('drmingdrmer', a.user)
             self.assertEqual('home', a.repo)
-            self.assertEqual('https://raw.githubusercontent.com/drmingdrmer/home/'+b+'/{path}', a.path_pattern)
+            self.assertEqual(
+                'https://raw.githubusercontent.com/drmingdrmer/home/'+b+'/{path}', a.path_pattern)
 
         # specify branch
 
@@ -52,7 +52,8 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertEqual('github.com', a.host)
         self.assertEqual('drmingdrmer', a.user)
         self.assertEqual('home', a.repo)
-        self.assertEqual('https://raw.githubusercontent.com/drmingdrmer/home/abc/{path}', a.path_pattern)
+        self.assertEqual(
+            'https://raw.githubusercontent.com/drmingdrmer/home/abc/{path}', a.path_pattern)
 
         #  with cdn
 
@@ -63,7 +64,8 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertEqual('github.com', a.host)
         self.assertEqual('drmingdrmer', a.user)
         self.assertEqual('home', a.repo)
-        self.assertEqual('https://cdn.jsdelivr.net/gh/drmingdrmer/home@'+b+'/{path}', a.path_pattern)
+        self.assertEqual(
+            'https://cdn.jsdelivr.net/gh/drmingdrmer/home@'+b+'/{path}', a.path_pattern)
 
     def test_option_output(self):
 
@@ -73,13 +75,13 @@ class TestMd2zhihu(unittest.TestCase):
 
         d = 'test/data/{}'.format(platform_type)
         code, out, err = k3proc.command(
-                "md2zhihu",
-                "src/simple.md",
-                "-d", "dst2",
-                "-o", "specified.md",
-                "-r", "git@gitee.com:drdrxp/bed.git",
-                '--keep-meta',
-                cwd=d
+            "md2zhihu",
+            "src/simple.md",
+            "-d", "dst2",
+            "-o", "specified.md",
+            "-r", "git@gitee.com:drdrxp/bed.git",
+            '--keep-meta',
+            cwd=d
         )
 
         #  can not push on CI
@@ -102,62 +104,60 @@ class TestMd2zhihu(unittest.TestCase):
 
         rm(d, 'specified.md')
 
+    def test_zhihu(self):      self._test_platform('zhihu', [])
+    def test_zhihu_meta(self): self._test_platform(
+        'zhihu-meta', ['--keep-meta'])
 
-    def test_platforms(self):
-        for platform_type, args in (
-                ('zhihu', []),
-                ('zhihu-meta', ['--keep-meta']),
-                ('wechat', ['-p', 'wechat']),
-                ('weibo', ['-p', 'weibo']),
-        ):
+    def test_wechat(self):     self._test_platform('wechat', ['-p', 'wechat'])
+    def test_weibo(self):      self._test_platform('weibo', ['-p', 'weibo'])
 
-            segs = platform_type.split('-') + ['']
-            platform = segs[0]
-            typ = segs[1]
+    def _test_platform(self, platform_type, args):
 
-            d = 'test/data/{}'.format(platform_type)
-            code, out, err = k3proc.command(
-                    "md2zhihu",
-                    "src/simple.md",
-                    "-d", "dst",
-                    "-r", "git@gitee.com:drdrxp/bed.git@_md2zhihu_foo",
-                    *args,
-                    cwd=d
-            )
+        segs = platform_type.split('-') + ['']
+        platform = segs[0]
 
-            #  can not push on CI
-            _ = code
-            _ = out
-            _ = err
+        d = 'test/data/{}'.format(platform_type)
+        code, out, err = k3proc.command(
+            "md2zhihu",
+            "src/simple.md",
+            "-d", "dst",
+            "-r", "git@gitee.com:drdrxp/bed.git@_md2zhihu_foo",
+            *args,
+            cwd=d
+        )
 
-            print(out)
-            print(err)
+        #  can not push on CI
+        _ = code
+        _ = out
+        _ = err
 
-            if not is_ci():
-                self.assertEqual(0, code)
+        print(out)
+        print(err)
 
-            gotdir = 'dst/{}/simple'.format(platform)
-            wantdir = 'want/{}/simple'.format(platform)
+        if not is_ci():
+            self.assertEqual(0, code)
 
+        gotdir = 'dst/{}/simple'.format(platform)
+        wantdir = 'want/{}/simple'.format(platform)
 
-            gotmd = fread(d, gotdir, 'simple.md')
-            wantmd = fread(d, wantdir, 'simple.md')
-            wantmd = normalize_pandoc_output(wantmd, gotmd)
-            self.assertEqual(wantmd.strip(), gotmd.strip())
+        gotmd = fread(d, gotdir, 'simple.md')
+        wantmd = fread(d, wantdir, 'simple.md')
+        wantmd = normalize_pandoc_output(wantmd, gotmd)
+        self.assertEqual(wantmd.strip(), gotmd.strip())
 
-            for img in os.listdir(pjoin(d, wantdir)):
-                if img.split('.')[-1] not in ('jpg', 'png'):
-                    continue
-                sim = cmp_image(pjoin(d, wantdir, img),
-                                pjoin(d, gotdir, img))
-                self.assertGreater(sim, 0.7)
+        for img in os.listdir(pjoin(d, wantdir)):
+            if img.split('.')[-1] not in ('jpg', 'png'):
+                continue
+            sim = cmp_image(pjoin(d, wantdir, img),
+                            pjoin(d, gotdir, img))
+            self.assertGreater(sim, 0.7)
 
-            for img in os.listdir(pjoin(d, gotdir)):
-                if img.split('.')[-1] not in ('jpg', 'png'):
-                    continue
-                sim = cmp_image(pjoin(d, wantdir, img),
-                                pjoin(d, gotdir, img))
-                self.assertGreater(sim, 0.7)
+        for img in os.listdir(pjoin(d, gotdir)):
+            if img.split('.')[-1] not in ('jpg', 'png'):
+                continue
+            sim = cmp_image(pjoin(d, wantdir, img),
+                            pjoin(d, gotdir, img))
+            self.assertGreater(sim, 0.7)
 
 
 def cmp_image(want, got):
@@ -207,11 +207,13 @@ def rm(*p):
     except OSError:
         pass
 
+
 def fwrite(*p):
     cont = p[-1]
     p = p[:-1]
     with open(os.path.join(*p), 'wb') as f:
         f.write(cont)
+
 
 def fread(*p):
     with open(os.path.join(*p), 'r') as f:
