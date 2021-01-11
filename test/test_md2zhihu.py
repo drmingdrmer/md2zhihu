@@ -36,11 +36,12 @@ class TestMd2zhihu(unittest.TestCase):
 
             a = md2zhihu.AssetRepo(url, cdn=False)
             self.assertEqual(False, a.cdn)
-            self.assertEqual('_md2zhihu', a.branch)
+            self.assertRegex(a.branch, '_md2zhihu_md2zhihu_[a-z0-9]{8}')
+            b = a.branch
             self.assertEqual('github.com', a.host)
             self.assertEqual('drmingdrmer', a.user)
             self.assertEqual('home', a.repo)
-            self.assertEqual('https://raw.githubusercontent.com/drmingdrmer/home/_md2zhihu/{path}', a.path_pattern)
+            self.assertEqual('https://raw.githubusercontent.com/drmingdrmer/home/'+b+'/{path}', a.path_pattern)
 
         # specify branch
 
@@ -57,11 +58,12 @@ class TestMd2zhihu(unittest.TestCase):
 
         a = md2zhihu.AssetRepo('git@github.com:drmingdrmer/home.git')
         self.assertEqual(True, a.cdn)
-        self.assertEqual('_md2zhihu', a.branch)
+        self.assertRegex(a.branch, '_md2zhihu_md2zhihu_[a-z0-9]{8}')
+        b = a.branch
         self.assertEqual('github.com', a.host)
         self.assertEqual('drmingdrmer', a.user)
         self.assertEqual('home', a.repo)
-        self.assertEqual('https://cdn.jsdelivr.net/gh/drmingdrmer/home@_md2zhihu/{path}', a.path_pattern)
+        self.assertEqual('https://cdn.jsdelivr.net/gh/drmingdrmer/home@'+b+'/{path}', a.path_pattern)
 
     def test_option_output(self):
 

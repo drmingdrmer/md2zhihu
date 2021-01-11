@@ -119,7 +119,11 @@ def table_to_jpg(mdrender, conf, n, ctx=None):
 
     tablehtml = k3down2.md_to_html(md)
 
-    d = k3down2.convert('html', tablehtml, 'jpg')
+    md_base_path = os.path.split(conf.md_path)[0]
+    d = k3down2.convert('html', tablehtml, 'jpg', opt={'html':{
+            'asset_base': os.path.abspath(md_base_path),
+    }})
+
     fn = asset_fn(md, 'jpg')
     fwrite(conf.output_dir, fn, d)
 
@@ -697,7 +701,14 @@ class AssetRepo(object):
         }
 
         if branch is None:
-            branch = '_md2zhihu'
+            cwd = os.getcwd().split(os.path.sep)
+            cwdmd5 = hashlib.md5(to_bytes(os.getcwd())).hexdigest()
+            branch = '_md2zhihu_{tail}_{md5}'.format(
+                    tail=cwd[-1],
+                    md5=cwdmd5[:8],
+            )
+            # escape special chars
+            branch = re.sub(r'[^a-zA-Z0-9_\-=]+', '', branch)
         else:
             # @some_branch
             branch = branch[1:]
@@ -785,7 +796,8 @@ def main():
                         help='sepcify the git url to store assets.'
                              ' The url should be in a SSH form such as:'
                              ' "git@github.com:openacid/openacid.github.io.git[@branch_name]".'
-                             ' If no branch is specified, a branch "_md2zhihu" is used.'
+                             ' If no branch is specified, a branch "_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}" is used,'
+                             ' in which cwd_tail is the last segment of current working dir.'
                              ' It has to be a public repo and you have the write access.'
                              ' "-r ." to use the git in CWD to store the assets.'
                         )
