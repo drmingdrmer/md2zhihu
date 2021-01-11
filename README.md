@@ -36,7 +36,7 @@ md2zhihu your_great_work.md
     ```
 
     默认使用当前目录下的git配置, (作者假设用户用git来保存自己的工作:DDD),
-    如果没有指定分支名, md2zhihu 将建立一个`_md2zhihu`的分支来保存所有图片.
+    如果没有指定分支名, md2zhihu 将建立一个`_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}`的分支来保存所有图片.
 
 
 ## Requirements
