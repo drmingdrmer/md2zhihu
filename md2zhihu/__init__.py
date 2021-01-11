@@ -99,11 +99,10 @@ def math_inline_to_imgtag(n, ctx=None):
 def math_inline_to_plaintext(n, ctx=None):
     return [escape(k3down2.convert('tex_inline', n['text'], 'plain'))]
 
-def table_to_barehtml(n, ctx=None):
+def table_to_barehtml(mdrender, n, ctx=None):
 
-    # create a pure markdown render to build markdown source
-    mdr = MDRender(None, platform='')
-
+    # create a markdown render to recursively deal with images etc.
+    mdr = MDRender(mdrender.conf, platform=importer)
     md = mdr.render_node(n)
     md = '\n'.join(md)
 
@@ -111,26 +110,42 @@ def table_to_barehtml(n, ctx=None):
     return [tablehtml, '']
 
 
-def table_to_jpg(mdrender, conf, n, ctx=None):
+def table_to_jpg(mdrender, n, ctx=None):
 
-    mdr = MDRender(conf, platform='')
+    mdr = MDRender(mdrender.conf, platform='')
     md = mdr.render_node(n)
     md = '\n'.join(md)
 
     tablehtml = k3down2.md_to_html(md)
 
-    md_base_path = os.path.split(conf.md_path)[0]
+    md_base_path = os.path.split(mdrender.conf.md_path)[0]
     d = k3down2.convert('html', tablehtml, 'jpg', opt={'html':{
             'asset_base': os.path.abspath(md_base_path),
     }})
 
     fn = asset_fn(md, 'jpg')
-    fwrite(conf.output_dir, fn, d)
+    fwrite(mdrender.conf.output_dir, fn, d)
 
-    return [r'![]({})'.format(conf.img_url(fn)), '']
+    return [r'![]({})'.format(mdrender.conf.img_url(fn)), '']
+
+def importer(mdrender, conf, n, ctx=None):
+    '''
+    Importer is only used to copy local image to asset dir and update image urls.
+    This is used to deal with partial renderers, e.g., table_to_barehtml,
+    which is not handled by univertial image importer, but need to import the image when rendering a table with images.
+    '''
+    typ = n['type']
+
+    if typ == 'image':
+        return image_local_to_remote(mdrender, n, ctx=ctx)
+
+    return None
 
 def zhihu_specific(mdrender, conf, n, ctx=None):
     typ = n['type']
+
+    if typ == 'image':
+        return image_local_to_remote(mdrender, n, ctx=ctx)
 
     if typ == 'math_block':
         return math_block_to_imgtag(n, ctx=ctx)
@@ -139,7 +154,7 @@ def zhihu_specific(mdrender, conf, n, ctx=None):
         return math_inline_to_imgtag(n, ctx=ctx)
 
     if typ == 'table':
-        return table_to_barehtml(n, ctx=ctx)
+        return table_to_barehtml(mdrender, n, ctx=ctx)
 
     if typ == 'block_code':
         lang = n['info'] or ''
@@ -152,6 +167,9 @@ def zhihu_specific(mdrender, conf, n, ctx=None):
 def wechat_specific(mdrender, conf, n, ctx=None):
     typ = n['type']
 
+    if typ == 'image':
+        return image_local_to_remote(mdrender, n, ctx=ctx)
+
     if typ == 'math_block':
         return math_block_to_imgtag(n, ctx=ctx)
 
@@ -159,7 +177,7 @@ def wechat_specific(mdrender, conf, n, ctx=None):
         return math_inline_to_imgtag(n, ctx=ctx)
 
     if typ == 'table':
-        return table_to_barehtml(n, ctx=ctx)
+        return table_to_barehtml(mdrender, n, ctx=ctx)
 
     if typ == 'block_code':
         lang = n['info'] or ''
@@ -176,6 +194,9 @@ def wechat_specific(mdrender, conf, n, ctx=None):
 def weibo_specific(mdrender, conf, n, ctx=None):
     typ = n['type']
 
+    if typ == 'image':
+        return image_local_to_remote(mdrender, n, ctx=ctx)
+
     if typ == 'math_block':
         return math_block_to_imgtag(n, ctx=ctx)
 
@@ -183,7 +204,7 @@ def weibo_specific(mdrender, conf, n, ctx=None):
         return math_inline_to_plaintext(n, ctx=ctx)
 
     if typ == 'table':
-        return table_to_jpg(mdrender, conf, n, ctx=ctx)
+        return table_to_jpg(mdrender, n, ctx=ctx)
 
     if typ == 'codespan':
         return [escape(n['text'])]
@@ -231,7 +252,10 @@ class MDRender(object):
 
     def __init__(self, conf, platform='zhihu'):
         self.conf = conf
-        self.handlers = self.platforms.get(platform, lambda *x, **y:None)
+        if isinstance(platform, str):
+            self.handlers = self.platforms.get(platform, lambda *x, **y:None)
+        else:
+            self.handlers = platform
 
     def render_node(self, n, ctx=None):
         """
@@ -507,36 +531,32 @@ def asset_fn(text, suffix):
     fn = escaped[:32] + '-' + textmd5[:16] + '.' + suffix
     return fn
 
-def import_img(nodes, conf):
-    for n in nodes:
+def image_local_to_remote(mdrender, n, ctx=None):
 
-        if 'children' in n:
-            import_img(n['children'], conf)
+    #  {'alt': 'openacid',
+    #   'src': 'https://...',
+    #   'title': None,
+    #   'type': 'image'},
 
-        #  {'alt': 'openacid',
-        #   'src': 'https://...',
-        #   'title': None,
-        #   'type': 'image'},
-        if n['type'] != 'image':
-            continue
+    src = n['src']
+    if re.match(r'https?://', src):
+        return None
 
-        src = n['src']
-        if re.match(r'https?://', src):
-            continue
+    if src.startswith('/'):
+        # absolute path from CWD.
+        src = src[1:]
+    else:
+        # relative path from markdown containing dir.
+        src = os.path.join(os.path.split(mdrender.conf.md_path)[0], src)
 
-        if src.startswith('/'):
-            # absolute path from CWD.
-            src = src[1:]
-        else:
-            # relative path from markdown containing dir.
-            src = os.path.join(os.path.split(conf.md_path)[0], src)
+    fn = os.path.split(src)[1]
+    shutil.copyfile(src, pjoin(mdrender.conf.output_dir, fn))
 
-        fn = os.path.split(src)[1]
-        shutil.copyfile(src, pjoin(conf.output_dir, fn))
+    n['src'] = mdrender.conf.img_url(fn)
 
-        n['src'] = conf.img_url(fn)
-
-
+    # Transform ast node but does not render, leave the task to default image
+    # renderer.
+    return None
 
 
 def build_refs(meta):
@@ -660,12 +680,16 @@ class AssetRepo(object):
         if repo_url is None:
             repo_url = '.'
 
-        if repo_url == '.':
+        # ".": use cwd git
+        # ".@foo_branch": use cwd git and specified branch
+        if repo_url == '.' or repo_url.startswith('.@'):
             msg("Using current git to store assets...")
             branch = cmd0('git', 'symbolic-ref', '--short', 'HEAD')
             remote = cmd0('git', 'config','--get', 'branch.{}.remote'.format(branch))
-            repo_url = cmd0('git', 'remote', 'get-url', remote)
-
+            if repo_url.startswith('.@'):
+                repo_url = cmd0('git', 'remote', 'get-url', remote) + repo_url[1:]
+            else:
+                repo_url = cmd0('git', 'remote', 'get-url', remote)
 
         # git@github.com:openacid/slim.git
         match = re.match(r'git@(.*?):(.*?)/(.*?)\.git(@.*?)?$', repo_url)
@@ -863,7 +887,6 @@ def main():
     #      f.write(pprint.pformat(ast))
 
     replace_ref_with_def(ast, refs)
-    import_img(ast, conf)
 
     # extract already inlined math
     ast = parse_math(ast)

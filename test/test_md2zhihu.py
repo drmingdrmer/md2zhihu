@@ -120,7 +120,7 @@ class TestMd2zhihu(unittest.TestCase):
                     "md2zhihu",
                     "src/simple.md",
                     "-d", "dst",
-                    "-r", "git@gitee.com:drdrxp/bed.git",
+                    "-r", "git@gitee.com:drdrxp/bed.git@_md2zhihu_foo",
                     *args,
                     cwd=d
             )

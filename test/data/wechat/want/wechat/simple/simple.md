@@ -19,16 +19,16 @@
 </tr>
 </table>
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_wechat_4f42135b/wechat/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
 
 例如 `$$ ||X{\vec {\beta }}-Y||^{2} $$`
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_wechat_4f42135b/wechat/simple/slim.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
 例如 [slim](https://github.com/openacid/slim) 这个项目按天统计的 star 数:
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_wechat_4f42135b/wechat/simple/slim.jpg)
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_wechat_4f42135b/wechat/simple/slim.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/slim.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/slim.jpg)
 
 我们可以利用数据分布的特点, 将整体数据的大小压缩到**几分之一**.
 
@@ -109,7 +109,7 @@
 
 简化的读取逻辑如下:
 
-<img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_wechat_4f42135b/wechat/simple/funcsmSlimArrayGetiint32uint32x=-8e29c97c1ebbd46d.jpg" />
+<img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/funcsmSlimArrayGetiint32uint32x=-8e29c97c1ebbd46d.jpg" />
 
 formula in list:
 
@@ -146,7 +146,7 @@ table in list:
     <th style="text-align: center;">导入后</th>
     </tr>
     <tr class="odd">
-    <td style="text-align: center;"><img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_wechat_4f42135b/wechat/simple/slim.jpg" /></td>
+    <td style="text-align: center;"><img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/slim.jpg" /></td>
     <td style="text-align: center;">fo</td>
     <td style="text-align: center;">bar</td>
     </tr>
@@ -159,7 +159,7 @@ table in list:
 
 no lang code:
 
-<img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_wechat_4f42135b/wechat/simple/12345678912345678912345678912345-09d177166db71b06.jpg" />
+<img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/12345678912345678912345678912345-09d177166db71b06.jpg" />
 
 
 
