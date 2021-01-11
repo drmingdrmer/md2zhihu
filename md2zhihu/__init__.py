@@ -67,27 +67,26 @@ def code_to_html(n, ctx=None):
     txt = code_join(n)
     return k3down2.convert('code', txt, 'html').split('\n')
 
-def code_to_jpg(conf, n, width=None, ctx=None):
-    lang = n['info'] or ''
+def code_to_jpg(mdrender, n, width=None, ctx=None):
     txt = code_join(n)
 
     w = width
     if w is None:
-        w = conf.code_width
+        w = mdrender.conf.code_width
 
     d = k3down2.convert('code', txt, 'jpg', opt={'html': {'width':w}})
     fn = asset_fn(n['text'], 'jpg')
-    fwrite(conf.output_dir, fn, d)
-    return [r'<img src="{}" />'.format(conf.img_url(fn)), '']
+    fwrite(mdrender.conf.output_dir, fn, d)
+    return [r'<img src="{}" />'.format(mdrender.conf.img_url(fn)), '']
 
-def code_mermaid_to_jpg(conf, n, ctx=None):
+def code_mermaid_to_jpg(mdrender, n, ctx=None):
 
     #  strip last \n
     d = k3down2.convert('mermaid', n['text'][:-1], 'jpg')
     fn = asset_fn(n['text'], 'jpg')
-    fwrite(conf.output_dir, fn, d)
+    fwrite(mdrender.conf.output_dir, fn, d)
 
-    return [r'![]({})'.format(conf.img_url(fn)), '']
+    return [r'![]({})'.format(mdrender.conf.img_url(fn)), '']
 
 
 def math_block_to_imgtag(n, ctx=None):
@@ -128,7 +127,7 @@ def table_to_jpg(mdrender, n, ctx=None):
 
     return [r'![]({})'.format(mdrender.conf.img_url(fn)), '']
 
-def importer(mdrender, conf, n, ctx=None):
+def importer(mdrender, n, ctx=None):
     '''
     Importer is only used to copy local image to asset dir and update image urls.
     This is used to deal with partial renderers, e.g., table_to_barehtml,
@@ -141,7 +140,7 @@ def importer(mdrender, conf, n, ctx=None):
 
     return None
 
-def zhihu_specific(mdrender, conf, n, ctx=None):
+def zhihu_specific(mdrender, n, ctx=None):
     typ = n['type']
 
     if typ == 'image':
@@ -159,12 +158,12 @@ def zhihu_specific(mdrender, conf, n, ctx=None):
     if typ == 'block_code':
         lang = n['info'] or ''
         if lang == 'mermaid':
-            return code_mermaid_to_jpg(conf, n, ctx=ctx)
+            return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
 
     return None
 
 
-def wechat_specific(mdrender, conf, n, ctx=None):
+def wechat_specific(mdrender, n, ctx=None):
     typ = n['type']
 
     if typ == 'image':
@@ -182,16 +181,16 @@ def wechat_specific(mdrender, conf, n, ctx=None):
     if typ == 'block_code':
         lang = n['info'] or ''
         if lang == 'mermaid':
-            return code_mermaid_to_jpg(conf, n, ctx=ctx)
+            return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
 
         if lang == '':
-            return code_to_jpg(conf, n, ctx=ctx)
+            return code_to_jpg(mdrender, n, ctx=ctx)
         else:
-            return code_to_jpg(conf, n, width=600, ctx=ctx)
+            return code_to_jpg(mdrender, n, width=600, ctx=ctx)
 
     return None
 
-def weibo_specific(mdrender, conf, n, ctx=None):
+def weibo_specific(mdrender, n, ctx=None):
     typ = n['type']
 
     if typ == 'image':
@@ -231,12 +230,12 @@ def weibo_specific(mdrender, conf, n, ctx=None):
     if typ == 'block_code':
         lang = n['info'] or ''
         if lang == 'mermaid':
-            return code_mermaid_to_jpg(conf, n, ctx=ctx)
+            return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
 
         if lang == '':
-            return code_to_jpg(conf, n, ctx=ctx)
+            return code_to_jpg(mdrender, n, ctx=ctx)
         else:
-            return code_to_jpg(conf, n, width=600, ctx=ctx)
+            return code_to_jpg(mdrender, n, width=600, ctx=ctx)
 
     return None
 
@@ -265,7 +264,7 @@ class MDRender(object):
 
         #  customized renderers:
 
-        lines = self.handlers(self, self.conf, n, ctx=ctx)
+        lines = self.handlers(self, n, ctx=ctx)
         if lines is not None:
             return lines
         else:
