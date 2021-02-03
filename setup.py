@@ -29,7 +29,7 @@ setuptools.setup(
         ],
     },
 
-    install_requires=['PyYAML~=5.3.1', 'k3down2', 'k3handy', 'k3color~=0.1.2'],
+    install_requires=['PyYAML~=5.3.1', 'k3down2==0.1.13', 'k3handy', 'k3color~=0.1.2'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
