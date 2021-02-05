@@ -4,6 +4,7 @@ import unittest
 
 import k3proc
 import k3ut
+import k3fs
 import skimage
 import skimage.io
 from skimage.metrics import structural_similarity as ssim
@@ -110,6 +111,7 @@ class TestMd2zhihu(unittest.TestCase):
 
     def test_wechat(self):     self._test_platform('wechat', ['-p', 'wechat'])
     def test_weibo(self):      self._test_platform('weibo', ['-p', 'weibo'])
+    def test_allimg(self):      self._test_platform('allimg', ['-p', 'allimg'])
 
     def _test_platform(self, platform_type, args):
 
@@ -117,6 +119,11 @@ class TestMd2zhihu(unittest.TestCase):
         platform = segs[0]
 
         d = 'test/data/{}'.format(platform_type)
+        gotdir = 'dst/{}/simple'.format(platform)
+        wantdir = 'want/{}/simple'.format(platform)
+
+        k3fs.remove(d, gotdir, onerror="ignore")
+
         code, out, err = k3proc.command(
             "md2zhihu",
             "src/simple.md",
@@ -137,8 +144,6 @@ class TestMd2zhihu(unittest.TestCase):
         if not is_ci():
             self.assertEqual(0, code)
 
-        gotdir = 'dst/{}/simple'.format(platform)
-        wantdir = 'want/{}/simple'.format(platform)
 
         gotmd = fread(d, gotdir, 'simple.md')
         wantmd = fread(d, wantdir, 'simple.md')
@@ -158,6 +163,8 @@ class TestMd2zhihu(unittest.TestCase):
             sim = cmp_image(pjoin(d, wantdir, img),
                             pjoin(d, gotdir, img))
             self.assertGreater(sim, 0.7)
+
+        k3fs.remove(d, gotdir, onerror="ignore")
 
 
 def cmp_image(want, got):

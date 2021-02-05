@@ -80,22 +80,31 @@ def code_to_jpg(mdrender, n, width=None, ctx=None):
     return [r'<img src="{}" />'.format(mdrender.conf.img_url(fn)), '']
 
 def code_mermaid_to_jpg(mdrender, n, ctx=None):
+    return typ_text_to_jpg(mdrender, 'mermaid', n['text'])
 
-    #  strip last \n
-    d = k3down2.convert('mermaid', n['text'][:-1], 'jpg')
-    fn = asset_fn(n['text'], 'jpg')
+def typ_text_to_jpg(mdrender, typ, txt, opt=None):
+    d = k3down2.convert(typ, txt, 'jpg', opt=opt)
+    fn = asset_fn(txt, 'jpg')
     fwrite(mdrender.conf.output_dir, fn, d)
 
     return [r'![]({})'.format(mdrender.conf.img_url(fn)), '']
 
 
-def math_block_to_imgtag(n, ctx=None):
+def math_block_to_imgtag(mdrender, n, ctx=None):
     return [k3down2.tex_to_zhihu(n['text'], True)]
 
-def math_inline_to_imgtag(n, ctx=None):
+def math_inline_to_imgtag(mdrender, n, ctx=None):
     return [k3down2.tex_to_zhihu(n['text'], False)]
 
-def math_inline_to_plaintext(n, ctx=None):
+
+def math_block_to_jpg(mdrender, n, ctx=None):
+    return typ_text_to_jpg(mdrender, 'tex_block', n['text'])
+
+def math_inline_to_jpg(mdrender, n, ctx=None):
+    return typ_text_to_jpg(mdrender, 'tex_inline', n['text'])
+
+
+def math_inline_to_plaintext(mdrender, n, ctx=None):
     return [escape(k3down2.convert('tex_inline', n['text'], 'plain'))]
 
 def table_to_barehtml(mdrender, n, ctx=None):
@@ -147,10 +156,10 @@ def zhihu_specific(mdrender, n, ctx=None):
         return image_local_to_remote(mdrender, n, ctx=ctx)
 
     if typ == 'math_block':
-        return math_block_to_imgtag(n, ctx=ctx)
+        return math_block_to_imgtag(mdrender, n, ctx=ctx)
 
     if typ == 'math_inline':
-        return math_inline_to_imgtag(n, ctx=ctx)
+        return math_inline_to_imgtag(mdrender, n, ctx=ctx)
 
     if typ == 'table':
         return table_to_barehtml(mdrender, n, ctx=ctx)
@@ -170,10 +179,10 @@ def wechat_specific(mdrender, n, ctx=None):
         return image_local_to_remote(mdrender, n, ctx=ctx)
 
     if typ == 'math_block':
-        return math_block_to_imgtag(n, ctx=ctx)
+        return math_block_to_imgtag(mdrender, n, ctx=ctx)
 
     if typ == 'math_inline':
-        return math_inline_to_imgtag(n, ctx=ctx)
+        return math_inline_to_imgtag(mdrender, n, ctx=ctx)
 
     if typ == 'table':
         return table_to_barehtml(mdrender, n, ctx=ctx)
@@ -197,10 +206,10 @@ def weibo_specific(mdrender, n, ctx=None):
         return image_local_to_remote(mdrender, n, ctx=ctx)
 
     if typ == 'math_block':
-        return math_block_to_imgtag(n, ctx=ctx)
+        return math_block_to_imgtag(mdrender, n, ctx=ctx)
 
     if typ == 'math_inline':
-        return math_inline_to_plaintext(n, ctx=ctx)
+        return math_inline_to_plaintext(mdrender, n, ctx=ctx)
 
     if typ == 'table':
         return table_to_jpg(mdrender, n, ctx=ctx)
@@ -240,6 +249,34 @@ def weibo_specific(mdrender, n, ctx=None):
     return None
 
 
+def allimg_specific(mdrender, n, ctx=None):
+    typ = n['type']
+
+    if typ == 'image':
+        return image_local_to_remote(mdrender, n, ctx=ctx)
+
+    if typ == 'math_block':
+        return math_block_to_jpg(mdrender, n, ctx=ctx)
+
+    if typ == 'math_inline':
+        return math_inline_to_jpg(mdrender, n, ctx=ctx)
+
+    if typ == 'table':
+        return table_to_jpg(mdrender, n, ctx=ctx)
+
+    if typ == 'block_code':
+        lang = n['info'] or ''
+        if lang == 'mermaid':
+            return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
+
+        if lang == '':
+            return code_to_jpg(mdrender, n, ctx=ctx)
+        else:
+            return code_to_jpg(mdrender, n, width=600, ctx=ctx)
+
+    return None
+
+
 class MDRender(object):
 
     # platform specific renderer
@@ -247,6 +284,7 @@ class MDRender(object):
             'zhihu': zhihu_specific,
             'wechat':wechat_specific,
             'weibo':weibo_specific,
+            'allimg': allimg_specific,
     }
 
     def __init__(self, conf, platform='zhihu'):
@@ -391,6 +429,9 @@ class MDRender(object):
             rst.extend(self.render_node(n, ctx))
 
         return rst
+
+    def msg(self, *args):
+        msg(*args)
 
 
 def fix_tables(nodes):
@@ -828,8 +869,8 @@ def main():
     parser.add_argument('-p', '--platform', action='store',
                         required=False,
                         default='zhihu',
+                        choices=["zhihu", "wechat", "weibo", "allimg"],
                         help='convert to a platform compatible format.'
-                        ' Supported platform: "zhihu", "wechat"'
     )
 
     parser.add_argument('--keep-meta', action='store_true',
