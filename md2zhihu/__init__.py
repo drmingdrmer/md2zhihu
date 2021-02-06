@@ -63,7 +63,6 @@ def code_join(n):
     return txt
 
 def code_to_html(n, ctx=None):
-    lang = n['info'] or ''
     txt = code_join(n)
     return k3down2.convert('code', txt, 'html').split('\n')
 
@@ -74,10 +73,7 @@ def code_to_jpg(mdrender, n, width=None, ctx=None):
     if w is None:
         w = mdrender.conf.code_width
 
-    d = k3down2.convert('code', txt, 'jpg', opt={'html': {'width':w}})
-    fn = asset_fn(n['text'], 'jpg')
-    fwrite(mdrender.conf.output_dir, fn, d)
-    return [r'<img src="{}" />'.format(mdrender.conf.img_url(fn)), '']
+    return typ_text_to_jpg(mdrender, 'code', txt, opt={'html': {'width':w}})
 
 def code_mermaid_to_jpg(mdrender, n, ctx=None):
     return typ_text_to_jpg(mdrender, 'mermaid', n['text'])
@@ -91,10 +87,10 @@ def typ_text_to_jpg(mdrender, typ, txt, opt=None):
 
 
 def math_block_to_imgtag(mdrender, n, ctx=None):
-    return [k3down2.tex_to_zhihu(n['text'], True)]
+    return [k3down2.convert('tex_block', n['text'], 'imgtag')]
 
 def math_inline_to_imgtag(mdrender, n, ctx=None):
-    return [k3down2.tex_to_zhihu(n['text'], False)]
+    return [k3down2.convert('tex_inline', n['text'], 'imgtag')]
 
 
 def math_block_to_jpg(mdrender, n, ctx=None):
@@ -114,7 +110,7 @@ def table_to_barehtml(mdrender, n, ctx=None):
     md = mdr.render_node(n)
     md = '\n'.join(md)
 
-    tablehtml = k3down2.mdtable_to_barehtml(md)
+    tablehtml = k3down2.convert('table', md, 'html')
     return [tablehtml, '']
 
 
@@ -124,17 +120,12 @@ def table_to_jpg(mdrender, n, ctx=None):
     md = mdr.render_node(n)
     md = '\n'.join(md)
 
-    tablehtml = k3down2.md_to_html(md)
-
     md_base_path = os.path.split(mdrender.conf.md_path)[0]
-    d = k3down2.convert('html', tablehtml, 'jpg', opt={'html':{
+
+    return typ_text_to_jpg(mdrender, 'md', md, opt={'html':{
             'asset_base': os.path.abspath(md_base_path),
     }})
 
-    fn = asset_fn(md, 'jpg')
-    fwrite(mdrender.conf.output_dir, fn, d)
-
-    return [r'![]({})'.format(mdrender.conf.img_url(fn)), '']
 
 def importer(mdrender, n, ctx=None):
     '''
@@ -332,11 +323,9 @@ class MDRender(object):
 
         if typ == 'math_block':
             return ['$$', n['text'], '$$']
-            #  return [k3down2.tex_to_zhihu(n['text'], True)]
 
         if typ == 'math_inline':
             return ['$$ ' + n['text'].strip() + ' $$']
-            #  return [k3down2.tex_to_zhihu(n['text'], False)]
 
         if typ == 'table':
             return self.render(n['children']) + ['']

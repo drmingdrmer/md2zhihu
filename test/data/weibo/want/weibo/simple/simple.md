@@ -73,7 +73,7 @@ delta 的值保存在 delta 数组的config.offset + i*config.width的位置, �
 
 简化的读取逻辑如下:
 
-<img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/funcsmSlimArrayGetiint32uint32x=-8e29c97c1ebbd46d.jpg" />
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/gofuncsmSlimArrayGetiint32uint32-1342107f36c6b014.jpg)
 
 formula in list:
 

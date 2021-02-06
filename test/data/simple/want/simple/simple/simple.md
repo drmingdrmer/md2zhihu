@@ -62,7 +62,7 @@ spanIndex = OnesCount(bitmap &amp; (1&lt;&lt;(i/16) - 1))
 
 简化的读取逻辑如下:
 
-<img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/funcsmSlimArrayGetiint32uint32x=-8e29c97c1ebbd46d.jpg" />
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/gofuncsmSlimArrayGetiint32uint32-1342107f36c6b014.jpg)
 
 formula in list:
 

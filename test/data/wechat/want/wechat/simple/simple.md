@@ -109,7 +109,7 @@
 
 简化的读取逻辑如下:
 
-<img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/funcsmSlimArrayGetiint32uint32x=-8e29c97c1ebbd46d.jpg" />
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/gofuncsmSlimArrayGetiint32uint32-1342107f36c6b014.jpg)
 
 formula in list:
 
@@ -159,7 +159,7 @@ table in list:
 
 no lang code:
 
-<img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/12345678912345678912345678912345-09d177166db71b06.jpg" />
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/wechat/simple/12345678912345678912345678912345-90d3b2afd0be86fe.jpg)
 
 
 
