@@ -249,7 +249,7 @@ def weibo_specific(mdrender, n, ctx=None):
     return None
 
 
-def allimg_specific(mdrender, n, ctx=None):
+def simple_specific(mdrender, n, ctx=None):
     typ = n['type']
 
     if typ == 'image':
@@ -263,6 +263,9 @@ def allimg_specific(mdrender, n, ctx=None):
 
     if typ == 'table':
         return table_to_jpg(mdrender, n, ctx=ctx)
+
+    if typ == 'codespan':
+        return [escape(n['text'])]
 
     if typ == 'block_code':
         lang = n['info'] or ''
@@ -284,7 +287,7 @@ class MDRender(object):
             'zhihu': zhihu_specific,
             'wechat':wechat_specific,
             'weibo':weibo_specific,
-            'allimg': allimg_specific,
+            'simple': simple_specific,
     }
 
     def __init__(self, conf, platform='zhihu'):
@@ -869,8 +872,9 @@ def main():
     parser.add_argument('-p', '--platform', action='store',
                         required=False,
                         default='zhihu',
-                        choices=["zhihu", "wechat", "weibo", "allimg"],
+                        choices=["zhihu", "wechat", "weibo", "simple"],
                         help='convert to a platform compatible format.'
+                        'simple is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
     )
 
     parser.add_argument('--keep-meta', action='store_true',

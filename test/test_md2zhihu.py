@@ -111,7 +111,7 @@ class TestMd2zhihu(unittest.TestCase):
 
     def test_wechat(self):     self._test_platform('wechat', ['-p', 'wechat'])
     def test_weibo(self):      self._test_platform('weibo', ['-p', 'weibo'])
-    def test_allimg(self):      self._test_platform('allimg', ['-p', 'allimg'])
+    def test_simple(self):      self._test_platform('simple', ['-p', 'simple'])
 
     def _test_platform(self, platform_type, args):
 
