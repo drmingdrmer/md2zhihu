@@ -825,7 +825,10 @@ class Config(object):
 
         cmdpass('git', 'init', **x)
         cmdpass('git', 'add', '.', **x)
-        cmdpass('git', 'commit', '--allow-empty', '-m', 'by md2zhihu by drdr.xp@gmail.com', **x)
+        cmdpass('git', 'commit', '--allow-empty',
+                '-m', 'by md2zhihu by drdr.xp@gmail.com',
+                '--author', 'drmingdrmer <drdr.xp@gmail.com>',
+                **x)
         cmdpass('git', 'push', '-f', self.asset_repo.url, 'HEAD:refs/heads/' + self.asset_repo.branch, **x)
 
         msg("Removing tmp git dir: ",self.asset_dir + '/.git')
