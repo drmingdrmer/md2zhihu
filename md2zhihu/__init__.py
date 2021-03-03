@@ -741,8 +741,8 @@ class AssetRepo(object):
                 'unknown url: {sshurl};'
                 ' A valid one should be like "{tmpl}" or "{https}"'.format(
                     sshurl=repo_url,
-                    tmpl='git@github.com:my_name/my_repo.git'),
-                https='https://github.com/my_name/my_repo.git'
+                    tmpl='git@github.com:my_name/my_repo.git',
+                    https='https://github.com/my_name/my_repo.git')
             )
 
         host, user, repo, branch = match.groups()
