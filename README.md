@@ -65,36 +65,50 @@ md2zhihu 不支持windows, 可以通过github-action来实现远程转换:
     `.github/workflows/md2zhihu.yml`:
 
     ```yaml
-    name: md2zhihu
-    on:
-      push:
-    jobs:
-      build:
-        runs-on: ubuntu-latest
-        steps:
-        - uses: actions/checkout@v2
-        - uses: actions/setup-python@v2
-          with:
-            python-version: 3.8
-        - name: Install
-          run: |
-            pip install md2zhihu==0.1.21
-            npm install @mermaid-js/mermaid-cli@8.8.4
-            sudo apt-get install pandoc
-        - name: Build zhihu compatible markdowns
-          env:
-            GITHUB_USERNAME: ${{ github.repository_owner }}
-            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          run: |
-            md2zhihu \
-            --repo https://github.com/${{ github.repository }}.git@zhihu_branch \
-            --code-width 600 \
-            --asset-dir _md2zhihu \
-            _posts/*.md
+name: md2zhihu
+on:
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install
+      run: |
+        git clone https://github.com/drmingdrmer/md2zhihu.git
+
+        npm install @mermaid-js/mermaid-cli@8.8.4
+        sudo apt-get install pandoc
+
+        pip install setuptools wheel
+        cp md2zhihu/setup.py .
+        python setup.py sdist bdist_wheel
+        pip install dist/*.tar.gz
+    - name: build zhihu compatible markdowns
+      env:
+        GITHUB_USERNAME: ${{ github.repository_owner }}
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      run: |
+        md2zhihu \
+        --repo https://github.com/${{ github.repository }}.git@zhihu_branch \
+        --code-width 600 \
+        --asset-dir _md2zhihu \
+        _posts/*.md
     ```
 
     以上配置在下一次push时, 将 repo 目录 `_posts/` 中所有的md文件进行转换,
-    并保存到
+    并保存到`zhihu_branch` 分支中.
+    
+    https://github.com/drmingdrmer/drmingdrmer.github.io/tree/zhihu_branch/zhihu
+
+    git clone https://github.com/drmingdrmer/drmingdrmer.github.io -b zhihu_branch
+
+    或直接从github repo 中访问:
+    https://github.com/drmingdrmer/drmingdrmer.github.io/blob/zhihu_branch/zhihu/paxoskv/paxoskv.md
 
 
 ## Features
