@@ -416,6 +416,15 @@ class MDRender(object):
             lines[-1] = lines[-1] + '~~'
             return lines
 
+        if typ == 'emphasis':
+            lines = self.render(n['children'])
+            lines[0] = '*' + lines[0]
+            lines[-1] = lines[-1] + '*'
+            return lines
+
+        if typ == 'inline_html':
+            return [n['text']]
+
         print(typ, n.keys())
         pprint.pprint(n)
         return ['***:' + typ]

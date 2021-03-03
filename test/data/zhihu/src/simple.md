@@ -17,6 +17,12 @@ wow
 
 ~~strikethrough~~
 
+inline html: <a class="md-anchor" name="解决方案">
+
+emphasis: *emphasis*
+
+
+
 # 场景和问题
 
 |       | md源文件 | 导入知乎的效果 |

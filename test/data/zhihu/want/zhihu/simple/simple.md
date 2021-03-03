@@ -5,6 +5,10 @@ wow
 
 ~~strikethrough~~
 
+inline html: <a class="md-anchor" name="解决方案">
+
+emphasis: *emphasis*
+
 # 场景和问题
 
 <table>
