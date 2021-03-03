@@ -45,69 +45,95 @@ md2zhihu your_great_work.md
     默认使用当前目录下的git配置, (作者假设用户用git来保存自己的工作:DDD),
     如果没有指定分支名, md2zhihu 将建立一个`_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}`的分支来保存所有图片.
 
-## Windows 下使用: github-action
+## 使用 github-action 远程转换, 适合 Windows 用户
 
 md2zhihu 不支持windows, 可以通过github-action来实现远程转换:
 
-- 要转换的markdown 全部放在github repo中, push 之后自动构建,
-  例如 我自己的博客 https://github.com/drmingdrmer/drmingdrmer.github.io
+-   首先将要转换的 markdown 全部放在一个 github repo 中, 完成配置后, 每次 push 之后 github-action 将自动构建,
+  例如 我自己的博客中的文章都在这个repo中: https://github.com/drmingdrmer/drmingdrmer.github.io
 
-- 生成github token, 让github action可以将转换的文档 push 回 git repo.
+-   生成 github token, 以授权github action可以将转换的文档 push 回 repo:
+    通过以下链接创建:
     https://github.com/settings/tokens/new
 
     具体步骤参考:
     https://docs.github.com/cn/github/authenticating-to-github/creating-a-personal-access-token
 
-- 将上面生成的token 添加到markdown的repo, 名为 `GH_TOKEN`:
+    创建后应该在以下页面看到刚创建的token:
+    https://github.com/settings/tokens
+
+    ![](assets/create-token.png)
+
+-   将上面生成的token 添加到存储文章的 repo, 名为 `GH_TOKEN`,
+    让 github-action 使用这个 token 来 push 代码:
+    在 repo 主页, 通过菜单 setting-Secrets-New repository secret 进入添加token页面.
+
+    例如我博客repo的添加token的在:
     https://github.com/drmingdrmer/drmingdrmer.github.io/settings/secrets/actions
 
-- 在保存markdown 文档的 repo 中创建 action 描述文件:
-    `.github/workflows/md2zhihu.yml`:
+    添加后效果如下:
+    ![](assets/add-token.png)
+
+-   在文章 repo 中创建 action 描述文件, 定义一个github-action,
+    为每次 push 进行转换:
+    `.github/workflows/md2zhihu.yml`, 内容为:
 
     ```yaml
-name: md2zhihu
-on:
-  push:
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install
-      run: |
-        git clone https://github.com/drmingdrmer/md2zhihu.git
-
-        npm install @mermaid-js/mermaid-cli@8.8.4
-        sudo apt-get install pandoc
-
-        pip install setuptools wheel
-        cp md2zhihu/setup.py .
-        python setup.py sdist bdist_wheel
-        pip install dist/*.tar.gz
-    - name: build zhihu compatible markdowns
-      env:
-        GITHUB_USERNAME: ${{ github.repository_owner }}
-        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-      run: |
-        md2zhihu \
-        --repo https://github.com/${{ github.repository }}.git@zhihu_branch \
-        --code-width 600 \
-        --asset-dir _md2zhihu \
-        _posts/*.md
+    name: md2zhihu
+    on:
+      push:
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v2
+        - uses: actions/setup-python@v2
+          with:
+            python-version: 3.8
+        - name: Install
+          run: |
+            git clone https://github.com/drmingdrmer/md2zhihu.git
+            sh md2zhihu/github-install.sh
+        - name: build zhihu compatible markdowns
+          env:
+            GITHUB_USERNAME: ${{ github.repository_owner }}
+            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          run: |
+            md2zhihu \
+            --repo https://github.com/${{ github.repository }}.git@zhihu_branch \
+            --code-width 600 \
+            --asset-dir _md2zhihu \
+            _posts/*.md
     ```
+    然后将配置文件 commit 到 repo 中:
+    `git add .github && git commit -m 'action: md2zhihu'`
 
-    以上配置在下一次push时, 将 repo 目录 `_posts/` 中所有的md文件进行转换,
+    用以上配置, 在下一次push时, github action 将目录 `_posts/` 中所有的md文件进行转换,
     并保存到`zhihu_branch` 分支中.
-    
+
+    例如我的博客中文章装换后在:
     https://github.com/drmingdrmer/drmingdrmer.github.io/tree/zhihu_branch/zhihu
 
-    git clone https://github.com/drmingdrmer/drmingdrmer.github.io -b zhihu_branch
+-   要使用转换后的文档, 可以将这个`zhihu_branch`分支clone下来:
 
-    或直接从github repo 中访问:
+    `git clone https://github.com/drmingdrmer/drmingdrmer.github.io -b zhihu_branch`
+
+    ```
+    </drmingdrmer.github.io/zhihu/
+    ▾ ansible-import-include/
+        ansible-import-include.md
+    ▾ cdn/
+         1kfile.png
+         1kloglog-regression.png
+         bigmap.jpg
+         cdn-arch.jpg
+         cdn.md
+         edge-backsource-cost.png
+    ▾ cgexec/
+        cgexec.md
+    ```
+
+    或直接从github repo 中访问, 例如:
     https://github.com/drmingdrmer/drmingdrmer.github.io/blob/zhihu_branch/zhihu/paxoskv/paxoskv.md
 
 
