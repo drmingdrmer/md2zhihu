@@ -11,6 +11,12 @@ platform_refs:
 
 ---
 
+bar ~~strike
+through~~ foo
+wow
+
+~~strikethrough~~
+
 # 场景和问题
 
 |       | md源文件 | 导入知乎的效果 |

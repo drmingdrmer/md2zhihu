@@ -1,4 +1,10 @@
 
+bar ~~strike
+through~~ foo
+wow
+
+~~strikethrough~~
+
 # 场景和问题
 
 <table>

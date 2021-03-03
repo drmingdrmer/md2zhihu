@@ -9,6 +9,14 @@
 
 ## Install
 
+System requirement: MaxOS
+
+```sh
+# For rendering table to html
+brew install pandoc imagemagick node
+npm install -g @mermaid-js/mermaid-cli
+```
+
 ```sh
 pip install md2zhihu
 ```
@@ -37,16 +45,57 @@ md2zhihu your_great_work.md
     默认使用当前目录下的git配置, (作者假设用户用git来保存自己的工作:DDD),
     如果没有指定分支名, md2zhihu 将建立一个`_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}`的分支来保存所有图片.
 
+## Windows 下使用: github-action
 
-## Requirements
+md2zhihu 不支持windows, 可以通过github-action来实现远程转换:
 
-System requirement: MaxOS
+- 要转换的markdown 全部放在github repo中, push 之后自动构建,
+  例如 我自己的博客 https://github.com/drmingdrmer/drmingdrmer.github.io
 
-```
-# For rendering table to html
-brew install pandoc imagemagick node
-npm install -g @mermaid-js/mermaid-cli
-```
+- 生成github token, 让github action可以将转换的文档 push 回 git repo.
+    https://github.com/settings/tokens/new
+
+    具体步骤参考:
+    https://docs.github.com/cn/github/authenticating-to-github/creating-a-personal-access-token
+
+- 将上面生成的token 添加到markdown的repo, 名为 `GH_TOKEN`:
+    https://github.com/drmingdrmer/drmingdrmer.github.io/settings/secrets/actions
+
+- 在保存markdown 文档的 repo 中创建 action 描述文件:
+    `.github/workflows/md2zhihu.yml`:
+
+    ```yaml
+    name: md2zhihu
+    on:
+      push:
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v2
+        - uses: actions/setup-python@v2
+          with:
+            python-version: 3.8
+        - name: Install
+          run: |
+            pip install md2zhihu==0.1.21
+            npm install @mermaid-js/mermaid-cli@8.8.4
+            sudo apt-get install pandoc
+        - name: Build zhihu compatible markdowns
+          env:
+            GITHUB_USERNAME: ${{ github.repository_owner }}
+            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          run: |
+            md2zhihu \
+            --repo https://github.com/${{ github.repository }}.git@zhihu_branch \
+            --code-width 600 \
+            --asset-dir _md2zhihu \
+            _posts/*.md
+    ```
+
+    以上配置在下一次push时, 将 repo 目录 `_posts/` 中所有的md文件进行转换,
+    并保存到
+
 
 ## Features
 

@@ -410,6 +410,12 @@ class MDRender(object):
             lines[0] = '#' * n['level'] + ' ' + lines[0]
             return lines + ['']
 
+        if typ == 'strikethrough':
+            lines = self.render(n['children'])
+            lines[0] = '~~' + lines[0]
+            lines[-1] = lines[-1] + '~~'
+            return lines
+
         print(typ, n.keys())
         pprint.pprint(n)
         return ['***:' + typ]
@@ -859,6 +865,7 @@ def main():
     parser = argparse.ArgumentParser(description='Convert markdown to zhihu compatible')
 
     parser.add_argument('md_path', type=str,
+                        nargs='+',
                         help='path to the markdown to process')
 
     parser.add_argument('-o', '--output', action='store',
@@ -908,85 +915,85 @@ def main():
     msg("Assets will be stored in ", darkyellow(args.repo))
     msg("Repo url: ", args.repo)
 
-    path = args.md_path
+    for path in args.md_path:
 
-    platform = args.platform
-    conf = Config(
-        args.asset_dir,
-        args.output,
-        args.platform,
-        path,
-        args.repo,
-        code_width=args.code_width,
-    )
+        platform = args.platform
+        conf = Config(
+            args.asset_dir,
+            args.output,
+            args.platform,
+            path,
+            args.repo,
+            code_width=args.code_width,
+        )
 
-    os.makedirs(conf.output_dir, exist_ok=True)
+        os.makedirs(conf.output_dir, exist_ok=True)
 
-    with open(path, 'r') as f:
-        cont = f.read()
+        with open(path, 'r') as f:
+            cont = f.read()
 
-    cont, meta, meta_text = extract_jekyll_meta(cont)
-    cont, article_refs = extract_ref_definitions(cont)
+        cont, meta, meta_text = extract_jekyll_meta(cont)
+        cont, article_refs = extract_ref_definitions(cont)
 
-    refs = build_refs(meta)
-    refs.update(article_refs)
+        refs = build_refs(meta)
+        refs.update(article_refs)
 
-    rdr = new_parser()
-    ast = rdr(cont)
+        rdr = new_parser()
+        ast = rdr(cont)
 
-    #  with open('ast', 'w') as f:
-    #      f.write(pprint.pformat(ast))
+        #  with open('ast', 'w') as f:
+        #      f.write(pprint.pformat(ast))
 
-    mdr = MDRender(conf, platform=platform)
-    fix_tables(ast)
+        mdr = MDRender(conf, platform=platform)
+        fix_tables(ast)
 
-    #  with open('fixed-table', 'w') as f:
-    #      f.write(pprint.pformat(ast))
+        #  with open('fixed-table', 'w') as f:
+        #      f.write(pprint.pformat(ast))
 
-    replace_ref_with_def(ast, refs)
+        replace_ref_with_def(ast, refs)
 
-    # extract already inlined math
-    ast = parse_math(ast)
+        # extract already inlined math
+        ast = parse_math(ast)
 
-    #  with open('after-math-1', 'w') as f:
-    #      f.write(pprint.pformat(ast))
+        #  with open('after-math-1', 'w') as f:
+        #      f.write(pprint.pformat(ast))
 
-    # join cross paragraph math
-    join_math_block(ast)
-    ast = parse_math(ast)
+        # join cross paragraph math
+        join_math_block(ast)
+        ast = parse_math(ast)
 
-    #  with open('after-math-2', 'w') as f:
-        #  f.write(pprint.pformat(ast))
+        #  with open('after-math-2', 'w') as f:
+            #  f.write(pprint.pformat(ast))
 
-    out = mdr.render(ast)
+        out = mdr.render(ast)
 
-    if args.keep_meta:
-        out = ['---', meta_text, '---'] + out
+        if args.keep_meta:
+            out = ['---', meta_text, '---'] + out
 
-    out.append('')
+        out.append('')
 
-    ref_list = render_ref_list(refs, platform)
-    out.extend(ref_list)
+        ref_list = render_ref_list(refs, platform)
+        out.extend(ref_list)
 
-    out.append('')
+        out.append('')
 
-    ref_lines = [
-        '[{id}]: {d}'.format(
-            id=_id, d=d
-        ) for _id, d in refs.items()
-    ]
-    out.extend(ref_lines)
+        ref_lines = [
+            '[{id}]: {d}'.format(
+                id=_id, d=d
+            ) for _id, d in refs.items()
+        ]
+        out.extend(ref_lines)
 
-    with open(conf.output_path, 'w') as f:
-        f.write(str('\n'.join(out)))
+        with open(conf.output_path, 'w') as f:
+            f.write(str('\n'.join(out)))
 
-    msg(sj("Done building ", darkyellow(conf.output_path)))
+        msg(sj("Done building ", darkyellow(conf.output_path)))
+
 
     msg("Pushing ", darkyellow(conf.asset_dir), " to ", darkyellow(conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
     conf.push()
 
-    msg(green(sj("Great job!!!")), " Built version saved in:")
-    msg(darkyellow(conf.output_path))
+    msg(green(sj("Great job!!!")))
 
 
 if __name__ == "__main__":
