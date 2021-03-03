@@ -707,7 +707,7 @@ class AssetRepo(object):
         self.cdn = cdn
 
         sshurl_fmt = 'git@{host}:{user}/{repo}.git'
-
+        httpsurl_fmt = 'https://{u}:{t}@{host}/{user}/{repo}.git'
 
         if repo_url is None:
             repo_url = '.'
@@ -725,27 +725,46 @@ class AssetRepo(object):
 
         # git@github.com:openacid/slim.git
         match = re.match(r'git@(.*?):(.*?)/(.*?)\.git(@.*?)?$', repo_url)
+        if match:
+            host, user, repo, branch = match.groups()
+            self.url = sshurl_fmt.format(host=host,user=user,repo=repo)
 
         if not match:
             # ssh://git@github.com/openacid/openacid.github.io
             match = re.match(r'ssh://git@(.*?)/(.*?)/(.*?)(@.*?)?$', repo_url)
+            if match:
+                host, user, repo, branch = match.groups()
+                self.url = sshurl_fmt.format(host=host,user=user,repo=repo)
+
+        if not match:
+            # https://committer:token@github.com/openacid/openacid.github.io.git
+            match = re.match(r'https://(.*?):(.*?)@(.*?)/(.*?)/(.*?)\.git(@.*?)?$', repo_url)
+            if match:
+                committer, token, host, user, repo, branch = match.groups()
+                self.url = repo_url
 
         if not match:
             # https://github.com/openacid/openacid.github.io.git
             match = re.match(r'https://(.*?)/(.*?)/(.*?)\.git(@.*?)?$', repo_url)
-
-
+            if match:
+                host, user, repo, branch = match.groups()
+                u = os.environ.get("GITHUB_USERNAME")
+                t = os.environ.get("GITHUB_TOKEN")
+                if (u is not None and t is not None):
+                    self.url = httpsurl_fmt.format(
+                            u=u, t=t,
+                            host=host,user=user,repo=repo)
+                else:
+                    self.url = sshurl_fmt.format(host=host,user=user,repo=repo)
 
         if not match:
             raise ValueError(
-                'unknown url: {sshurl};'
+                'unknown url: {repo_url};'
                 ' A valid one should be like "{tmpl}" or "{https}"'.format(
-                    sshurl=repo_url,
+                    repo_url=repo_url,
                     tmpl='git@github.com:my_name/my_repo.git',
                     https='https://github.com/my_name/my_repo.git')
             )
-
-        host, user, repo, branch = match.groups()
 
         url_patterns = {
             'github.com': 'https://raw.githubusercontent.com/{user}/{repo}/{branch}/{path}',
@@ -769,7 +788,6 @@ class AssetRepo(object):
             # @some_branch
             branch = branch[1:]
 
-        self.url = sshurl_fmt.format(host=host,user=user,repo=repo)
 
         self.host = host
         self.user = user
@@ -825,9 +843,11 @@ class Config(object):
 
         cmdpass('git', 'init', **x)
         cmdpass('git', 'add', '.', **x)
-        cmdpass('git', 'commit', '--allow-empty',
+        cmdpass('git',
+                '-c', "user.name='drmingdrmer'",
+                '-c',  "user.email='drdr.xp@gmail.com'",
+                'commit', '--allow-empty',
                 '-m', 'by md2zhihu by drdr.xp@gmail.com',
-                '--author', 'drmingdrmer <drdr.xp@gmail.com>',
                 **x)
         cmdpass('git', 'push', '-f', self.asset_repo.url, 'HEAD:refs/heads/' + self.asset_repo.branch, **x)
 
@@ -886,6 +906,7 @@ def main():
     args = parser.parse_args()
     msg("Build markdown: ", darkyellow(args.md_path), " into ", darkyellow(args.output))
     msg("Assets will be stored in ", darkyellow(args.repo))
+    msg("Repo url: ", args.repo)
 
     path = args.md_path
 

@@ -7,7 +7,6 @@
 |使用前 | ![](assets/md.png)    |  ![](assets/before.png) |
 |转换后 | ![](assets/built.png) |  ![](assets/after.png)  |
 
-
 ## Install
 
 ```sh
@@ -40,6 +39,8 @@ md2zhihu your_great_work.md
 
 
 ## Requirements
+
+System requirement: MaxOS
 
 ```
 # For rendering table to html

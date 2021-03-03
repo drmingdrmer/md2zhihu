@@ -68,6 +68,16 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertEqual(
             'https://cdn.jsdelivr.net/gh/drmingdrmer/home@'+b+'/{path}', a.path_pattern)
 
+        # https url with token
+
+        a = md2zhihu.AssetRepo('https://aa:bb@github.com/drmingdrmer/home.git')
+        self.assertEqual(True, a.cdn)
+        self.assertEqual('https://aa:bb@github.com/drmingdrmer/home.git', a.url)
+        self.assertRegex(a.branch, '_md2zhihu_md2zhihu_[a-z0-9]{8}')
+        self.assertEqual('github.com', a.host)
+        self.assertEqual('drmingdrmer', a.user)
+        self.assertEqual('home', a.repo)
+
     def test_option_output(self):
 
         platform_type = 'zhihu-meta'
