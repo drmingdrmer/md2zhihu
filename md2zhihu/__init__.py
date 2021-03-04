@@ -436,6 +436,9 @@ class MDRender(object):
         if typ == 'inline_html':
             return [n['text']]
 
+        if typ == 'linebreak':
+            return ["  \n"]
+
         print(typ, n.keys())
         pprint.pprint(n)
         return ['***:' + typ]

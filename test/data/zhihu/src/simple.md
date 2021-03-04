@@ -21,7 +21,8 @@ inline html: <a class="md-anchor" name="解决方案">
 
 emphasis: *emphasis*
 
-
+linebreak: foo  
+next line
 
 # 场景和问题
 
