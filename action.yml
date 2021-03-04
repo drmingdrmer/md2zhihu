@@ -85,7 +85,7 @@ runs:
           -c "user.email=drdr.xp@gmail.com" \
           commit -m "md2zhihu built"
 
-        git push origin HEAD:refs/heads/${{ inputs.md_branch }}
+        git push -f origin HEAD:refs/heads/${{ inputs.md_branch }}
 
         echo "::set-output name=converted_branch::https://github.com/${{ github.repository }}/tree/${{ inputs.md_branch }}"
       shell: bash
