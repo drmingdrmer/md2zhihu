@@ -1,4 +1,6 @@
-# DO NOT EDIT!!! built with `python _building/build_setup.py`
+#!/usr/bin/env python
+# coding: utf-8
+
 import setuptools
 
 import imp
