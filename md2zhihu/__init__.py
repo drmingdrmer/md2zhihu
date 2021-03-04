@@ -1,18 +1,18 @@
+import argparse
+import hashlib
 import os
 import pprint
 import re
 import shutil
-import argparse
-import hashlib
 
 import k3down2
 import yaml
-from k3color import green
 from k3color import darkyellow
-from k3handy import pjoin
+from k3color import green
 from k3handy import cmd0
-from k3handy import to_bytes
 from k3handy import cmdpass
+from k3handy import pjoin
+from k3handy import to_bytes
 
 from .. import mistune
 
@@ -20,8 +20,10 @@ from .. import mistune
 def sj(*args):
     return ''.join([str(x) for x in args])
 
+
 def msg(*args):
     print('>', ''.join([str(x) for x in args]))
+
 
 def indent(line):
     if line == '':
@@ -62,9 +64,11 @@ def code_join(n):
                     + ['```', ''])
     return txt
 
+
 def code_to_html(n, ctx=None):
     txt = code_join(n)
     return k3down2.convert('code', txt, 'html').split('\n')
+
 
 def code_to_jpg(mdrender, n, width=None, ctx=None):
     txt = code_join(n)
@@ -73,10 +77,12 @@ def code_to_jpg(mdrender, n, width=None, ctx=None):
     if w is None:
         w = mdrender.conf.code_width
 
-    return typ_text_to_jpg(mdrender, 'code', txt, opt={'html': {'width':w}})
+    return typ_text_to_jpg(mdrender, 'code', txt, opt={'html': {'width': w}})
+
 
 def code_mermaid_to_jpg(mdrender, n, ctx=None):
     return typ_text_to_jpg(mdrender, 'mermaid', n['text'])
+
 
 def typ_text_to_jpg(mdrender, typ, txt, opt=None):
     d = k3down2.convert(typ, txt, 'jpg', opt=opt)
@@ -89,6 +95,7 @@ def typ_text_to_jpg(mdrender, typ, txt, opt=None):
 def math_block_to_imgtag(mdrender, n, ctx=None):
     return [k3down2.convert('tex_block', n['text'], 'imgtag')]
 
+
 def math_inline_to_imgtag(mdrender, n, ctx=None):
     return [k3down2.convert('tex_inline', n['text'], 'imgtag')]
 
@@ -96,12 +103,14 @@ def math_inline_to_imgtag(mdrender, n, ctx=None):
 def math_block_to_jpg(mdrender, n, ctx=None):
     return typ_text_to_jpg(mdrender, 'tex_block', n['text'])
 
+
 def math_inline_to_jpg(mdrender, n, ctx=None):
     return typ_text_to_jpg(mdrender, 'tex_inline', n['text'])
 
 
 def math_inline_to_plaintext(mdrender, n, ctx=None):
     return [escape(k3down2.convert('tex_inline', n['text'], 'plain'))]
+
 
 def table_to_barehtml(mdrender, n, ctx=None):
 
@@ -122,8 +131,8 @@ def table_to_jpg(mdrender, n, ctx=None):
 
     md_base_path = os.path.split(mdrender.conf.md_path)[0]
 
-    return typ_text_to_jpg(mdrender, 'md', md, opt={'html':{
-            'asset_base': os.path.abspath(md_base_path),
+    return typ_text_to_jpg(mdrender, 'md', md, opt={'html': {
+        'asset_base': os.path.abspath(md_base_path),
     }})
 
 
@@ -139,6 +148,7 @@ def importer(mdrender, n, ctx=None):
         return image_local_to_remote(mdrender, n, ctx=ctx)
 
     return None
+
 
 def zhihu_specific(mdrender, n, ctx=None):
     typ = n['type']
@@ -189,6 +199,7 @@ def wechat_specific(mdrender, n, ctx=None):
             return code_to_jpg(mdrender, n, width=600, ctx=ctx)
 
     return None
+
 
 def weibo_specific(mdrender, n, ctx=None):
     typ = n['type']
@@ -275,16 +286,16 @@ class MDRender(object):
 
     # platform specific renderer
     platforms = {
-            'zhihu': zhihu_specific,
-            'wechat':wechat_specific,
-            'weibo':weibo_specific,
-            'simple': simple_specific,
+        'zhihu': zhihu_specific,
+        'wechat': wechat_specific,
+        'weibo': weibo_specific,
+        'simple': simple_specific,
     }
 
     def __init__(self, conf, platform='zhihu'):
         self.conf = conf
         if isinstance(platform, str):
-            self.handlers = self.platforms.get(platform, lambda *x, **y:None)
+            self.handlers = self.platforms.get(platform, lambda *x, **y: None)
         else:
             self.handlers = platform
 
@@ -429,7 +440,6 @@ class MDRender(object):
         pprint.pprint(n)
         return ['***:' + typ]
 
-
     def render(self, nodes, ctx=None):
         rst = []
         for n in nodes:
@@ -474,6 +484,7 @@ def fix_tables(nodes):
                 parser = new_parser()
                 new_children = parser(partialmd)
                 n['children'] = new_children
+
 
 def join_math_block(nodes):
     """
@@ -578,6 +589,7 @@ def asset_fn(text, suffix):
     fn = escaped[:32] + '-' + textmd5[:16] + '.' + suffix
     return fn
 
+
 def image_local_to_remote(mdrender, n, ctx=None):
 
     #  {'alt': 'openacid',
@@ -649,6 +661,7 @@ def replace_ref_with_def(nodes, refs):
                     n['link'] = r.split()[0]
                     n['children'] = [{'type': 'text', 'text': txt}]
 
+
 def new_parser():
     rdr = mistune.create_markdown(
         escape=False,
@@ -657,8 +670,6 @@ def new_parser():
     )
 
     return rdr
-
-
 
 
 def extract_ref_definitions(cont):
@@ -679,7 +690,7 @@ def extract_jekyll_meta(cont):
     meta = None
     meta_text = None
     m = re.match(r'^ *--- *\n(.*?)\n---\n', cont,
-                    flags=re.DOTALL | re.UNICODE)
+                 flags=re.DOTALL | re.UNICODE)
     if m:
         cont = cont[m.end():]
         meta_text = m.groups()[0].strip()
@@ -696,9 +707,9 @@ def render_ref_list(refs, platform):
         url = d.split()[0]
 
         ref_lines.append(
-                '- {id} : [{url}]({url})'.format(
-                        id=_id, url=url
-                )
+            '- {id} : [{url}]({url})'.format(
+                id=_id, url=url
+            )
         )
 
         #  disable paragraph list in weibo
@@ -732,9 +743,11 @@ class AssetRepo(object):
         if repo_url == '.' or repo_url.startswith('.@'):
             msg("Using current git to store assets...")
             branch = cmd0('git', 'symbolic-ref', '--short', 'HEAD')
-            remote = cmd0('git', 'config','--get', 'branch.{}.remote'.format(branch))
+            remote = cmd0('git', 'config', '--get',
+                          'branch.{}.remote'.format(branch))
             if repo_url.startswith('.@'):
-                repo_url = cmd0('git', 'remote', 'get-url', remote) + repo_url[1:]
+                repo_url = cmd0('git', 'remote', 'get-url',
+                                remote) + repo_url[1:]
             else:
                 repo_url = cmd0('git', 'remote', 'get-url', remote)
 
@@ -742,35 +755,38 @@ class AssetRepo(object):
         match = re.match(r'git@(.*?):(.*?)/(.*?)\.git(@.*?)?$', repo_url)
         if match:
             host, user, repo, branch = match.groups()
-            self.url = sshurl_fmt.format(host=host,user=user,repo=repo)
+            self.url = sshurl_fmt.format(host=host, user=user, repo=repo)
 
         if not match:
             # ssh://git@github.com/openacid/openacid.github.io
             match = re.match(r'ssh://git@(.*?)/(.*?)/(.*?)(@.*?)?$', repo_url)
             if match:
                 host, user, repo, branch = match.groups()
-                self.url = sshurl_fmt.format(host=host,user=user,repo=repo)
+                self.url = sshurl_fmt.format(host=host, user=user, repo=repo)
 
         if not match:
             # https://committer:token@github.com/openacid/openacid.github.io.git
-            match = re.match(r'https://(.*?):(.*?)@(.*?)/(.*?)/(.*?)\.git(@.*?)?$', repo_url)
+            match = re.match(
+                r'https://(.*?):(.*?)@(.*?)/(.*?)/(.*?)\.git(@.*?)?$', repo_url)
             if match:
                 committer, token, host, user, repo, branch = match.groups()
                 self.url = repo_url
 
         if not match:
             # https://github.com/openacid/openacid.github.io.git
-            match = re.match(r'https://(.*?)/(.*?)/(.*?)\.git(@.*?)?$', repo_url)
+            match = re.match(
+                r'https://(.*?)/(.*?)/(.*?)\.git(@.*?)?$', repo_url)
             if match:
                 host, user, repo, branch = match.groups()
                 u = os.environ.get("GITHUB_USERNAME")
                 t = os.environ.get("GITHUB_TOKEN")
                 if (u is not None and t is not None):
                     self.url = httpsurl_fmt.format(
-                            u=u, t=t,
-                            host=host,user=user,repo=repo)
+                        u=u, t=t,
+                        host=host, user=user, repo=repo)
                 else:
-                    self.url = sshurl_fmt.format(host=host,user=user,repo=repo)
+                    self.url = sshurl_fmt.format(
+                        host=host, user=user, repo=repo)
 
         if not match:
             raise ValueError(
@@ -794,15 +810,14 @@ class AssetRepo(object):
             cwd = os.getcwd().split(os.path.sep)
             cwdmd5 = hashlib.md5(to_bytes(os.getcwd())).hexdigest()
             branch = '_md2zhihu_{tail}_{md5}'.format(
-                    tail=cwd[-1],
-                    md5=cwdmd5[:8],
+                tail=cwd[-1],
+                md5=cwdmd5[:8],
             )
             # escape special chars
             branch = re.sub(r'[^a-zA-Z0-9_\-=]+', '', branch)
         else:
             # @some_branch
             branch = branch[1:]
-
 
         self.host = host
         self.user = user
@@ -822,10 +837,15 @@ class AssetRepo(object):
 
 class Config(object):
 
-    def __init__(self, asset_dir, output_path,
+    #  TODO test output_md_dir
+    #  TODO refactor var names
+    def __init__(self, asset_dir,
+                 output_md_dir,
+                 output_path,
                  platform, md_path, asset_repo_url,
                  code_width=1000):
         self.asset_dir = asset_dir
+        self.output_md_dir = output_md_dir
         self.output_path = output_path
         self.platform = platform
         self.md_path = md_path
@@ -844,10 +864,11 @@ class Config(object):
 
         self.rel_dir = pjoin(self.platform, self.article_name)
         self.output_dir = pjoin(self.asset_dir, self.rel_dir)
+        if self.output_md_dir is None:
+            self.output_md_dir = self.output_dir
 
         if self.output_path is None:
-            self.output_path = pjoin(self.output_dir, fn)
-
+            self.output_path = pjoin(self.output_md_dir, fn)
 
     def img_url(self, fn):
         return self.asset_repo.path_pattern.format(
@@ -864,14 +885,15 @@ class Config(object):
                 'commit', '--allow-empty',
                 '-m', 'by md2zhihu by drdr.xp@gmail.com',
                 **x)
-        cmdpass('git', 'push', '-f', self.asset_repo.url, 'HEAD:refs/heads/' + self.asset_repo.branch, **x)
-
-        msg("Removing tmp git dir: ",self.asset_dir + '/.git')
+        cmdpass('git', 'push', '-f', self.asset_repo.url,
+                'HEAD:refs/heads/' + self.asset_repo.branch, **x)
+        msg("Removing tmp git dir: ", self.asset_dir + '/.git')
         shutil.rmtree(self.asset_dir + '/.git')
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Convert markdown to zhihu compatible')
+    parser = argparse.ArgumentParser(
+        description='Convert markdown to zhihu compatible')
 
     parser.add_argument('md_path', type=str,
                         nargs='+',
@@ -880,6 +902,10 @@ def main():
     parser.add_argument('-o', '--output', action='store',
                         help='sepcify output path.'
                         ' default: <asset_dir>/<platform>/<fn>/<fn>.md')
+
+    parser.add_argument('--output-dir', action='store',
+                        help='sepcify output dir for converted markdowns.'
+                        ' default: <asset_dir>/<platform>/<fn>/')
 
     parser.add_argument('-d', '--asset-dir', action='store',
                         default='_md2',
@@ -903,25 +929,27 @@ def main():
                         choices=["zhihu", "wechat", "weibo", "simple"],
                         help='convert to a platform compatible format.'
                         'simple is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
-    )
+                        )
 
     parser.add_argument('--keep-meta', action='store_true',
                         required=False,
                         default=False,
                         help='if keep meta header, which is wrapped with two "---" at file beginning.'
                         ' default: False'
-    )
+                        )
 
     parser.add_argument('--code-width', action='store',
                         required=False,
                         default=1000,
                         help='specifies code image width.'
                         ' default: 1000'
-    )
+                        )
 
     args = parser.parse_args()
-    msg("Build markdown: ", darkyellow(args.md_path), " into ", darkyellow(args.output))
+    msg("Build markdown: ", darkyellow(args.md_path),
+        " into ", darkyellow(args.output))
     msg("Assets will be stored in ", darkyellow(args.repo))
+    msg("Markdowns will be stored in local dir ", darkyellow(args.output_dir))
     msg("Repo url: ", args.repo)
 
     for path in args.md_path:
@@ -929,6 +957,7 @@ def main():
         platform = args.platform
         conf = Config(
             args.asset_dir,
+            args.output_dir,
             args.output,
             args.platform,
             path,
@@ -937,6 +966,7 @@ def main():
         )
 
         os.makedirs(conf.output_dir, exist_ok=True)
+        os.makedirs(conf.output_md_dir, exist_ok=True)
 
         with open(path, 'r') as f:
             cont = f.read()
@@ -972,7 +1002,7 @@ def main():
         ast = parse_math(ast)
 
         #  with open('after-math-2', 'w') as f:
-            #  f.write(pprint.pformat(ast))
+        #  f.write(pprint.pformat(ast))
 
         out = mdr.render(ast)
 
@@ -998,8 +1028,8 @@ def main():
 
         msg(sj("Done building ", darkyellow(conf.output_path)))
 
-
-    msg("Pushing ", darkyellow(conf.asset_dir), " to ", darkyellow(conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
+    msg("Pushing ", darkyellow(conf.asset_dir), " to ", darkyellow(
+        conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
     conf.push()
 
     msg(green(sj("Great job!!!")))
