@@ -1,0 +1,91 @@
+name: 'md2zhihu'
+description: >
+  Convert markdown to a standalone version.
+  Assets used by a markdown are pushed to a branch and the urls in the markdown are replaced.
+  Other content such as latex math are converted into images.
+
+  A converted markdown can be just copy-pasted to other platform without manually uploading assets.
+
+  Assets are stored in a branch specified by `inputs.asset_branch`, by default
+  "_md2zhihu/asset".
+
+  When convertion is done, it pushes converted markdowns to a branch specified
+  by `inputs.md_branch`, by default "_md2zhihu/md".
+  To receive the converted markdowns, a user fetch and merge this branch.
+
+inputs:
+  pattern:
+    description: 'file pattern to convert'
+    required: true
+    default: '*.md'
+
+  output_dir:
+    description: 'dir to store converted markdown'
+    required: true
+    default: '_md2zhihu'
+
+  md_branch:
+    description: >
+      The branch name to push converted markdown to.
+      A build overrides previous built branch.
+      If you want to persist the built markdowns,
+      merge this branch.
+    required: true
+    default: '_md2zhihu/md'
+
+  asset_branch:
+    description: >
+      The branch name in which assets are stored.
+    required: true
+    default: '_md2zhihu/asset'
+
+  target_platform:
+    description: >
+      The platform that the converted markdown should be compatible to.
+
+      Currently supported platforms are zhihu, wechat, weibo, simple.
+      `simple` converts almost everything to images and removes most text styles.
+      E.g. inline code block is converted to normal text.
+
+    required: true
+    default: 'zhihu'
+
+outputs:
+  converted_branch:
+    description: "The url of the branch of converted markdowns"
+    value: ${{ steps.convert.outputs.converted_branch }}
+runs:
+  using: "composite"
+  steps:
+    - name: install deps
+      run: |
+        npm install @mermaid-js/mermaid-cli@8.8.4
+        sudo apt-get install pandoc
+        pip3 install setuptools wheel
+        pip3 install -r ${{ github.action_path }}/requirements.txt
+      shell: bash
+
+    - name: convert
+      id: convert
+      run: |
+        cp -R ${{ github.action_path }} md2zhihu
+
+        python3 -m md2zhihu \
+          --repo https://github.com/${{ github.repository }}.git@${{ inputs.asset_branch }} \
+          --code-width 600 \
+          --platform ${{ inputs.target_platform }} \
+          --asset-dir _md2zhihu \
+          --output-dir ${{ inputs.output_dir }} \
+          ${{ inputs.pattern }}
+
+        git add ${{ inputs.output_dir }}
+
+        git \
+          -c "user.name=drmingdrmer" \
+          -c "user.email=drdr.xp@gmail.com" \
+          commit -m "md2zhihu built"
+
+        git push origin HEAD:refs/heads/${{ inputs.md_branch }}
+
+        echo "::set-output name=converted_branch::https://github.com/${{ github.repository }}/tree/${{ inputs.md_branch }}"
+      shell: bash
