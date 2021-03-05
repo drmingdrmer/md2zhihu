@@ -1,6 +1,9 @@
 name: 'md2zhihu'
 description: >
   Convert markdown to a single-file by uploading all its local assets.
+branding:
+  icon: upload-cloud
+  color: green
 inputs:
   pattern:
     description: 'file pattern to convert'
