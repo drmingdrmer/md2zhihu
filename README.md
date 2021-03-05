@@ -13,8 +13,6 @@ and can be imported into zhihu.com with just one click.
 Add action definition into the git repo you have markdowns to convert:
 `.github/workflows/md2zhihu.yml`:
 
-To create and add `GH_TOKEN`, see: [add-token](add-token.md)
-
 ```yaml
 name: md2zhihu
 on: [push]
@@ -23,10 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: drmingdrmer/md2zhihu@v0.4
+    - uses: drmingdrmer/md2zhihu@v0.5
       env:
         GITHUB_USERNAME: ${{ github.repository_owner }}
-        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         pattern: >
             _posts/*.md
@@ -76,8 +74,7 @@ https://github.com/drmingdrmer/drmingdrmer.github.io/blob/_md2zhihu/md/_md2zhihu
 
 -   `target_platform`:
 
-    The platform that the converted markdown should be compatible to.
-Currently supported platforms are zhihu, wechat, weibo, simple. `simple` converts almost everything to images and removes most text styles. E.g. inline code block is converted to normal text.
+    The platform that the converted markdown should be compatible toṫCurrently supported platforms are zhihu, wechat, weibo, simple. `simple` converts almost everything to images and removes most text styles. E.g. inline code block is converted to normal text.
 
     **required**: True
     **default**: `zhihu`
