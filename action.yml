@@ -1,18 +1,6 @@
 name: 'md2zhihu'
 description: >
-  Convert markdown to a standalone version.
-  Assets used by a markdown are pushed to a branch and the urls in the markdown are replaced.
-  Other content such as latex math are converted into images.
-
-  A converted markdown can be just copy-pasted to other platform without manually uploading assets.
-
-  Assets are stored in a branch specified by `inputs.asset_branch`, by default
-  "_md2zhihu/asset".
-
-  When convertion is done, it pushes converted markdowns to a branch specified
-  by `inputs.md_branch`, by default "_md2zhihu/md".
-  To receive the converted markdowns, a user fetch and merge this branch.
-
+  Convert markdown to a single-file by uploading all its local assets.
 inputs:
   pattern:
     description: 'file pattern to convert'
