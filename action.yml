@@ -8,7 +8,7 @@ inputs:
   pattern:
     description: 'file pattern to convert'
     required: true
-    default: '*.md'
+    default: '**/*.md'
 
   output_dir:
     description: 'dir to store converted markdown'
