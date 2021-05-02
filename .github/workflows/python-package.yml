@@ -49,3 +49,8 @@ jobs:
         pip install dist/*.tar.gz
         )
         PATH="$PATH:$(npm bin)" PYTHONPATH="$(cd ..; pwd)" pytest
+
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        path: test/

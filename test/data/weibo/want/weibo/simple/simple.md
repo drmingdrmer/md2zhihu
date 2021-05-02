@@ -5,6 +5,10 @@
 
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
 
+### graphviz
+
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
+
 inline code: foo = bar
 
 inline math  ||Xβ⃗-Y||²  foo

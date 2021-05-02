@@ -128,6 +128,23 @@ This command convert `your_great_work.md` to
 
     ![](assets/mermaid.jpg)
 
+
+- Transform graphviz code block to image:
+
+    ```graphviz
+    digraph R {
+        node [shape=plaintext]
+        rankdir=LR
+        X0X0 [ label="0-0"]
+        X0X0 -> X1X0 [ color="#aaaadd"]
+        X0X0 -> X2X3 [ color="#aaaadd"]
+    }
+    ```
+    is converted to:
+
+    ![](assets/graphviz.jpg)
+
+
 -   Generate link list::
 
     | original | converted | imported |

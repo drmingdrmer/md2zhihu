@@ -34,6 +34,10 @@ next line
 
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/zhihu/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
 
+### graphviz
+
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/zhihu/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
+
 例如 `$$ ||X{\vec {\beta }}-Y||^{2} $$`
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/zhihu/simple/slim.jpg)
 

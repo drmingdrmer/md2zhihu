@@ -120,6 +120,24 @@ md2zhihu 不支持windows, 可以通过github-action来实现远程转换:
 
     ![](assets/mermaid.jpg)
 
+
+- graphviz: 将graphviz语法渲染成图片, 并上传. 例如:
+
+    ```graphviz
+    digraph R {
+        node [shape=plaintext]
+        rankdir=LR
+        X0X0 [ label="0-0"]
+        X0X0 -> X1X0 [ color="#aaaadd"]
+        X0X0 -> X2X3 [ color="#aaaadd"]
+    }
+    ```
+
+    转换成:
+
+    ![](assets/graphviz.jpg)
+
+
 -   链接列表: 将 markdown 的 reference-style link 转成链接列表:
 
     | 源文件 | 转换后 | 导入后 |

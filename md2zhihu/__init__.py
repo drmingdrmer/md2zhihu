@@ -84,6 +84,10 @@ def code_mermaid_to_jpg(mdrender, n, ctx=None):
     return typ_text_to_jpg(mdrender, 'mermaid', n['text'])
 
 
+def code_graphviz_to_jpg(mdrender, n, ctx=None):
+    return typ_text_to_jpg(mdrender, 'graphviz', n['text'])
+
+
 def typ_text_to_jpg(mdrender, typ, txt, opt=None):
     d = k3down2.convert(typ, txt, 'jpg', opt=opt)
     fn = asset_fn(txt, 'jpg')
@@ -169,6 +173,8 @@ def zhihu_specific(mdrender, n, ctx=None):
         lang = n['info'] or ''
         if lang == 'mermaid':
             return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
+        if lang == 'graphviz':
+            return code_graphviz_to_jpg(mdrender, n, ctx=ctx)
 
     return None
 
@@ -192,6 +198,8 @@ def wechat_specific(mdrender, n, ctx=None):
         lang = n['info'] or ''
         if lang == 'mermaid':
             return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
+        if lang == 'graphviz':
+            return code_graphviz_to_jpg(mdrender, n, ctx=ctx)
 
         if lang == '':
             return code_to_jpg(mdrender, n, ctx=ctx)
@@ -242,6 +250,8 @@ def weibo_specific(mdrender, n, ctx=None):
         lang = n['info'] or ''
         if lang == 'mermaid':
             return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
+        if lang == 'graphviz':
+            return code_graphviz_to_jpg(mdrender, n, ctx=ctx)
 
         if lang == '':
             return code_to_jpg(mdrender, n, ctx=ctx)
@@ -273,6 +283,8 @@ def simple_specific(mdrender, n, ctx=None):
         lang = n['info'] or ''
         if lang == 'mermaid':
             return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
+        if lang == 'graphviz':
+            return code_graphviz_to_jpg(mdrender, n, ctx=ctx)
 
         if lang == '':
             return code_to_jpg(mdrender, n, ctx=ctx)
@@ -881,6 +893,14 @@ class Config(object):
             self.dst_path = pjoin(dst_base, fn)
 
         self.dst_base = os.path.split(os.path.abspath(self.dst_path))[0]
+        for k in (
+            "src_path",
+            "platform",
+            "asset_dir",
+            "dst_base",
+            "dst_path",
+        ):
+            msg(darkyellow(k), getattr(self, k))
 
     def img_url(self, fn):
         return self.asset_repo.path_pattern.format(

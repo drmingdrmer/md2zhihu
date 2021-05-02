@@ -5,6 +5,10 @@
 
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
 
+### graphviz
+
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
+
 inline code: foo = bar
 
 inline math ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/Xvecbeta-Y2-36bbccd5e08c341b.jpg) foo

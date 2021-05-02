@@ -8,4 +8,4 @@ cd ..
 python setup.py install
 )
 
-PYTHONPATH="$(cd ..; pwd)" pytest -x
+PYTHONPATH="$(cd ..; pwd)" pytest -x -v

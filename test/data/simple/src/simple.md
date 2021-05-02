@@ -26,6 +26,18 @@ graph LR
     C -->|Two| E[Result two]
 ```
 
+### graphviz
+
+```graphviz
+digraph R {
+node [shape=plaintext]
+rankdir=LR
+X0X0 [ label="0-0"]
+X0X0 -> X1X0 [ color="#aaaadd"]
+X0X0 -> X2X3 [ color="#aaaadd"]
+}
+```
+
 inline code: `foo = bar`
 
 inline math $$ ||X{\vec {\beta }}-Y||^{2} $$ foo

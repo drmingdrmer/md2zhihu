@@ -1,7 +1,7 @@
 PyYAML~=5.3.1
 
 
-k3down2~=0.1.13
+k3down2~=0.1.15
 k3handy
 k3color~=0.1.2
 k3fs~=0.1.5

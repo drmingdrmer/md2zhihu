@@ -115,13 +115,11 @@ class TestMd2zhihu(unittest.TestCase):
 
         rm(d, 'specified.md')
 
+    def test_zhihu_meta(self): self._test_platform('zhihu-meta', ['--keep-meta'])
     def test_zhihu(self):      self._test_platform('zhihu', [])
-    def test_zhihu_meta(self): self._test_platform(
-        'zhihu-meta', ['--keep-meta'])
-
     def test_wechat(self):     self._test_platform('wechat', ['-p', 'wechat'])
     def test_weibo(self):      self._test_platform('weibo', ['-p', 'weibo'])
-    def test_simple(self):      self._test_platform('simple', ['-p', 'simple'])
+    def test_simple(self):     self._test_platform('simple', ['-p', 'simple'])
 
     def _test_platform(self, platform_type, args):
 
@@ -134,6 +132,7 @@ class TestMd2zhihu(unittest.TestCase):
 
         k3fs.remove(d, gotdir, onerror="ignore")
 
+        #  do not check error, upload will fail
         code, out, err = k3proc.command(
             "md2zhihu",
             "src/simple.md",
