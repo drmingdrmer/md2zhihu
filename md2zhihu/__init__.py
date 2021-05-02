@@ -129,7 +129,7 @@ def table_to_jpg(mdrender, n, ctx=None):
     md = mdr.render_node(n)
     md = '\n'.join(md)
 
-    md_base_path = os.path.split(mdrender.conf.md_path)[0]
+    md_base_path = os.path.split(mdrender.conf.src_path)[0]
 
     return typ_text_to_jpg(mdrender, 'md', md, opt={'html': {
         'asset_base': os.path.abspath(md_base_path),
@@ -609,7 +609,7 @@ def image_local_to_remote(mdrender, n, ctx=None):
         src = src[1:]
     else:
         # relative path from markdown containing dir.
-        src = os.path.join(os.path.split(mdrender.conf.md_path)[0], src)
+        src = os.path.join(os.path.split(mdrender.conf.src_path)[0], src)
 
     fn = os.path.split(src)[1]
     shutil.copyfile(src, pjoin(mdrender.conf.output_dir, fn))
@@ -840,23 +840,30 @@ class AssetRepo(object):
 
 class Config(object):
 
-    #  TODO test output_md_dir
+    #  TODO test dst_base
     #  TODO refactor var names
-    def __init__(self, asset_dir,
-                 output_md_dir,
-                 output_path,
-                 platform, md_path, asset_repo_url,
-                 code_width=1000):
+    def __init__(self,
+                 src_path,
+                 platform,
+                 asset_dir,
+                 asset_repo_url=None,
+                 dst_base=None,
+                 dst_path=None,
+                 code_width=1000, 
+                 keep_meta=None, 
+    ):
         self.asset_dir = asset_dir
-        self.output_md_dir = output_md_dir
-        self.output_path = output_path
+        self.dst_path = dst_path
         self.platform = platform
-        self.md_path = md_path
+        self.src_path = src_path
 
         self.asset_repo = AssetRepo(asset_repo_url)
         self.code_width = code_width
+        if keep_meta is None:
+            keep_meta = False
+        self.keep_meta = keep_meta
 
-        fn = os.path.split(self.md_path)[-1]
+        fn = os.path.split(self.src_path)[-1]
 
         # jekyll style
         fnm = re.match(r'\d\d\d\d-\d\d-\d\d-(.*)', fn)
@@ -867,11 +874,13 @@ class Config(object):
 
         self.rel_dir = pjoin(self.platform, self.article_name)
         self.output_dir = pjoin(self.asset_dir, self.rel_dir)
-        if self.output_md_dir is None:
-            self.output_md_dir = self.output_dir
 
-        if self.output_path is None:
-            self.output_path = pjoin(self.output_md_dir, fn)
+        if self.dst_path is None:
+            if dst_base is None:
+                dst_base = self.output_dir
+            self.dst_path = pjoin(dst_base, fn)
+
+        self.dst_base = os.path.split(os.path.abspath(self.dst_path))[0]
 
     def img_url(self, fn):
         return self.asset_repo.path_pattern.format(
@@ -894,11 +903,79 @@ class Config(object):
         shutil.rmtree(self.asset_dir + '/.git')
 
 
+def convert_md(conf, handler=None):
+
+    os.makedirs(conf.output_dir, exist_ok=True)
+    os.makedirs(conf.dst_base, exist_ok=True)
+
+    with open(conf.src_path, 'r') as f:
+        cont = f.read()
+
+    cont, meta, meta_text = extract_jekyll_meta(cont)
+    cont, article_refs = extract_ref_definitions(cont)
+
+    refs = build_refs(meta)
+    refs.update(article_refs)
+
+    parse_to_ast = new_parser()
+    ast = parse_to_ast(cont)
+
+    #  with open('ast', 'w') as f:
+    #      f.write(pprint.pformat(ast))
+
+    fix_tables(ast)
+
+    #  with open('fixed-table', 'w') as f:
+    #      f.write(pprint.pformat(ast))
+
+    replace_ref_with_def(ast, refs)
+
+    # extract already inlined math
+    ast = parse_math(ast)
+
+    #  with open('after-math-1', 'w') as f:
+    #      f.write(pprint.pformat(ast))
+
+    # join cross paragraph math
+    join_math_block(ast)
+    ast = parse_math(ast)
+
+    #  with open('after-math-2', 'w') as f:
+    #  f.write(pprint.pformat(ast))
+
+    if handler is None:
+        mdr = MDRender(conf, platform=conf.platform)
+    else:
+        mdr = MDRender(conf, platform=handler)
+
+    out = mdr.render(ast)
+
+    if conf.keep_meta:
+        out = ['---', meta_text, '---'] + out
+
+    out.append('')
+
+    ref_list = render_ref_list(refs, conf.platform)
+    out.extend(ref_list)
+
+    out.append('')
+
+    ref_lines = [
+        '[{id}]: {d}'.format(
+            id=_id, d=d
+        ) for _id, d in refs.items()
+    ]
+    out.extend(ref_lines)
+
+    with open(conf.dst_path, 'w') as f:
+        f.write(str('\n'.join(out)))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Convert markdown to zhihu compatible')
 
-    parser.add_argument('md_path', type=str,
+    parser.add_argument('src_path', type=str,
                         nargs='+',
                         help='path to the markdown to process')
 
@@ -949,87 +1026,28 @@ def main():
                         )
 
     args = parser.parse_args()
-    msg("Build markdown: ", darkyellow(args.md_path),
+    msg("Build markdown: ", darkyellow(args.src_path),
         " into ", darkyellow(args.output))
     msg("Assets will be stored in ", darkyellow(args.repo))
     msg("Markdowns will be stored in local dir ", darkyellow(args.output_dir))
     msg("Repo url: ", args.repo)
 
-    for path in args.md_path:
+    for path in args.src_path:
 
-        platform = args.platform
         conf = Config(
-            args.asset_dir,
-            args.output_dir,
-            args.output,
-            args.platform,
             path,
-            args.repo,
+            args.platform,
+            args.asset_dir,
+            asset_repo_url=args.repo,
+            dst_base=args.output_dir,
+            dst_path=args.output,
             code_width=args.code_width,
+            keep_meta=args.keep_meta, 
         )
 
-        os.makedirs(conf.output_dir, exist_ok=True)
-        os.makedirs(conf.output_md_dir, exist_ok=True)
+        convert_md(conf)
 
-        with open(path, 'r') as f:
-            cont = f.read()
-
-        cont, meta, meta_text = extract_jekyll_meta(cont)
-        cont, article_refs = extract_ref_definitions(cont)
-
-        refs = build_refs(meta)
-        refs.update(article_refs)
-
-        rdr = new_parser()
-        ast = rdr(cont)
-
-        #  with open('ast', 'w') as f:
-        #      f.write(pprint.pformat(ast))
-
-        mdr = MDRender(conf, platform=platform)
-        fix_tables(ast)
-
-        #  with open('fixed-table', 'w') as f:
-        #      f.write(pprint.pformat(ast))
-
-        replace_ref_with_def(ast, refs)
-
-        # extract already inlined math
-        ast = parse_math(ast)
-
-        #  with open('after-math-1', 'w') as f:
-        #      f.write(pprint.pformat(ast))
-
-        # join cross paragraph math
-        join_math_block(ast)
-        ast = parse_math(ast)
-
-        #  with open('after-math-2', 'w') as f:
-        #  f.write(pprint.pformat(ast))
-
-        out = mdr.render(ast)
-
-        if args.keep_meta:
-            out = ['---', meta_text, '---'] + out
-
-        out.append('')
-
-        ref_list = render_ref_list(refs, platform)
-        out.extend(ref_list)
-
-        out.append('')
-
-        ref_lines = [
-            '[{id}]: {d}'.format(
-                id=_id, d=d
-            ) for _id, d in refs.items()
-        ]
-        out.extend(ref_lines)
-
-        with open(conf.output_path, 'w') as f:
-            f.write(str('\n'.join(out)))
-
-        msg(sj("Done building ", darkyellow(conf.output_path)))
+        msg(sj("Done building ", darkyellow(conf.dst_path)))
 
     msg("Pushing ", darkyellow(conf.asset_dir), " to ", darkyellow(
         conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
