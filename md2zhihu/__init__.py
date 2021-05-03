@@ -852,20 +852,19 @@ class AssetRepo(object):
 
 class Config(object):
 
-    #  TODO test dst_base
+    #  TODO test md_output_base
     #  TODO refactor var names
     def __init__(self,
                  src_path,
                  platform,
                  asset_dir,
                  asset_repo_url=None,
-                 dst_base=None,
-                 dst_path=None,
+                 md_output_path=None,
                  code_width=1000, 
                  keep_meta=None, 
     ):
         self.asset_dir = asset_dir
-        self.dst_path = dst_path
+        self.md_output_path = md_output_path
         self.platform = platform
         self.src_path = src_path
 
@@ -887,20 +886,22 @@ class Config(object):
         self.rel_dir = pjoin(self.platform, self.article_name)
         self.output_dir = pjoin(self.asset_dir, self.rel_dir)
 
-        if self.dst_path is None:
-            if dst_base is None:
-                dst_base = self.output_dir
-            self.dst_path = pjoin(dst_base, fn)
+        assert(self.md_output_path is not None)
 
-        self.dst_base = os.path.split(os.path.abspath(self.dst_path))[0]
+        if self.md_output_path.endswith('/'):
+            self.md_output_base = self.md_output_path
+            self.md_output_path = pjoin(self.md_output_path, fn)
+        else:
+            self.md_output_base = os.path.split(os.path.abspath(self.md_output_path))[0]
+
         for k in (
             "src_path",
             "platform",
             "asset_dir",
-            "dst_base",
-            "dst_path",
+            "md_output_base",
+            "md_output_path",
         ):
-            msg(darkyellow(k), getattr(self, k))
+            msg(darkyellow(k), ": ",  getattr(self, k))
 
     def img_url(self, fn):
         return self.asset_repo.path_pattern.format(
@@ -926,7 +927,7 @@ class Config(object):
 def convert_md(conf, handler=None):
 
     os.makedirs(conf.output_dir, exist_ok=True)
-    os.makedirs(conf.dst_base, exist_ok=True)
+    os.makedirs(conf.md_output_base, exist_ok=True)
 
     with open(conf.src_path, 'r') as f:
         cont = f.read()
@@ -987,11 +988,21 @@ def convert_md(conf, handler=None):
     ]
     out.extend(ref_lines)
 
-    with open(conf.dst_path, 'w') as f:
+    with open(conf.md_output_path, 'w') as f:
         f.write(str('\n'.join(out)))
 
 
 def main():
+
+    # TODO refine arg names
+    # md2zhihu a.md --output-dir res/ --platform xxx --md-output foo/
+    # res/fn.md
+    #    /assets/fn/xx.jpg
+    #
+    # md2zhihu a.md --output-dir res/ --repo a@branch --platform xxx --md-output b.md
+    #
+    # TODO then test drmingdrmer.github.io with action
+
     parser = argparse.ArgumentParser(
         description='Convert markdown to zhihu compatible')
 
@@ -999,13 +1010,11 @@ def main():
                         nargs='+',
                         help='path to the markdown to process')
 
-    parser.add_argument('-o', '--output', action='store',
-                        help='sepcify output path.'
-                        ' default: <asset_dir>/<platform>/<fn>/<fn>.md')
-
-    parser.add_argument('--output-dir', action='store',
-                        help='sepcify output dir for converted markdowns.'
-                        ' default: <asset_dir>/<platform>/<fn>/')
+    parser.add_argument('-o', '--md-output', action='store',
+                        help='sepcify output path for converted mds.'
+                        ' If the path specified ends with "/", it is treated as output dir, e.g. --output foo/ output the converted md to foo/<fn>.md.'
+                        ' Otherwise it should be the path to some md file such as a/b/c.md. '
+                        ' default: <asset-dir>/<fn>.md')
 
     parser.add_argument('-d', '--asset-dir', action='store',
                         default='_md2',
@@ -1046,10 +1055,13 @@ def main():
                         )
 
     args = parser.parse_args()
+
+    if args.md_output is None:
+        args.md_output = args.asset_dir +'/'
+
     msg("Build markdown: ", darkyellow(args.src_path),
-        " into ", darkyellow(args.output))
+        " into ", darkyellow(args.md_output))
     msg("Assets will be stored in ", darkyellow(args.repo))
-    msg("Markdowns will be stored in local dir ", darkyellow(args.output_dir))
     msg("Repo url: ", args.repo)
 
     for path in args.src_path:
@@ -1059,15 +1071,14 @@ def main():
             args.platform,
             args.asset_dir,
             asset_repo_url=args.repo,
-            dst_base=args.output_dir,
-            dst_path=args.output,
+            md_output_path=args.md_output,
             code_width=args.code_width,
             keep_meta=args.keep_meta, 
         )
 
         convert_md(conf)
 
-        msg(sj("Done building ", darkyellow(conf.dst_path)))
+        msg(sj("Done building ", darkyellow(conf.md_output_path)))
 
     msg("Pushing ", darkyellow(conf.asset_dir), " to ", darkyellow(
         conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))

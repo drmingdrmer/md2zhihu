@@ -67,7 +67,7 @@ runs:
           --code-width 600 \
           --platform ${{ inputs.target_platform }} \
           --asset-dir _md2zhihu \
-          --output-dir ${{ inputs.output_dir }} \
+          --md-output ${{ inputs.output_dir }} \
           ${{ inputs.pattern }}
 
         git add ${{ inputs.output_dir }}

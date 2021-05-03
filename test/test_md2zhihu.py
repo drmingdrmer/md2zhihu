@@ -78,7 +78,7 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertEqual('drmingdrmer', a.user)
         self.assertEqual('home', a.repo)
 
-    def test_option_output(self):
+    def test_option_md_output_fn(self):
 
         platform_type = 'zhihu-meta'
         segs = platform_type.split('-') + ['']
@@ -88,9 +88,9 @@ class TestMd2zhihu(unittest.TestCase):
         code, out, err = k3proc.command(
             "md2zhihu",
             "src/simple.md",
-            "-d", "dst2",
-            "-o", "specified.md",
-            "-r", "git@gitee.com:drdrxp/bed.git",
+            "--asset-dir", "dst2",
+            "--md-output", "specified.md",
+            "--repo", "git@gitee.com:drdrxp/bed.git",
             '--keep-meta',
             cwd=d
         )
@@ -109,11 +109,51 @@ class TestMd2zhihu(unittest.TestCase):
         wantdir = 'want/{}/simple'.format(platform)
 
         gotmd = fread(d, 'specified.md')
-        wantmd = fread(d, wantdir, 'simple.md')
+        wantmd = fread(d, 'want/simple.md')
         wantmd = normalize_pandoc_output(wantmd, gotmd)
         self.assertEqual(wantmd.strip(), gotmd.strip())
 
         rm(d, 'specified.md')
+        k3fs.remove(d, 'dst2', onerror='ignore')
+
+    def test_option_md_output_dir(self):
+
+        platform_type = 'zhihu-meta'
+        segs = platform_type.split('-') + ['']
+        platform = segs[0]
+
+        d = 'test/data/{}'.format(platform_type)
+        code, out, err = k3proc.command(
+            "md2zhihu",
+            "src/simple.md",
+            "--asset-dir", "dst2",
+            "--md-output", "foo/",
+            "--repo", "git@gitee.com:drdrxp/bed.git",
+            '--keep-meta',
+            cwd=d
+        )
+
+        #  can not push on CI
+        _ = code
+        _ = out
+        _ = err
+
+        print(out)
+        print(err)
+
+        if not is_ci():
+            self.assertEqual(0, code)
+
+        wantdir = 'want/{}/simple'.format(platform)
+
+        gotmd = fread(d, 'foo/simple.md')
+        wantmd = fread(d, 'want/simple.md')
+        wantmd = normalize_pandoc_output(wantmd, gotmd)
+        self.assertEqual(wantmd.strip(), gotmd.strip())
+
+        k3fs.remove(d, 'foo', onerror='ignore')
+        k3fs.remove(d, 'dst2', onerror='ignore')
+
 
     def test_zhihu_meta(self): self._test_platform('zhihu-meta', ['--keep-meta'])
     def test_zhihu(self):      self._test_platform('zhihu', [])
@@ -127,8 +167,10 @@ class TestMd2zhihu(unittest.TestCase):
         platform = segs[0]
 
         d = 'test/data/{}'.format(platform_type)
-        gotdir = 'dst/{}/simple'.format(platform)
-        wantdir = 'want/{}/simple'.format(platform)
+        gotdir = 'dst'
+        wantdir = 'want'
+        gotassdir = 'dst/{}/simple'.format(platform)
+        wantassdir = 'want/{}/simple'.format(platform)
 
         k3fs.remove(d, gotdir, onerror="ignore")
 
@@ -136,11 +178,13 @@ class TestMd2zhihu(unittest.TestCase):
         code, out, err = k3proc.command(
             "md2zhihu",
             "src/simple.md",
-            "-d", "dst",
-            "-r", "git@gitee.com:drdrxp/bed.git@_md2zhihu_foo",
+            "--asset-dir", "dst",
+            "--repo", "git@gitee.com:drdrxp/bed.git@_md2zhihu_foo",
             *args,
             cwd=d
         )
+
+        dd(err)
 
         #  can not push on CI
         _ = code
@@ -159,18 +203,18 @@ class TestMd2zhihu(unittest.TestCase):
         wantmd = normalize_pandoc_output(wantmd, gotmd)
         self.assertEqual(wantmd.strip(), gotmd.strip())
 
-        for img in os.listdir(pjoin(d, wantdir)):
+        for img in os.listdir(pjoin(d, wantassdir)):
             if img.split('.')[-1] not in ('jpg', 'png'):
                 continue
-            sim = cmp_image(pjoin(d, wantdir, img),
-                            pjoin(d, gotdir, img))
+            sim = cmp_image(pjoin(d, wantassdir, img),
+                            pjoin(d, gotassdir, img))
             self.assertGreater(sim, 0.7)
 
-        for img in os.listdir(pjoin(d, gotdir)):
+        for img in os.listdir(pjoin(d, gotassdir)):
             if img.split('.')[-1] not in ('jpg', 'png'):
                 continue
-            sim = cmp_image(pjoin(d, wantdir, img),
-                            pjoin(d, gotdir, img))
+            sim = cmp_image(pjoin(d, wantassdir, img),
+                            pjoin(d, gotassdir, img))
             self.assertGreater(sim, 0.7)
 
         k3fs.remove(d, gotdir, onerror="ignore")
