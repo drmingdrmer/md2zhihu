@@ -154,6 +154,43 @@ class TestMd2zhihu(unittest.TestCase):
         k3fs.remove(d, 'foo', onerror='ignore')
         k3fs.remove(d, 'dst2', onerror='ignore')
 
+    def test_rules_to_features(self):
+        rules = [
+                'image:local_to_remote', 
+                'block_code/:to_jpg', 
+                'block_code/*:to_jpg', 
+        ]
+
+        got = md2zhihu.md2zhihu.rules_to_features(rules)
+        want = {
+                'image': md2zhihu.md2zhihu.image_local_to_remote, 
+                'block_code': {
+                        '': md2zhihu.md2zhihu.block_code_to_jpg, 
+                        '*':md2zhihu.md2zhihu.block_code_to_fixwidth_jpg, 
+                }
+        }
+        self.assertEqual(want, got)
+
+        #  unknown typ
+
+        rules = [ 'unknown_typ:local_to_remote', ]
+
+        with self.assertRaisesRegex(KeyError, 'unknown_typ'):
+            md2zhihu.md2zhihu.rules_to_features(rules)
+
+        #  unknown info
+
+        rules = [ 'block_code/unknown_info:to_jpg', ]
+
+        with self.assertRaisesRegex(KeyError, 'unknown_info'):
+            md2zhihu.md2zhihu.rules_to_features(rules)
+
+        #  unknown action
+
+        rules = [ 'block_code/mermaid:to_foo', ]
+
+        with self.assertRaisesRegex(KeyError, 'to_foo'):
+            md2zhihu.md2zhihu.rules_to_features(rules)
 
     def test_zhihu_meta(self): self._test_platform('zhihu-meta', ['--keep-meta'])
     def test_zhihu(self):      self._test_platform('zhihu', [])

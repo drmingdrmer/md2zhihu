@@ -70,7 +70,7 @@ def code_to_html(n, ctx=None):
     return k3down2.convert('code', txt, 'html').split('\n')
 
 
-def code_to_jpg(mdrender, n, width=None, ctx=None):
+def block_code_to_jpg(mdrender, n, width=None, ctx=None):
     txt = code_join(n)
 
     w = width
@@ -80,11 +80,15 @@ def code_to_jpg(mdrender, n, width=None, ctx=None):
     return typ_text_to_jpg(mdrender, 'code', txt, opt={'html': {'width': w}})
 
 
-def code_mermaid_to_jpg(mdrender, n, ctx=None):
+def block_code_to_fixwidth_jpg(mdrender, n, ctx=None):
+    return block_code_to_jpg(mdrender, n, width=600, ctx=ctx)
+
+
+def block_code_mermaid_to_jpg(mdrender, n, ctx=None):
     return typ_text_to_jpg(mdrender, 'mermaid', n['text'])
 
 
-def code_graphviz_to_jpg(mdrender, n, ctx=None):
+def block_code_graphviz_to_jpg(mdrender, n, ctx=None):
     return typ_text_to_jpg(mdrender, 'graphviz', n['text'])
 
 
@@ -114,6 +118,10 @@ def math_inline_to_jpg(mdrender, n, ctx=None):
 
 def math_inline_to_plaintext(mdrender, n, ctx=None):
     return [escape(k3down2.convert('tex_inline', n['text'], 'plain'))]
+
+
+def to_plaintext(mdrender, n, ctx=None):
+    return [escape(n['text'])]
 
 
 def table_to_barehtml(mdrender, n, ctx=None):
@@ -155,58 +163,11 @@ def importer(mdrender, n, ctx=None):
 
 
 def zhihu_specific(mdrender, n, ctx=None):
-    typ = n['type']
-
-    if typ == 'image':
-        return image_local_to_remote(mdrender, n, ctx=ctx)
-
-    if typ == 'math_block':
-        return math_block_to_imgtag(mdrender, n, ctx=ctx)
-
-    if typ == 'math_inline':
-        return math_inline_to_imgtag(mdrender, n, ctx=ctx)
-
-    if typ == 'table':
-        return table_to_barehtml(mdrender, n, ctx=ctx)
-
-    if typ == 'block_code':
-        lang = n['info'] or ''
-        if lang == 'mermaid':
-            return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
-        if lang == 'graphviz':
-            return code_graphviz_to_jpg(mdrender, n, ctx=ctx)
-
-    return None
+    return render_with_features(mdrender, n, ctx=ctx, features=zhihu_features)
 
 
 def wechat_specific(mdrender, n, ctx=None):
-    typ = n['type']
-
-    if typ == 'image':
-        return image_local_to_remote(mdrender, n, ctx=ctx)
-
-    if typ == 'math_block':
-        return math_block_to_imgtag(mdrender, n, ctx=ctx)
-
-    if typ == 'math_inline':
-        return math_inline_to_imgtag(mdrender, n, ctx=ctx)
-
-    if typ == 'table':
-        return table_to_barehtml(mdrender, n, ctx=ctx)
-
-    if typ == 'block_code':
-        lang = n['info'] or ''
-        if lang == 'mermaid':
-            return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
-        if lang == 'graphviz':
-            return code_graphviz_to_jpg(mdrender, n, ctx=ctx)
-
-        if lang == '':
-            return code_to_jpg(mdrender, n, ctx=ctx)
-        else:
-            return code_to_jpg(mdrender, n, width=600, ctx=ctx)
-
-    return None
+    return render_with_features(mdrender, n, ctx=ctx, features=wechat_features)
 
 
 def weibo_specific(mdrender, n, ctx=None):
@@ -249,49 +210,20 @@ def weibo_specific(mdrender, n, ctx=None):
     if typ == 'block_code':
         lang = n['info'] or ''
         if lang == 'mermaid':
-            return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
+            return block_code_mermaid_to_jpg(mdrender, n, ctx=ctx)
         if lang == 'graphviz':
-            return code_graphviz_to_jpg(mdrender, n, ctx=ctx)
+            return block_code_graphviz_to_jpg(mdrender, n, ctx=ctx)
 
         if lang == '':
-            return code_to_jpg(mdrender, n, ctx=ctx)
+            return block_code_to_jpg(mdrender, n, ctx=ctx)
         else:
-            return code_to_jpg(mdrender, n, width=600, ctx=ctx)
+            return block_code_to_jpg(mdrender, n, width=600, ctx=ctx)
 
     return None
 
 
 def simple_specific(mdrender, n, ctx=None):
-    typ = n['type']
-
-    if typ == 'image':
-        return image_local_to_remote(mdrender, n, ctx=ctx)
-
-    if typ == 'math_block':
-        return math_block_to_jpg(mdrender, n, ctx=ctx)
-
-    if typ == 'math_inline':
-        return math_inline_to_jpg(mdrender, n, ctx=ctx)
-
-    if typ == 'table':
-        return table_to_jpg(mdrender, n, ctx=ctx)
-
-    if typ == 'codespan':
-        return [escape(n['text'])]
-
-    if typ == 'block_code':
-        lang = n['info'] or ''
-        if lang == 'mermaid':
-            return code_mermaid_to_jpg(mdrender, n, ctx=ctx)
-        if lang == 'graphviz':
-            return code_graphviz_to_jpg(mdrender, n, ctx=ctx)
-
-        if lang == '':
-            return code_to_jpg(mdrender, n, ctx=ctx)
-        else:
-            return code_to_jpg(mdrender, n, width=600, ctx=ctx)
-
-    return None
+    return render_with_features(mdrender, n, ctx=ctx, features=simple_features)
 
 
 class MDRender(object):
@@ -850,6 +782,124 @@ class AssetRepo(object):
             path='{path}')
 
 
+simple_features = dict(
+    image=image_local_to_remote,
+    math_block=math_block_to_jpg,
+    math_inline=math_inline_to_jpg,
+    table=table_to_jpg,
+    codespan=to_plaintext,
+    block_code=dict(
+            mermaid=block_code_mermaid_to_jpg,
+            graphviz=block_code_graphviz_to_jpg,
+            **{"":block_code_to_jpg,
+               "*":block_code_to_fixwidth_jpg,
+            },
+    )
+)
+
+wechat_features = dict(
+    image=image_local_to_remote,
+    math_block=math_block_to_imgtag,
+    math_inline=math_inline_to_imgtag,
+    table=table_to_barehtml,
+    block_code=dict(
+            mermaid=block_code_mermaid_to_jpg,
+            graphviz=block_code_graphviz_to_jpg,
+            **{"":block_code_to_jpg,
+               "*":block_code_to_fixwidth_jpg,
+            },
+    )
+)
+
+zhihu_features = dict(
+    image=image_local_to_remote,
+    math_block=math_block_to_imgtag,
+    math_inline=math_inline_to_imgtag,
+    table=table_to_barehtml,
+    block_code=dict(
+            mermaid=block_code_mermaid_to_jpg,
+            graphviz=block_code_graphviz_to_jpg,
+    )
+)
+
+
+# type, subtype... action
+#
+all_features = dict(
+        image=dict( local_to_remote=image_local_to_remote, ),
+        math_block=dict(
+                to_imgtag=math_block_to_imgtag, 
+                to_jpg=math_block_to_jpg,
+        ),
+        math_inline=dict(
+                to_imgtag=math_inline_to_imgtag, 
+                to_jpg=math_inline_to_jpg,
+                to_plaintext=math_inline_to_plaintext, 
+        ),
+        table=dict(
+                to_barehtml=table_to_barehtml, 
+                to_jpg=table_to_jpg,
+        ),
+        codespan=dict(to_text=to_plaintext),
+        block_code=dict(
+                graphviz=dict(
+                        to_jpg=block_code_graphviz_to_jpg,
+                ),
+                mermaid=dict(
+                        to_jpg=block_code_mermaid_to_jpg,
+                ),
+                **{"":dict(to_jpg=block_code_to_jpg),
+                   "*":dict(to_jpg=block_code_to_fixwidth_jpg),
+                },
+        )
+)
+
+def rules_to_features(rules):
+    features = {}
+    for r in rules:
+        rs, act = r.split(":")
+        rs = rs.split("/")
+
+        f = all_features
+        rst = features
+        for typ in rs[:-1]:
+            f = f[typ]
+            if typ not in rst:
+                rst[typ] = {}
+
+            rst = rst[typ]
+
+        typ = rs[-1]
+        rst[typ] = f[typ][act]
+
+    return features
+
+
+#  features: {typ:action(), typ2:{subtyp:action()}}
+def render_with_features(mdrender, n, ctx=None, features=None):
+    typ = n['type']
+
+    f = features
+
+    if typ not in f:
+        return None
+
+    f = f[typ]
+    if callable(f):
+        return f(mdrender, n, ctx=ctx)
+
+    #  subtype is info
+    lang = n['info'] or ''
+
+    if lang in f:
+        return f[lang](mdrender, n, ctx=ctx)
+
+    if '*' in f:
+        return f['*'](mdrender, n, ctx=ctx)
+
+    return None
+
+
 class Config(object):
 
     #  TODO test md_output_base
@@ -860,8 +910,8 @@ class Config(object):
                  asset_dir,
                  asset_repo_url=None,
                  md_output_path=None,
-                 code_width=1000, 
-                 keep_meta=None, 
+                 code_width=1000,
+                 keep_meta=None,
     ):
         self.asset_dir = asset_dir
         self.md_output_path = md_output_path
@@ -1073,7 +1123,7 @@ def main():
             asset_repo_url=args.repo,
             md_output_path=args.md_output,
             code_width=args.code_width,
-            keep_meta=args.keep_meta, 
+            keep_meta=args.keep_meta,
         )
 
         convert_md(conf)
