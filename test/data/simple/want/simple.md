@@ -1,30 +1,30 @@
 
 # 场景和问题
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/md----acbd-d573c99c6cf5bbd0.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/md----acbd-d573c99c6cf5bbd0.jpg)
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
 
 ### graphviz
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
 
 inline code: foo = bar
 
-inline math ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/Xvecbeta-Y2-36bbccd5e08c341b.jpg) foo
+inline math ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/Xvecbeta-Y2-36bbccd5e08c341b.jpg) foo
 
 inline math in codespan $$ ||X{\vec {\beta }}-Y||^{2} $$
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/slim.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
 例如 [slim](https://github.com/openacid/slim) 这个项目按天统计的 star 数:
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/slim.jpg)
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/slim.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/slim.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/slim.jpg)
 
 我们可以利用数据分布的特点, 将整体数据的大小压缩到**几分之一**.
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/DatasizeDataSetgzipsizeslimarrys-511b012906c547ff.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/DatasizeDataSetgzipsizeslimarrys-511b012906c547ff.jpg)
 
 在达到gzip同等压缩率的前提下, 构建 slimarray 和 访问的性能也非常高:
 
@@ -50,7 +50,7 @@ inline math in codespan $$ ||X{\vec {\beta }}-Y||^{2} $$
 例如在 [slimarray](https://github.com/openacid/slimarray) 中使用2次曲线 f(x) = β₁ + β₂x + β₃x², 所要做的就是确定每个βᵢ的值,
 以使得f(xⱼ) - yⱼ的均方差最小. xⱼ是数组下标0, 1, 2...; yⱼ是数组中每个元素的值.
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/X=beginbmatrix1x_1x_121x_2x_22vd-804a1197af934f48.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/X=beginbmatrix1x_1x_121x_2x_22vd-804a1197af934f48.jpg)
 
 spanIndex = OnesCount(bitmap &amp; (1&lt;&lt;(i/16) - 1))
 
@@ -66,13 +66,13 @@ spanIndex = OnesCount(bitmap &amp; (1&lt;&lt;(i/16) - 1))
 
 简化的读取逻辑如下:
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/gofuncsmSlimArrayGetiint32uint32-1342107f36c6b014.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/gofuncsmSlimArrayGetiint32uint32-1342107f36c6b014.jpg)
 
 formula in list:
 
 -   对奇数节点, n = 2k+1, 还是沿用 **多数派** 节点的集合, 大部分场合都可以很好的工作:
 
-    ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/Q_oddC=MC=qqsubseteqCqC2-149709b0ed354902.jpg)
+    ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/Q_oddC=MC=qqsubseteqCqC2-149709b0ed354902.jpg)
 
 -   对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,
     我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,
@@ -83,11 +83,11 @@ formula in list:
     -   也可以是 Q' = M(abcd) ∪ {bc, cd, bd};
 
     要找到一个更好的偶节点的 quorum 集合, 一个方法是可以把偶数节点的集群看做是一个奇数节点集群加上一个节点x:
-    ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/D=Ccupx-76874c18ea7bc229.jpg)
+    ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/D=Ccupx-76874c18ea7bc229.jpg)
 
     于是偶数节点的 quorum 集合就可以是 M(D) 的一个扩张:
 
-    ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/Q_evenD_x=MDcupMDsetminusx-d979aeb5e8ea9324.jpg)
+    ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/Q_evenD_x=MDcupMDsetminusx-d979aeb5e8ea9324.jpg)
 
     当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么
     Q' = M(abcd) ∪ {ab, bc, ca};
@@ -96,7 +96,7 @@ table in list:
 
 -   链接列表:
 
-    ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/simple/---assetsslimjpgfobarabc-4eb2fd74bec19f90.jpg)
+    ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/---assetsslimjpgfobarabc-4eb2fd74bec19f90.jpg)
 
 
 

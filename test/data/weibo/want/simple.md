@@ -1,30 +1,30 @@
 
 # 场景和问题
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/md----acbd-d573c99c6cf5bbd0.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/md----acbd-d573c99c6cf5bbd0.jpg)
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
 
 ### graphviz
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
 
 inline code: foo = bar
 
 inline math  ||Xβ⃗-Y||²  foo
 
 inline math in codespan $$ ||X{\vec {\beta }}-Y||^{2} $$
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/slim.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
 例如 [slim](https://github.com/openacid/slim) 这个项目按天统计的 star 数:
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/slim.jpg)
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/slim.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/slim.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/slim.jpg)
 
 我们可以利用数据分布的特点, 将整体数据的大小压缩到**几分之一**.
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/DatasizeDataSetgzipsizeslimarrys-511b012906c547ff.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/DatasizeDataSetgzipsizeslimarrys-511b012906c547ff.jpg)
 
 在达到gzip同等压缩率的前提下, 构建 slimarray 和 访问的性能也非常高:
 
@@ -77,7 +77,7 @@ delta 的值保存在 delta 数组的config.offset + i*config.width的位置, �
 
 简化的读取逻辑如下:
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/gofuncsmSlimArrayGetiint32uint32-1342107f36c6b014.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/gofuncsmSlimArrayGetiint32uint32-1342107f36c6b014.jpg)
 
 formula in list:
 
@@ -112,7 +112,7 @@ table in list:
 
 链接列表:
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/weibo/simple/---assetsslimjpgfobarabc-4eb2fd74bec19f90.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/---assetsslimjpgfobarabc-4eb2fd74bec19f90.jpg)
 
 
 

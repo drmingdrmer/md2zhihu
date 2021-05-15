@@ -933,7 +933,7 @@ class Config(object):
 
         self.article_name = fn.rsplit('.', 1)[0]
 
-        self.rel_dir = pjoin(self.platform, self.article_name)
+        self.rel_dir = self.article_name
         self.output_dir = pjoin(self.asset_dir, self.rel_dir)
 
         assert(self.md_output_path is not None)
@@ -1062,7 +1062,7 @@ def main():
 
     parser.add_argument('-o', '--md-output', action='store',
                         help='sepcify output path for converted mds.'
-                        ' If the path specified ends with "/", it is treated as output dir, e.g. --output foo/ output the converted md to foo/<fn>.md.'
+                        ' If the path specified ends with "/", it is treated as output dir, e.g. --md-output foo/ output the converted md to foo/<fn>.md.'
                         ' Otherwise it should be the path to some md file such as a/b/c.md. '
                         ' default: <asset-dir>/<fn>.md')
 

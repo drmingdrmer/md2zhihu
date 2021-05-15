@@ -144,7 +144,7 @@ class TestMd2zhihu(unittest.TestCase):
         if not is_ci():
             self.assertEqual(0, code)
 
-        wantdir = 'want/{}/simple'.format(platform)
+        wantdir = 'want/simple'
 
         gotmd = fread(d, 'foo/simple.md')
         wantmd = fread(d, 'want/simple.md')
@@ -206,8 +206,8 @@ class TestMd2zhihu(unittest.TestCase):
         d = 'test/data/{}'.format(platform_type)
         gotdir = 'dst'
         wantdir = 'want'
-        gotassdir = 'dst/{}/simple'.format(platform)
-        wantassdir = 'want/{}/simple'.format(platform)
+        gotassdir = 'dst/simple'
+        wantassdir = 'want/simple'
 
         k3fs.remove(d, gotdir, onerror="ignore")
 
