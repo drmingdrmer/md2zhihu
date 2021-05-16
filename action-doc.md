@@ -7,21 +7,14 @@
 
 -   `output_dir`:
 
-    dir to store converted markdown
+    dir to store converted markdown.
 
     **required**: True
     **default**: `_md2zhihu`
 
--   `md_branch`:
-
-    The branch name to push converted markdown to. A build overrides previous built branch. If you want to persist the built markdowns, merge this branch.
-
-    **required**: True
-    **default**: `_md2zhihu/md`
-
 -   `asset_branch`:
 
-    The branch name in which assets are stored.
+    The branch in which assets are stored. This branch must NOT be removed otherwise the assets will not be accessed.
 
     **required**: True
     **default**: `_md2zhihu/asset`

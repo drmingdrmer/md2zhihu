@@ -10,6 +10,8 @@ and can be imported into zhihu.com with just one click.
 
 ## Usage
 
+Action: https://github.com/marketplace/actions/md2zhihu
+
 Add action definition into the git repo you have markdowns to convert:
 `.github/workflows/md2zhihu.yml`:
 
@@ -31,8 +33,8 @@ jobs:
             _posts/*.markdown
 ```
 
-The next push github converts markdowns in `_posts/` and stores converted
-version in branch `_md2zhihu/md`.
+The next push github converts markdowns in `_posts/` and creates a new commit
+that contains the converted markdowns in folder `_md2zhihu`.
 
 E.g., the single-file version of all of my blog posts:
 https://github.com/drmingdrmer/drmingdrmer.github.io/tree/_md2zhihu/md/_md2zhihu

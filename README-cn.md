@@ -59,6 +59,8 @@ md2zhihu your_great_work.md
 
 md2zhihu 不支持windows, 可以通过github-action来实现远程转换:
 
+Action: https://github.com/marketplace/actions/md2zhihu
+
 -   首先将要转换的 markdown 全部放在一个 github repo 中, 完成配置后, 每次 push 之后 github-action 将自动构建,
     例如 我自己的博客中的文章都在这个repo中: https://github.com/drmingdrmer/drmingdrmer.github.io
 
@@ -87,7 +89,7 @@ md2zhihu 不支持windows, 可以通过github-action来实现远程转换:
     `git add .github && git commit -m 'action: md2zhihu'`
 
     用以上配置, 在下一次push时, github action 将目录 `_posts/` 中所有的md文件进行转换,
-    并保存到`_md2zhihu/md` 分支中.
+    并在当前分支创建一个新提交点, 其中目录`_md2zhihu` 保存了所有转换后的md文件.
 
     例如我的博客中文章装换后在:
     https://github.com/drmingdrmer/drmingdrmer.github.io/tree/_md2zhihu/md/_md2zhihu

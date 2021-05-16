@@ -6,10 +6,10 @@ import re
 import shutil
 
 import k3down2
+import k3git
 import yaml
 from k3color import darkyellow
 from k3color import green
-from k3handy import cmd0
 from k3handy import cmdpass
 from k3handy import pjoin
 from k3handy import to_bytes
@@ -95,7 +95,7 @@ def block_code_graphviz_to_jpg(mdrender, n, ctx=None):
 def typ_text_to_jpg(mdrender, typ, txt, opt=None):
     d = k3down2.convert(typ, txt, 'jpg', opt=opt)
     fn = asset_fn(txt, 'jpg')
-    fwrite(mdrender.conf.output_dir, fn, d)
+    fwrite(mdrender.conf.asset_output_dir, fn, d)
 
     return [r'![]({})'.format(mdrender.conf.img_url(fn)), '']
 
@@ -150,7 +150,7 @@ def table_to_jpg(mdrender, n, ctx=None):
 
 def importer(mdrender, n, ctx=None):
     '''
-    Importer is only used to copy local image to asset dir and update image urls.
+    Importer is only used to copy local image to output dir and update image urls.
     This is used to deal with partial renderers, e.g., table_to_barehtml,
     which is not handled by univertial image importer, but need to import the image when rendering a table with images.
     '''
@@ -556,7 +556,7 @@ def image_local_to_remote(mdrender, n, ctx=None):
         src = os.path.join(os.path.split(mdrender.conf.src_path)[0], src)
 
     fn = os.path.split(src)[1]
-    shutil.copyfile(src, pjoin(mdrender.conf.output_dir, fn))
+    shutil.copyfile(src, pjoin(mdrender.conf.asset_output_dir, fn))
 
     n['src'] = mdrender.conf.img_url(fn)
 
@@ -673,76 +673,52 @@ def fwrite(*p):
         f.write(cont)
 
 
+class LocalRepo(object):
+    is_local = True
+    """
+    Create relative path for url in ``md_path` pointing to ``asset_dir_path``.
+    """
+
+    def __init__(self, md_path, asset_dir_path):
+        md_base = os.path.split(md_path)[0]
+        rel = os.path.relpath(asset_dir_path, start=md_base, )
+        if rel == '.':
+            rel = ''
+        self.path_pattern = pjoin(rel, '{path}')
+
+
 class AssetRepo(object):
 
+    is_local = False
+
     def __init__(self, repo_url, cdn=True):
+        #  TODO: test rendering md rendering with pushed assets
 
         self.cdn = cdn
 
-        sshurl_fmt = 'git@{host}:{user}/{repo}.git'
-        httpsurl_fmt = 'https://{u}:{t}@{host}/{user}/{repo}.git'
+        repo_url = self.parse_shortcut_repo_url(repo_url)
 
-        if repo_url is None:
-            repo_url = '.'
+        gu = k3git.GitUrl.parse(repo_url)
+        f = gu.fields
 
-        # ".": use cwd git
-        # ".@foo_branch": use cwd git and specified branch
-        if repo_url == '.' or repo_url.startswith('.@'):
-            msg("Using current git to store assets...")
-            branch = cmd0('git', 'symbolic-ref', '--short', 'HEAD')
-            remote = cmd0('git', 'config', '--get',
-                          'branch.{}.remote'.format(branch))
-            if repo_url.startswith('.@'):
-                repo_url = cmd0('git', 'remote', 'get-url',
-                                remote) + repo_url[1:]
-            else:
-                repo_url = cmd0('git', 'remote', 'get-url', remote)
+        url = ""
+        if (f['scheme'] == 'https'
+                and 'committer' in f
+                and 'token' in f):
+            url = gu.fmt(scheme='https')
+        else:
+            url = gu.fmt(scheme='ssh')
 
-        # git@github.com:openacid/slim.git
-        match = re.match(r'git@(.*?):(.*?)/(.*?)\.git(@.*?)?$', repo_url)
-        if match:
-            host, user, repo, branch = match.groups()
-            self.url = sshurl_fmt.format(host=host, user=user, repo=repo)
+        host, user, repo, branch = (
+            f.get('host'),
+            f.get('user'),
+            f.get('repo'),
+            f.get('branch'),
+        )
+        print("branch:", branch)
+        print(f)
 
-        if not match:
-            # ssh://git@github.com/openacid/openacid.github.io
-            match = re.match(r'ssh://git@(.*?)/(.*?)/(.*?)(@.*?)?$', repo_url)
-            if match:
-                host, user, repo, branch = match.groups()
-                self.url = sshurl_fmt.format(host=host, user=user, repo=repo)
-
-        if not match:
-            # https://committer:token@github.com/openacid/openacid.github.io.git
-            match = re.match(
-                r'https://(.*?):(.*?)@(.*?)/(.*?)/(.*?)\.git(@.*?)?$', repo_url)
-            if match:
-                committer, token, host, user, repo, branch = match.groups()
-                self.url = repo_url
-
-        if not match:
-            # https://github.com/openacid/openacid.github.io.git
-            match = re.match(
-                r'https://(.*?)/(.*?)/(.*?)\.git(@.*?)?$', repo_url)
-            if match:
-                host, user, repo, branch = match.groups()
-                u = os.environ.get("GITHUB_USERNAME")
-                t = os.environ.get("GITHUB_TOKEN")
-                if (u is not None and t is not None):
-                    self.url = httpsurl_fmt.format(
-                        u=u, t=t,
-                        host=host, user=user, repo=repo)
-                else:
-                    self.url = sshurl_fmt.format(
-                        host=host, user=user, repo=repo)
-
-        if not match:
-            raise ValueError(
-                'unknown url: {repo_url};'
-                ' A valid one should be like "{tmpl}" or "{https}"'.format(
-                    repo_url=repo_url,
-                    tmpl='git@github.com:my_name/my_repo.git',
-                    https='https://github.com/my_name/my_repo.git')
-            )
+        self.url = url
 
         url_patterns = {
             'github.com': 'https://raw.githubusercontent.com/{user}/{repo}/{branch}/{path}',
@@ -754,16 +730,9 @@ class AssetRepo(object):
         }
 
         if branch is None:
-            cwd = os.getcwd().split(os.path.sep)
-            cwdmd5 = hashlib.md5(to_bytes(os.getcwd())).hexdigest()
-            branch = '_md2zhihu_{tail}_{md5}'.format(
-                tail=cwd[-1],
-                md5=cwdmd5[:8],
-            )
-            # escape special chars
-            branch = re.sub(r'[^a-zA-Z0-9_\-=]+', '', branch)
+            branch = self.make_default_branch()
         else:
-            # @some_branch
+            #  strip '@'
             branch = branch[1:]
 
         self.host = host
@@ -781,6 +750,70 @@ class AssetRepo(object):
             branch=branch,
             path='{path}')
 
+    def parse_shortcut_repo_url(self, repo_url):
+        """
+        If repo_url is a shortcut specifying to use local git repo remote url,
+        convert repo shortcut to url.
+
+            md2zhihu --repo .                   # default remote, default branch
+            md2zhihu --repo .@brach             # default remote
+            md2zhihu --repo remote@brach
+
+        """
+
+        elts = repo_url.split('@', 1)
+        first = elts.pop(0)
+        g = k3git.Git(k3git.GitOpt(), cwd='.')
+
+        is_shortcut = False
+
+        # ".": use cwd git
+        # ".@foo_branch": use cwd git and specified branch
+        if first == '.':
+            msg("Using current git to store assets...")
+
+            u = self.get_remote_url()
+            is_shortcut = True
+
+        elif g.remote_get(first) is not None:
+
+            msg("Using current git remote: {} to store assets...".format(first))
+            u = self.get_remote_url(first)
+            is_shortcut = True
+
+        if is_shortcut:
+
+            if len(elts) > 0:
+                u += '@' + elts[0]
+            msg("Parsed shortcut {} to {}".format(repo_url, u))
+            repo_url = u
+
+        return repo_url
+
+    def get_remote_url(self, remote=None):
+
+        g = k3git.Git(k3git.GitOpt(), cwd='.')
+
+        if remote is None:
+            branch = g.head_branch(flag='x')
+            remote = g.branch_default_remote(branch, flag='x')
+
+        remote_url = g.remote_get(remote, flag='x')
+        return remote_url
+
+    def make_default_branch(self):
+
+        cwd = os.getcwd().split(os.path.sep)
+        cwdmd5 = hashlib.md5(to_bytes(os.getcwd())).hexdigest()
+        branch = '_md2zhihu_{tail}_{md5}'.format(
+            tail=cwd[-1],
+            md5=cwdmd5[:8],
+        )
+        # escape special chars
+        branch = re.sub(r'[^a-zA-Z0-9_\-=]+', '', branch)
+
+        return branch
+
 
 simple_features = dict(
     image=image_local_to_remote,
@@ -789,11 +822,11 @@ simple_features = dict(
     table=table_to_jpg,
     codespan=to_plaintext,
     block_code=dict(
-            mermaid=block_code_mermaid_to_jpg,
-            graphviz=block_code_graphviz_to_jpg,
-            **{"":block_code_to_jpg,
-               "*":block_code_to_fixwidth_jpg,
-            },
+        mermaid=block_code_mermaid_to_jpg,
+        graphviz=block_code_graphviz_to_jpg,
+        **{"": block_code_to_jpg,
+           "*": block_code_to_fixwidth_jpg,
+           },
     )
 )
 
@@ -803,11 +836,11 @@ wechat_features = dict(
     math_inline=math_inline_to_imgtag,
     table=table_to_barehtml,
     block_code=dict(
-            mermaid=block_code_mermaid_to_jpg,
-            graphviz=block_code_graphviz_to_jpg,
-            **{"":block_code_to_jpg,
-               "*":block_code_to_fixwidth_jpg,
-            },
+        mermaid=block_code_mermaid_to_jpg,
+        graphviz=block_code_graphviz_to_jpg,
+        **{"": block_code_to_jpg,
+           "*": block_code_to_fixwidth_jpg,
+           },
     )
 )
 
@@ -817,8 +850,8 @@ zhihu_features = dict(
     math_inline=math_inline_to_imgtag,
     table=table_to_barehtml,
     block_code=dict(
-            mermaid=block_code_mermaid_to_jpg,
-            graphviz=block_code_graphviz_to_jpg,
+        mermaid=block_code_mermaid_to_jpg,
+        graphviz=block_code_graphviz_to_jpg,
     )
 )
 
@@ -826,33 +859,34 @@ zhihu_features = dict(
 # type, subtype... action
 #
 all_features = dict(
-        image=dict( local_to_remote=image_local_to_remote, ),
-        math_block=dict(
-                to_imgtag=math_block_to_imgtag, 
-                to_jpg=math_block_to_jpg,
+    image=dict(local_to_remote=image_local_to_remote, ),
+    math_block=dict(
+        to_imgtag=math_block_to_imgtag,
+        to_jpg=math_block_to_jpg,
+    ),
+    math_inline=dict(
+        to_imgtag=math_inline_to_imgtag,
+        to_jpg=math_inline_to_jpg,
+        to_plaintext=math_inline_to_plaintext,
+    ),
+    table=dict(
+        to_barehtml=table_to_barehtml,
+        to_jpg=table_to_jpg,
+    ),
+    codespan=dict(to_text=to_plaintext),
+    block_code=dict(
+        graphviz=dict(
+            to_jpg=block_code_graphviz_to_jpg,
         ),
-        math_inline=dict(
-                to_imgtag=math_inline_to_imgtag, 
-                to_jpg=math_inline_to_jpg,
-                to_plaintext=math_inline_to_plaintext, 
+        mermaid=dict(
+            to_jpg=block_code_mermaid_to_jpg,
         ),
-        table=dict(
-                to_barehtml=table_to_barehtml, 
-                to_jpg=table_to_jpg,
-        ),
-        codespan=dict(to_text=to_plaintext),
-        block_code=dict(
-                graphviz=dict(
-                        to_jpg=block_code_graphviz_to_jpg,
-                ),
-                mermaid=dict(
-                        to_jpg=block_code_mermaid_to_jpg,
-                ),
-                **{"":dict(to_jpg=block_code_to_jpg),
-                   "*":dict(to_jpg=block_code_to_fixwidth_jpg),
-                },
-        )
+        **{"": dict(to_jpg=block_code_to_jpg),
+           "*": dict(to_jpg=block_code_to_fixwidth_jpg),
+           },
+    )
 )
+
 
 def rules_to_features(rules):
     features = {}
@@ -902,23 +936,42 @@ def render_with_features(mdrender, n, ctx=None, features=None):
 
 class Config(object):
 
-    #  TODO test md_output_base
     #  TODO refactor var names
     def __init__(self,
                  src_path,
                  platform,
-                 asset_dir,
+                 output_dir,
+                 asset_output_dir, 
                  asset_repo_url=None,
                  md_output_path=None,
                  code_width=1000,
                  keep_meta=None,
-    ):
-        self.asset_dir = asset_dir
+                 ):
+        """
+        Config of markdown rendering
+
+        Args:
+            src_path(str): path to markdown to convert.
+
+            platform(str): target platform the converted markdown compatible with.
+
+            output_dir(str): the output dir path to which converted/generated file saves.
+
+            asset_repo_url(str): url of a git repo to upload output files, i.e.
+                    result markdown, moved image or generated images.
+
+            md_output_path(str): when present, specifies the path of the result markdown or result dir.
+
+            code_width(int): the result image width of code block.
+
+            keep_meta(bool): whether to keep the jekyll meta file header.
+
+        """
+        self.output_dir = output_dir
         self.md_output_path = md_output_path
         self.platform = platform
         self.src_path = src_path
 
-        self.asset_repo = AssetRepo(asset_repo_url)
         self.code_width = code_width
         if keep_meta is None:
             keep_meta = False
@@ -934,7 +987,7 @@ class Config(object):
         self.article_name = fn.rsplit('.', 1)[0]
 
         self.rel_dir = self.article_name
-        self.output_dir = pjoin(self.asset_dir, self.rel_dir)
+        self.asset_output_dir = pjoin(asset_output_dir, self.rel_dir)
 
         assert(self.md_output_path is not None)
 
@@ -942,12 +995,19 @@ class Config(object):
             self.md_output_base = self.md_output_path
             self.md_output_path = pjoin(self.md_output_path, fn)
         else:
-            self.md_output_base = os.path.split(os.path.abspath(self.md_output_path))[0]
+            self.md_output_base = os.path.split(
+                os.path.abspath(self.md_output_path))[0]
+
+        if asset_repo_url is None:
+            self.asset_repo = LocalRepo(self.md_output_path, self.output_dir)
+        else:
+            self.asset_repo = AssetRepo(asset_repo_url)
 
         for k in (
             "src_path",
             "platform",
-            "asset_dir",
+            "output_dir",
+            "asset_output_dir",
             "md_output_base",
             "md_output_path",
         ):
@@ -958,7 +1018,10 @@ class Config(object):
             path=pjoin(self.rel_dir, fn))
 
     def push(self):
-        x = dict(cwd=self.asset_dir)
+        x = dict(cwd=self.output_dir)
+
+        git_path = pjoin(self.output_dir, '.git')
+        has_git = os.path.exists(git_path)
 
         cmdpass('git', 'init', **x)
         cmdpass('git', 'add', '.', **x)
@@ -970,13 +1033,16 @@ class Config(object):
                 **x)
         cmdpass('git', 'push', '-f', self.asset_repo.url,
                 'HEAD:refs/heads/' + self.asset_repo.branch, **x)
-        msg("Removing tmp git dir: ", self.asset_dir + '/.git')
-        shutil.rmtree(self.asset_dir + '/.git')
+        
+        if not has_git:
+            msg("Removing tmp git dir: ", self.output_dir + '/.git')
+            shutil.rmtree(self.output_dir + '/.git')
 
 
 def convert_md(conf, handler=None):
 
     os.makedirs(conf.output_dir, exist_ok=True)
+    os.makedirs(conf.asset_output_dir, exist_ok=True)
     os.makedirs(conf.md_output_base, exist_ok=True)
 
     with open(conf.src_path, 'r') as f:
@@ -1064,18 +1130,23 @@ def main():
                         help='sepcify output path for converted mds.'
                         ' If the path specified ends with "/", it is treated as output dir, e.g. --md-output foo/ output the converted md to foo/<fn>.md.'
                         ' Otherwise it should be the path to some md file such as a/b/c.md. '
-                        ' default: <asset-dir>/<fn>.md')
+                        ' default: <output-dir>/<fn>.md')
 
-    parser.add_argument('-d', '--asset-dir', action='store',
+    parser.add_argument('-d', '--output-dir', action='store',
                         default='_md2',
-                        help='sepcify directory path to store assets (default: "_md2")')
+                        help='sepcify directory path to store outputs(default: "_md2")'
+                        ' It is the root dir of the git repo for storing assets')
+
+    parser.add_argument('--asset-output-dir', action='store',
+                        help='sepcify directory to store assets (default: <output-dir>)'
+                        ' If <asset-output-dir> is outside <output-dir>, nothing will be uploaded.')
 
     parser.add_argument('-r', '--repo', action='store',
                         required=False,
-                        default=".",
                         help='sepcify the git url to store assets.'
                              ' The url should be in a SSH form such as:'
                              ' "git@github.com:openacid/openacid.github.io.git[@branch_name]".'
+                             ' When absent, assets are referenced by relative path and it will not push assets to remote.'
                              ' If no branch is specified, a branch "_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}" is used,'
                              ' in which cwd_tail is the last segment of current working dir.'
                              ' It has to be a public repo and you have the write access.'
@@ -1107,19 +1178,24 @@ def main():
     args = parser.parse_args()
 
     if args.md_output is None:
-        args.md_output = args.asset_dir +'/'
+        args.md_output = args.output_dir + '/'
+
+    if args.asset_output_dir is None:
+        args.asset_output_dir = args.output_dir
 
     msg("Build markdown: ", darkyellow(args.src_path),
         " into ", darkyellow(args.md_output))
-    msg("Assets will be stored in ", darkyellow(args.repo))
-    msg("Repo url: ", args.repo)
+    msg("Build assets to: ", darkyellow(args.asset_output_dir))
+    msg("Git dir: ", darkyellow(args.output_dir))
+    msg("Gid dir will be pushed to: ", darkyellow(args.repo))
 
     for path in args.src_path:
 
         conf = Config(
             path,
             args.platform,
-            args.asset_dir,
+            args.output_dir,
+            args.asset_output_dir,
             asset_repo_url=args.repo,
             md_output_path=args.md_output,
             code_width=args.code_width,
@@ -1130,9 +1206,12 @@ def main():
 
         msg(sj("Done building ", darkyellow(conf.md_output_path)))
 
-    msg("Pushing ", darkyellow(conf.asset_dir), " to ", darkyellow(
-        conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
-    conf.push()
+    if conf.asset_repo.is_local:
+        msg("No git repo specified")
+    else:
+        msg("Pushing ", darkyellow(conf.output_dir), " to ", darkyellow(
+            conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
+        conf.push()
 
     msg(green(sj("Great job!!!")))
 
