@@ -99,6 +99,15 @@ md2zhihu your_great_work.md
 This command convert `your_great_work.md` to
 `_md2/zhihu/your_great_work/your_great_work.md`.
 
+### Trouble shoot
+
+### command not found: md2zhihu
+
+- `pip install --verbose md2zhihu` Confirm that install done successfully.
+- `which md2zhihu` Confirm that the binary can be found: e.g.: `/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`.
+- `echo $PATH` Confirmat that the install path is included in `PATH`: `...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
+
+
 ## Features
 
 - Transform latex to image:

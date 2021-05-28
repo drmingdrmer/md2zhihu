@@ -21,6 +21,16 @@ npm install -g @mermaid-js/mermaid-cli
 pip install md2zhihu
 ```
 
+### 排查问题
+
+#### 找不到命令: 如 command not found: md2zhihu
+
+看下这几个命令是否正常:
+
+- `pip install --verbose md2zhihu` 安装时应该会提示按照成功的字样.
+- `which md2zhihu` 如果能到应该会输出它的路径, 例如我的是安装在: `/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`
+- `echo $PATH` 确认安装的路径在PATH环境变量中: `...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
+
 ## Usage
 
 ```sh
