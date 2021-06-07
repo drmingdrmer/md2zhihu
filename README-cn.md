@@ -92,12 +92,12 @@ Action: https://github.com/marketplace/actions/md2zhihu
     并在当前分支创建一个新提交点, 其中目录`_md2zhihu` 保存了所有转换后的md文件.
 
     例如我的博客中文章装换后在:
-    https://github.com/drmingdrmer/drmingdrmer.github.io/tree/_md2zhihu/md/_md2zhihu
+    https://github.com/drmingdrmer/drmingdrmer.github.io/tree/master/_md2zhihu
 
 -   要使用转换后的文档, 可以直接 merge 这个`_md2zhihu/md`分支
 
     或直接从github repo 中访问, 例如:
-    https://github.com/drmingdrmer/drmingdrmer.github.io/blob/_md2zhihu/md/_md2zhihu/dict-cmp.md
+    https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md
 
 
 ## Features

@@ -37,11 +37,11 @@ The next push github converts markdowns in `_posts/` and creates a new commit
 that contains the converted markdowns in folder `_md2zhihu`.
 
 E.g., the single-file version of all of my blog posts:
-https://github.com/drmingdrmer/drmingdrmer.github.io/tree/_md2zhihu/md/_md2zhihu
+https://github.com/drmingdrmer/drmingdrmer.github.io/tree/master/_md2zhihu
 
 To retrieve the converted markdowns, merge branch `_md2zhihu/md`,
 or access the branch on the web:
-https://github.com/drmingdrmer/drmingdrmer.github.io/blob/_md2zhihu/md/_md2zhihu/dict-cmp.md
+https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md
 
 
 ### Options
