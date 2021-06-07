@@ -69,7 +69,9 @@ runs:
         git \
           -c "user.name=drmingdrmer" \
           -c "user.email=drdr.xp@gmail.com" \
-          commit -m "md2zhihu built"
+          commit \
+          --allow-empty \
+          -m "md2zhihu built"
 
         git push -f origin HEAD:${{ github.ref }}-md2zhihu
 
