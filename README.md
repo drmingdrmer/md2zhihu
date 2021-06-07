@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: drmingdrmer/md2zhihu@v0.5
+    - uses: drmingdrmer/md2zhihu@v0.8
       env:
         GITHUB_USERNAME: ${{ github.repository_owner }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

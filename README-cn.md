@@ -76,7 +76,7 @@ Action: https://github.com/marketplace/actions/md2zhihu
         runs-on: ubuntu-latest
         steps:
         - uses: actions/checkout@v2
-        - uses: drmingdrmer/md2zhihu@v0.1.26
+        - uses: drmingdrmer/md2zhihu@v0.8
           env:
             GITHUB_USERNAME: ${{ github.repository_owner }}
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
