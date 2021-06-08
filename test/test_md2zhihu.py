@@ -372,29 +372,15 @@ class TestMd2zhihu(unittest.TestCase):
         if not is_ci():
             self.assertEqual(0, code)
 
-        cmp_md(self, pjoin(d, want_dir, 'simple.md'), pjoin(d,got_dir, 'simple.md'))
-        #  TODO: use cmp_all_images
-
-        for img in os.listdir(pjoin(d, want_asset_dir)):
-            if img.split('.')[-1] not in ('jpg', 'png'):
-                continue
-            sim = cmp_image(pjoin(d, want_asset_dir, img),
-                            pjoin(d, got_asset_dir, img))
-            self.assertGreater(sim, 0.7)
-
-        for img in os.listdir(pjoin(d, got_asset_dir)):
-            if img.split('.')[-1] not in ('jpg', 'png'):
-                continue
-            sim = cmp_image(pjoin(d, want_asset_dir, img),
-                            pjoin(d, got_asset_dir, img))
-            self.assertGreater(sim, 0.7)
+        cmp_md(self, pjoin(d, want_dir, 'simple.md'), pjoin(d, got_dir, 'simple.md'))
+        cmp_all_images(self, pjoin(d, want_asset_dir), pjoin(d, got_asset_dir))
 
         k3fs.remove(d, got_dir, onerror="ignore")
 
 
 def cmp_md(t, want_path, got_path):
-    got_md = fread(got_path)
-    want_md = fread(want_path)
+    got_md = k3fs.fread(got_path)
+    want_md = k3fs.fread(want_path)
     want_md = normalize_pandoc_output(want_md, got_md)
     t.assertEqual(want_md.strip(), got_md.strip())
 
@@ -486,22 +472,7 @@ def normalize_pandoc_output(want, got):
 
 
 def rm(*p):
-    try:
-        os.unlink(os.path.join(*p))
-    except OSError:
-        pass
-
-
-def fwrite(*p):
-    cont = p[-1]
-    p = p[:-1]
-    with open(os.path.join(*p), 'wb') as f:
-        f.write(cont)
-
-
-def fread(*p):
-    with open(os.path.join(*p), 'r') as f:
-        return f.read()
+    k3fs.remove(*p, onerror="ignore")
 
 
 def is_ci():
