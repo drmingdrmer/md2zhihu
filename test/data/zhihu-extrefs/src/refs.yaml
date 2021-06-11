@@ -1,0 +1,9 @@
+universal:
+
+  - "protobuf": protobuf-http
+
+zhihu:
+  - "grpc": grpc-http
+
+wechat:
+  - "invis": invis-http

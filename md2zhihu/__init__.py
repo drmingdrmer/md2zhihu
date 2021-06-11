@@ -13,6 +13,7 @@ from k3color import green
 from k3handy import cmdpass
 from k3handy import pjoin
 from k3handy import to_bytes
+from k3fs import fread
 
 from .. import mistune
 
@@ -941,11 +942,12 @@ class Config(object):
                  src_path,
                  platform,
                  output_dir,
-                 asset_output_dir, 
+                 asset_output_dir,
                  asset_repo_url=None,
                  md_output_path=None,
                  code_width=1000,
                  keep_meta=None,
+                 ref_files=None,
                  ):
         """
         Config of markdown rendering
@@ -976,6 +978,10 @@ class Config(object):
         if keep_meta is None:
             keep_meta = False
         self.keep_meta = keep_meta
+
+        if ref_files is None:
+            ref_files = []
+        self.ref_files = ref_files
 
         fn = os.path.split(self.src_path)[-1]
 
@@ -1033,7 +1039,7 @@ class Config(object):
                 **x)
         cmdpass('git', 'push', '-f', self.asset_repo.url,
                 'HEAD:refs/heads/' + self.asset_repo.branch, **x)
-        
+
         if not has_git:
             msg("Removing tmp git dir: ", self.output_dir + '/.git')
             shutil.rmtree(self.output_dir + '/.git')
@@ -1051,7 +1057,20 @@ def convert_md(conf, handler=None):
     cont, meta, meta_text = extract_jekyll_meta(cont)
     cont, article_refs = extract_ref_definitions(cont)
 
-    refs = build_refs(meta)
+    refs = {}
+
+    for ref_path in conf.ref_files:
+        fcont = fread(ref_path)
+        y = yaml.safe_load(fcont)
+        for r in y.get('universal', []):
+            refs.update(r)
+        for r in y.get(conf.platform, []):
+            refs.update(r)
+
+
+    meta_refs = build_refs(meta)
+    refs.update(meta_refs)
+
     refs.update(article_refs)
 
     parse_to_ast = new_parser()
@@ -1168,6 +1187,19 @@ def main():
                         ' default: False'
                         )
 
+    parser.add_argument('--refs', action='append',
+                        required=False,
+                        help='external file that contains ref definitions'
+                        ' A ref file is a yaml contains dict of list.'
+                        ' A dict key is the platform name, only visible to <platform> argument'
+                        ' "univeral" is visible with any <platform>'
+                        ' An example of ref file data:'
+                        '  {"universal": [{"grpc":"http:.."}, {"protobuf":"http:.."}],'
+                        '   "zhihu": [{"grpc":"http:.."}, {"protobuf":"http:.."}]'
+                        '}.'
+                        ' default: []'
+                        )
+
     parser.add_argument('--code-width', action='store',
                         required=False,
                         default=1000,
@@ -1200,6 +1232,7 @@ def main():
             md_output_path=args.md_output,
             code_width=args.code_width,
             keep_meta=args.keep_meta,
+            ref_files=args.refs,
         )
 
         convert_md(conf)
