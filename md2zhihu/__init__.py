@@ -949,6 +949,7 @@ class Config(object):
                  keep_meta=None,
                  ref_files=None,
                  jekyll=False,
+                 rewrite=None,
                  ):
         """
         Config of markdown rendering
@@ -986,6 +987,10 @@ class Config(object):
         self.ref_files = ref_files
 
         self.jekyll = jekyll
+
+        if rewrite is None:
+            rewrite = []
+        self.rewrite = rewrite
 
         fn = os.path.split(self.src_path)[-1]
 
@@ -1028,8 +1033,13 @@ class Config(object):
             msg(darkyellow(k), ": ",  getattr(self, k))
 
     def img_url(self, fn):
-        return self.asset_repo.path_pattern.format(
+        url = self.asset_repo.path_pattern.format(
             path=pjoin(self.rel_dir, fn))
+
+        for (pattern, repl) in self.rewrite:
+            url = re.sub(pattern, repl, url)
+
+        return url
 
     def push(self):
         x = dict(cwd=self.output_dir)
@@ -1216,6 +1226,15 @@ def main():
                         ' default: []'
                         )
 
+    parser.add_argument('--rewrite', action='append',
+                        nargs=2,
+                        required=False,
+                        help='rewrite generated to image url.'
+                        ' E.g.: --rewrite "/asset/" "/resource/"'
+                        ' will transform "/asset/banner.jpg" to "/resource/banner.jpg"'
+                        ' default: []'
+                        )
+
     parser.add_argument('--code-width', action='store',
                         required=False,
                         default=1000,
@@ -1254,6 +1273,7 @@ def main():
             keep_meta=args.keep_meta,
             ref_files=args.refs,
             jekyll=args.jekyll,
+            rewrite=args.rewrite,
         )
 
         convert_md(conf)

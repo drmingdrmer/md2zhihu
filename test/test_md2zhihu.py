@@ -330,43 +330,11 @@ class TestMd2zhihu(unittest.TestCase):
     def test_zhihu_extrefs(self):
         self._test_platform('zhihu-extrefs', ['--refs', 'src/refs.yaml'])
 
+    def test_zhihu_rewrite(self):
+        self._test_platform_no_push('zhihu-rewrite', 'simple.md', ['--rewrite', '^s', '/foo/'])
+
     def test_zhihu_jekyll(self):
-
-        platform_type = 'zhihu-jekyll'
-
-        fn = '2021-06-11-simple.md'
-
-        d = 'test/data/{}'.format(platform_type)
-        got_dir = 'dst'
-        want_dir = 'want'
-
-        k3fs.remove(d, got_dir, onerror="ignore")
-
-        #  do not check error, upload will fail
-        code, out, err = k3proc.command(
-            "md2zhihu",
-            'src/' + fn,
-            "--output-dir", "dst",
-            "--jekyll",
-            cwd=d
-        )
-
-        dd(err)
-
-        #  can not push on CI
-        _ = code
-        _ = out
-        _ = err
-
-        print(out)
-        print(err)
-
-        if not is_ci():
-            self.assertEqual(0, code)
-
-        cmp_md(self, pjoin(d, want_dir, fn), pjoin(d, got_dir, fn))
-
-        k3fs.remove(d, got_dir, onerror="ignore")
+        self._test_platform_no_push('zhihu-jekyll', '2021-06-11-simple.md', ['--jekyll'])
 
     def test_zhihu(self):
         self._test_platform('zhihu', [])
@@ -414,6 +382,29 @@ class TestMd2zhihu(unittest.TestCase):
             self.assertEqual(0, code)
 
         cmp_md(self, pjoin(d, want_dir, 'simple.md'), pjoin(d, got_dir, 'simple.md'))
+        cmp_all_images(self, pjoin(d, want_asset_dir), pjoin(d, got_asset_dir))
+
+        k3fs.remove(d, got_dir, onerror="ignore")
+
+    def _test_platform_no_push(self, platform_type, fn, args):
+
+        d = 'test/data/{}'.format(platform_type)
+        got_dir = 'dst'
+        want_dir = 'want'
+        got_asset_dir = 'dst/simple'
+        want_asset_dir = 'want/simple'
+
+        k3fs.remove(d, got_dir, onerror="ignore")
+
+        cmdx(
+            "md2zhihu",
+            'src/' + fn,
+            "--output-dir", "dst",
+            *args,
+            cwd=d
+        )
+
+        cmp_md(self, pjoin(d, want_dir, fn), pjoin(d, got_dir, fn))
         cmp_all_images(self, pjoin(d, want_asset_dir), pjoin(d, got_asset_dir))
 
         k3fs.remove(d, got_dir, onerror="ignore")
