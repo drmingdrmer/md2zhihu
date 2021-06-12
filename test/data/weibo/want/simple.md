@@ -122,10 +122,6 @@ Reference:
 
 - slim : [https://github.com/openacid/slim](https://github.com/openacid/slim)
 - slimarray : [https://github.com/openacid/slimarray](https://github.com/openacid/slimarray)
-- vlink : [https://vlink.zhihu](https://vlink.zhihu)
-- text-ref : [https://foo.com](https://foo.com)
 
 [slim]: https://github.com/openacid/slim "slim"
 [slimarray]: https://github.com/openacid/slimarray "slimarray"
-[vlink]: https://vlink.zhihu "vlink"
-[text-ref]:  https://foo.com

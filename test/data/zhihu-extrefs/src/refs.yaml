@@ -1,6 +1,7 @@
 universal:
 
   - "protobuf": protobuf-http
+  - "unused": unused-http
 
 zhihu:
   - "grpc": grpc-http

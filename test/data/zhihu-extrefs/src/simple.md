@@ -2,6 +2,7 @@
 
 refs:
     - "meta-ref-universal": meta-ref-universal-http
+    - "unused-embed": unused-http
 
 platform_refs:
     wechat:
@@ -22,3 +23,7 @@ platform_refs:
 [m-wechat][meta-ref-wechat]
 
 [m-zhihu][meta-ref-zhihu]
+
+[protobuf][]
+
+[protobuf]

@@ -200,7 +200,3 @@ table in list:
 
 Reference:
 
-- text-ref : [https://foo.com](https://foo.com)
-
-
-[text-ref]:  https://foo.com

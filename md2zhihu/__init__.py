@@ -593,21 +593,43 @@ def build_refs(meta):
 
 
 def replace_ref_with_def(nodes, refs):
+    """
+    Convert ``[text][link-def]`` to ``[text](link-url)``
+    Convert ``[link-def][]``     to ``[link-def](link-url)``
+    Convert ``[link-def]``       to ``[link-def](link-url)``
+    """
+
+    used_defs={}
+
     for n in nodes:
 
         if 'children' in n:
-            replace_ref_with_def(n['children'], refs)
+            used = replace_ref_with_def(n['children'], refs)
+            used_defs.update(used)
 
         if n['type'] == 'text':
             t = n['text']
-            link = re.match(r'\[(.*?)\](\[\])?', t)
-            if link:
-                txt = link.groups()[0]
-                if txt in refs:
-                    n['type'] = 'link'
-                    r = refs[txt]
-                    n['link'] = r.split()[0]
-                    n['children'] = [{'type': 'text', 'text': txt}]
+            link = re.match(r'^\[(.*?)\](\[([0-9a-zA-Z_\-]*?)\])?$', t)
+            if not link:
+                continue
+
+            gs = link.groups()
+            txt = gs[0]
+            if len(gs) >= 3:
+                definition = gs[2]
+
+            if definition is None or definition == '':
+                definition = txt
+
+            if definition in refs:
+                n['type'] = 'link'
+                r = refs[definition]
+                #  TODO title
+                n['link'] = r.split()[0]
+                n['children'] = [{'type': 'text', 'text': txt}]
+                used_defs[definition] = r
+
+    return used_defs
 
 
 def new_parser():
@@ -1102,7 +1124,7 @@ def convert_md(conf, handler=None):
     #  with open('fixed-table', 'w') as f:
     #      f.write(pprint.pformat(ast))
 
-    replace_ref_with_def(ast, refs)
+    used_refs = replace_ref_with_def(ast, refs)
 
     # extract already inlined math
     ast = parse_math(ast)
@@ -1129,7 +1151,7 @@ def convert_md(conf, handler=None):
 
     out.append('')
 
-    ref_list = render_ref_list(refs, conf.platform)
+    ref_list = render_ref_list(used_refs, conf.platform)
     out.extend(ref_list)
 
     out.append('')
@@ -1137,7 +1159,7 @@ def convert_md(conf, handler=None):
     ref_lines = [
         '[{id}]: {d}'.format(
             id=_id, d=d
-        ) for _id, d in refs.items()
+        ) for _id, d in used_refs.items()
     ]
     out.extend(ref_lines)
 
