@@ -19,7 +19,7 @@
 
 Reference:
 
-- protobuf : [protobuf-http](protobuf-http)
+- protobuf title : [protobuf-http](protobuf-http)
 
 - grpc : [grpc-http](grpc-http)
 
@@ -28,7 +28,7 @@ Reference:
 - meta-ref-zhihu : [meta-ref-zhihu-http](meta-ref-zhihu-http)
 
 
-[protobuf]: protobuf-http
+[protobuf]: protobuf-http "protobuf title"
 [grpc]: grpc-http
 [meta-ref-universal]: meta-ref-universal-http
 [meta-ref-zhihu]: meta-ref-zhihu-http

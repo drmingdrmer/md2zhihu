@@ -674,11 +674,19 @@ def render_ref_list(refs, platform):
     ref_lines = ["", "Reference:", ""]
     for _id, d in refs.items():
         #  d is in form "<url> <alt>"
-        url = d.split()[0]
+        url_alt = d.split()
+        url = url_alt[0]
+
+        if len(url_alt) == 1:
+            txt = _id
+        else:
+            txt = ' '.join(url_alt[1:])
+            txt = txt.strip('"')
+            txt = txt.strip("'")
 
         ref_lines.append(
             '- {id} : [{url}]({url})'.format(
-                id=_id, url=url
+                id=txt, url=url
             )
         )
 

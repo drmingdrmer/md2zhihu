@@ -1,6 +1,6 @@
 universal:
 
-  - "protobuf": protobuf-http
+  - "protobuf": protobuf-http "protobuf title"
   - "unused": unused-http
 
 zhihu:
