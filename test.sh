@@ -9,4 +9,4 @@ python setup.py install
 )
 
 PYTHONPATH="$(cd ..; pwd)" pytest -x -v
-# PYTHONPATH="$(cd ..; pwd)" pytest -x -v -k test_zhihu_extrefs
+# PYTHONPATH="$(cd ..; pwd)" pytest -x -v -k test_zhihu_jekyll

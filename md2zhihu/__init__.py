@@ -948,6 +948,7 @@ class Config(object):
                  code_width=1000,
                  keep_meta=None,
                  ref_files=None,
+                 jekyll=False,
                  ):
         """
         Config of markdown rendering
@@ -974,6 +975,7 @@ class Config(object):
         self.platform = platform
         self.src_path = src_path
 
+
         self.code_width = code_width
         if keep_meta is None:
             keep_meta = False
@@ -983,14 +985,20 @@ class Config(object):
             ref_files = []
         self.ref_files = ref_files
 
+        self.jekyll = jekyll
+
         fn = os.path.split(self.src_path)[-1]
 
-        # jekyll style
-        fnm = re.match(r'\d\d\d\d-\d\d-\d\d-(.*)', fn)
-        if fnm:
-            fn = fnm.groups()[0]
+        trim_fn = re.match(r'\d\d\d\d-\d\d-\d\d-(.*)', fn)
+        if trim_fn:
+            trim_fn = trim_fn.groups()[0]
+        else:
+            trim_fn = fn
 
-        self.article_name = fn.rsplit('.', 1)[0]
+        if not self.jekyll:
+            fn = trim_fn
+
+        self.article_name = trim_fn.rsplit('.', 1)[0]
 
         self.rel_dir = self.article_name
         self.asset_output_dir = pjoin(asset_output_dir, self.rel_dir)
@@ -1187,6 +1195,14 @@ def main():
                         ' default: False'
                         )
 
+    parser.add_argument('--jekyll', action='store_true',
+                        required=False,
+                        default=False,
+                        help='respect jekyll syntax: 1) implies <keep-meta>: do not trim md header meta;'
+                        ' 2) keep jekyll style name: YYYY-MM-DD-TITLE.md;'
+                        ' default: False'
+                        )
+
     parser.add_argument('--refs', action='append',
                         required=False,
                         help='external file that contains ref definitions'
@@ -1215,6 +1231,9 @@ def main():
     if args.asset_output_dir is None:
         args.asset_output_dir = args.output_dir
 
+    if args.jekyll:
+        args.keep_meta = True
+
     msg("Build markdown: ", darkyellow(args.src_path),
         " into ", darkyellow(args.md_output))
     msg("Build assets to: ", darkyellow(args.asset_output_dir))
@@ -1223,6 +1242,7 @@ def main():
 
     for path in args.src_path:
 
+        #  TODO Config should accept only two arguments: the path and a args
         conf = Config(
             path,
             args.platform,
@@ -1233,6 +1253,7 @@ def main():
             code_width=args.code_width,
             keep_meta=args.keep_meta,
             ref_files=args.refs,
+            jekyll=args.jekyll,
         )
 
         convert_md(conf)

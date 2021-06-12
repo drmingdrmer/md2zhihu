@@ -330,6 +330,44 @@ class TestMd2zhihu(unittest.TestCase):
     def test_zhihu_extrefs(self):
         self._test_platform('zhihu-extrefs', ['--refs', 'src/refs.yaml'])
 
+    def test_zhihu_jekyll(self):
+
+        platform_type = 'zhihu-jekyll'
+
+        fn = '2021-06-11-simple.md'
+
+        d = 'test/data/{}'.format(platform_type)
+        got_dir = 'dst'
+        want_dir = 'want'
+
+        k3fs.remove(d, got_dir, onerror="ignore")
+
+        #  do not check error, upload will fail
+        code, out, err = k3proc.command(
+            "md2zhihu",
+            'src/' + fn,
+            "--output-dir", "dst",
+            "--jekyll",
+            cwd=d
+        )
+
+        dd(err)
+
+        #  can not push on CI
+        _ = code
+        _ = out
+        _ = err
+
+        print(out)
+        print(err)
+
+        if not is_ci():
+            self.assertEqual(0, code)
+
+        cmp_md(self, pjoin(d, want_dir, fn), pjoin(d, got_dir, fn))
+
+        k3fs.remove(d, got_dir, onerror="ignore")
+
     def test_zhihu(self):
         self._test_platform('zhihu', [])
 
