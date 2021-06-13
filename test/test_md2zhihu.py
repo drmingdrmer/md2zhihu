@@ -336,8 +336,12 @@ class TestMd2zhihu(unittest.TestCase):
     def test_zhihu_jekyll(self):
         self._test_platform_no_push('zhihu-jekyll', '2021-06-11-simple.md', ['--jekyll'])
 
+    def test_minimal_mistake(self):
+        self._test_platform_no_push('minimal_mistake', 'simple.md', [])
+
     def test_zhihu(self):
         self._test_platform('zhihu', [])
+
 
     def test_wechat(self):
         self._test_platform('wechat', ['-p', 'wechat'])
@@ -388,6 +392,9 @@ class TestMd2zhihu(unittest.TestCase):
 
     def _test_platform_no_push(self, platform_type, fn, args):
 
+        elts = platform_type.split('-', 1)
+        platform = elts[0]
+
         d = 'test/data/{}'.format(platform_type)
         got_dir = 'dst'
         want_dir = 'want'
@@ -400,6 +407,7 @@ class TestMd2zhihu(unittest.TestCase):
             "md2zhihu",
             'src/' + fn,
             "--output-dir", "dst",
+            '--platform', platform, 
             *args,
             cwd=d
         )

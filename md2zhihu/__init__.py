@@ -167,6 +167,10 @@ def zhihu_specific(mdrender, n, ctx=None):
     return render_with_features(mdrender, n, ctx=ctx, features=zhihu_features)
 
 
+def minimal_mistake_specific(mdrender, n, ctx=None):
+    return render_with_features(mdrender, n, ctx=ctx, features=minimal_mistake_features)
+
+
 def wechat_specific(mdrender, n, ctx=None):
     return render_with_features(mdrender, n, ctx=ctx, features=wechat_features)
 
@@ -234,6 +238,7 @@ class MDRender(object):
         'zhihu': zhihu_specific,
         'wechat': wechat_specific,
         'weibo': weibo_specific,
+        'minimal_mistake': minimal_mistake_specific,
         'simple': simple_specific,
     }
 
@@ -886,6 +891,15 @@ zhihu_features = dict(
     )
 )
 
+#  jekyll theme: minimal mistake
+minimal_mistake_features = dict(
+    image=image_local_to_remote,
+    block_code=dict(
+        mermaid=block_code_mermaid_to_jpg,
+        graphviz=block_code_graphviz_to_jpg,
+    )
+)
+
 
 # type, subtype... action
 #
@@ -1127,7 +1141,12 @@ def convert_md(conf, handler=None):
     #  with open('ast', 'w') as f:
     #      f.write(pprint.pformat(ast))
 
-    fix_tables(ast)
+    # TODO use feature detection to decide if we need to convert table to hml
+    if conf.platform == 'minimal_mistake':
+        #  jekyll output does render table well.
+        pass
+    else:
+        fix_tables(ast)
 
     #  with open('fixed-table', 'w') as f:
     #      f.write(pprint.pformat(ast))
@@ -1223,9 +1242,9 @@ def main():
     parser.add_argument('-p', '--platform', action='store',
                         required=False,
                         default='zhihu',
-                        choices=["zhihu", "wechat", "weibo", "simple"],
+                        choices=["zhihu", "wechat", "weibo", "simple", "minimal_mistake"],
                         help='convert to a platform compatible format.'
-                        'simple is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
+                        ' simple is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
                         )
 
     parser.add_argument('--keep-meta', action='store_true',
