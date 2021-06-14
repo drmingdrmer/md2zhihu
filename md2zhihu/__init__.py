@@ -1049,8 +1049,8 @@ class Config(object):
 
         self.article_name = trim_fn.rsplit('.', 1)[0]
 
-        self.rel_dir = self.article_name
-        self.asset_output_dir = pjoin(asset_output_dir, self.rel_dir)
+        self.asset_output_dir = pjoin(asset_output_dir, self.article_name)
+        self.rel_dir = os.path.relpath(self.asset_output_dir, self.output_dir)
 
         assert(self.md_output_path is not None)
 

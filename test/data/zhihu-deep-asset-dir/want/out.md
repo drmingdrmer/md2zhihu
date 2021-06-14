@@ -19,23 +19,23 @@
 </tr>
 </table>
 
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
+![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/foo/bar/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
 
 ### graphviz
 
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
+![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/foo/bar/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
 
 inline code: `foo = bar`
 
 inline math <img src="https://www.zhihu.com/equation?tex=%20%7C%7CX%7B%5Cvec%20%7B%5Cbeta%20%7D%7D-Y%7C%7C%5E%7B2%7D%20" alt=" ||X{\vec {\beta }}-Y||^{2} " class="ee_img tr_noresize" eeimg="1"> foo
 
 inline math in codespan `$$ ||X{\vec {\beta }}-Y||^{2} $$`
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/simple/slim.jpg)
+![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/foo/bar/simple/slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
 例如 [slim](https://github.com/openacid/slim) 这个项目按天统计的 star 数:
 
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/simple/slim.jpg)
+![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/foo/bar/simple/slim.jpg)
 
 我们可以利用数据分布的特点, 将整体数据的大小压缩到**几分之一**.
 
@@ -182,7 +182,7 @@ table in list:
     <th style="text-align: center;">导入后</th>
     </tr>
     <tr class="odd">
-    <td style="text-align: center;"><img src="https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/simple/slim.jpg" /></td>
+    <td style="text-align: center;"><img src="https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/foo/bar/simple/slim.jpg" /></td>
     <td style="text-align: center;">fo</td>
     <td style="text-align: center;">bar</td>
     </tr>
