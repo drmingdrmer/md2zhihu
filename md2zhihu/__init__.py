@@ -66,11 +66,6 @@ def code_join(n):
     return txt
 
 
-def code_to_html(n, ctx=None):
-    txt = code_join(n)
-    return k3down2.convert('code', txt, 'html').split('\n')
-
-
 def block_code_to_jpg(mdrender, n, width=None, ctx=None):
     txt = code_join(n)
 
@@ -737,7 +732,6 @@ class AssetRepo(object):
         gu = k3git.GitUrl.parse(repo_url)
         f = gu.fields
 
-        url = ""
         if (f['scheme'] == 'https'
                 and 'committer' in f
                 and 'token' in f):
