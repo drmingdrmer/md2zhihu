@@ -336,6 +336,12 @@ class TestMd2zhihu(unittest.TestCase):
     def test_zhihu_jekyll(self):
         self._test_platform_no_push('zhihu-jekyll', '2021-06-11-simple.md', ['--jekyll'])
 
+    #  def test_zhihu_urlhash(self):
+    #      self._test_platform_no_push('zhihu-urlhash', 'simple.md', [])
+
+    #  def test_zhihu_abspath(self):
+    #      self._test_platform_no_push('zhihu-abspath', 'simple.md', [])
+
     def test_minimal_mistake(self):
         self._test_platform_no_push('minimal_mistake', 'simple.md', [])
 
