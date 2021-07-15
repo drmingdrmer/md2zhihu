@@ -10,7 +10,12 @@ and can be imported into zhihu.com with just one click.
 
 ## Usage
 
-Action: https://github.com/marketplace/actions/md2zhihu
+### 1. Convert markdown remotely with github-action:
+
+This is the recommended way since you do not need install anything locally, just
+a `git` is quite enough.
+
+`md2zhihu` action: https://github.com/marketplace/actions/md2zhihu
 
 Add action definition into the git repo you have markdowns to convert:
 `.github/workflows/md2zhihu.yml`:
@@ -36,15 +41,16 @@ jobs:
 The next push github converts markdowns in `_posts/` and creates a new commit
 that contains the converted markdowns in folder `_md2zhihu`.
 
-E.g., the single-file version of all of my blog posts:
-https://github.com/drmingdrmer/drmingdrmer.github.io/tree/master/_md2zhihu
-
-To retrieve the converted markdowns, merge branch `_md2zhihu/md`,
-or access the branch on the web:
+E.g., the single-file version of one of my blog posts:
 https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md
 
+To retrieve the converted markdowns, merge branch `_md2zhihu/md`,
+or access the branch directly on the web:
+https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md
+Since all external assets are uploaded copy-paste this page will work as expected.
 
-### Options
+<details>
+<summary>Action Options</summary>
 
 -   `pattern`:
 
@@ -81,9 +87,10 @@ https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-
     **required**: True
     **default**: `zhihu`
 
+</details>
 
 
-## Use it Locally
+### 2. Convert markdown on your laptop
 
 System requirement: MaxOS
 
@@ -94,14 +101,24 @@ npm install -g @mermaid-js/mermaid-cli
 pip install md2zhihu
 ```
 
+In a git work dir:
+
 ```sh
-md2zhihu your_great_work.md
+md2zhihu your_great_work.md -r .
 ```
 
-This command convert `your_great_work.md` to
-`_md2/zhihu/your_great_work/your_great_work.md`.
+This command convert `your_great_work.md` to `_md2/your_great_work.md`.
+And the assets it references are uploaded to the default git remote.
 
-### Trouble shoot
+Or using another git to store assets, e.g.:
+```
+md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git@test
+```
+
+**You must have write access to the git repo**
+
+<details>
+<summary><b>Trouble shoot</b></summary>
 
 ### command not found: md2zhihu
 
@@ -109,6 +126,7 @@ This command convert `your_great_work.md` to
 - `which md2zhihu` Confirm that the binary can be found: e.g.: `/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`.
 - `echo $PATH` Confirmat that the install path is included in `PATH`: `...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
 
+</details>
 
 ## Features
 

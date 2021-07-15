@@ -21,23 +21,18 @@ npm install -g @mermaid-js/mermaid-cli
 pip install md2zhihu
 ```
 
-### 排查问题
-
-#### 找不到命令: 如 command not found: md2zhihu
-
-看下这几个命令是否正常:
-
-- `pip install --verbose md2zhihu` 安装时应该会提示按照成功的字样.
-- `which md2zhihu` 如果能到应该会输出它的路径, 例如我的是安装在: `/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`
-- `echo $PATH` 确认安装的路径在PATH环境变量中: `...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
-
 ## Usage
 
+在git工作目录中:
+
 ```sh
-md2zhihu your_great_work.md
+md2zhihu your_great_work.md -r .
 ```
 
-这个命令将markdown 转换成 知乎 文章编辑器可直接导入的格式, 存储到 `_md2/your_great_work/your_great_work.md`, 然后将图片等资源上传到**当前目录所在的git**的`_md2zhihu`分支. 转换后的markdown文档不依赖任何本地的图片文件或其他文件.
+这个命令将markdown 转换成 知乎 文章编辑器可直接导入的格式,
+存储到 `_md2/your_great_work.md`,
+然后将图片等资源上传到**当前目录所在的git**的`_md2zhihu`分支.
+转换后的markdown文档不依赖任何本地的图片文件或其他文件.
 
 - `-d` 指定输出目录, 默认为`./_md2/`; 所有文章都会保存在这个目录中,
     名为`<article_name>` 的md转换之后保存在`_md2/zhihu/<article_name>/` 目录中,
@@ -54,6 +49,20 @@ md2zhihu your_great_work.md
 
     默认使用当前目录下的git配置, (作者假设用户用git来保存自己的工作:DDD),
     如果没有指定分支名, md2zhihu 将建立一个`_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}`的分支来保存所有图片.
+
+<details>
+<summary><b>排查问题</b></summary>
+
+#### 找不到命令: 如 command not found: md2zhihu
+
+看下这几个命令是否正常:
+
+- `pip install --verbose md2zhihu` 安装时应该会提示按照成功的字样.
+- `which md2zhihu` 如果能到应该会输出它的路径, 例如我的是安装在: `/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`
+- `echo $PATH` 确认安装的路径在PATH环境变量中: `...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
+
+</details>
+
 
 ## 使用 github-action 远程转换, 适合 Windows 用户
 
