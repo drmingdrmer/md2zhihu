@@ -17,7 +17,7 @@
     The branch in which assets are stored. This branch must NOT be removed otherwise the assets will not be accessed.
 
     **required**: True
-    **default**: `_md2zhihu/asset`
+    **default**: `<branch-name>-md2zhihu-asset`
 
 -   `target_platform`:
 

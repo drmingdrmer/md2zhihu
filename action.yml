@@ -21,10 +21,10 @@ inputs:
   asset_branch:
     description: >
       The branch in which assets are stored.
-      The converted markdown references images in this location.
+      The converted markdown references images at this location.
       This branch must NOT be removed otherwise the assets will not be accessed.
     required: true
-    default: '_md2zhihu/asset'
+    default: '${{ github.ref_name }}-md2zhihu-asset'
 
   target_platform:
     description: >
