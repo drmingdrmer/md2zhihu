@@ -611,7 +611,7 @@ def replace_ref_with_def(nodes, refs):
 
         if n['type'] == 'text':
             t = n['text']
-            link = re.match(r'^\[(.*?)\](\[([0-9a-zA-Z_\-]*?)\])?$', t)
+            link = re.match(r'^\[(.*?)\](\[([^\]]*?)\])?$', t)
             if not link:
                 continue
 
@@ -747,8 +747,6 @@ class AssetRepo(object):
             f.get('repo'),
             f.get('branch'),
         )
-        print("branch:", branch)
-        print(f)
 
         self.url = url
 
