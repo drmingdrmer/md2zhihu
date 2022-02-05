@@ -38,8 +38,8 @@ jobs:
             _posts/*.markdown
 ```
 
-The next push github converts markdowns in `_posts/` and creates a new commit
-that contains the converted markdowns in folder `_md2zhihu`.
+The next push github converts markdowns in `_posts/` and creates a new branch
+`master-md2zhihu` that contains the converted markdowns in folder `_md2zhihu`.
 
 E.g., the single-file version of one of my blog posts:
 https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md
@@ -65,13 +65,6 @@ Since all external assets are uploaded copy-paste this page will work as expecte
 
     **required**: True
     **default**: `_md2zhihu`
-
--   `md_branch`:
-
-    The branch name to push converted markdown to. A build overrides previous built branch. If you want to persist the built markdowns, merge this branch.
-
-    **required**: True
-    **default**: `_md2zhihu/md`
 
 -   `asset_branch`:
 
