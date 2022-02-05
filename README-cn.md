@@ -88,7 +88,7 @@ md2zhihu 不支持windows, 可以通过github-action来实现远程转换:
         runs-on: ubuntu-latest
         steps:
         - uses: actions/checkout@v2
-        - uses: drmingdrmer/md2zhihu@v0.10
+        - uses: drmingdrmer/md2zhihu@v0.11
           env:
             GITHUB_USERNAME: ${{ github.repository_owner }}
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
