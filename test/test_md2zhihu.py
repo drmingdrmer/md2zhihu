@@ -12,7 +12,7 @@ import skimage.io
 from k3handy import cmdx
 from k3handy import pabs
 from k3handy import pjoin
-from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import structural_similarity
 
 import md2zhihu
 
@@ -468,7 +468,7 @@ def cmp_image(want, got):
     print("img2:-------------", got)
     print(img2.shape)
 
-    p = ssim(img1, img2, multichannel=True)
+    p = structural_similarity(img1, img2, multichannel=True)
     return p
 
 
