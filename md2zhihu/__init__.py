@@ -674,13 +674,14 @@ def extract_jekyll_meta(cont):
 def render_ref_list(refs, platform):
 
     ref_lines = ["", "Reference:", ""]
-    for _id, d in refs.items():
-        #  d is in form "<url> <alt>"
-        url_alt = d.split()
+    for ref_id in sorted(refs):
+
+        #  url_and_alt is in form "<url> <alt>"
+        url_alt = refs[ref_id].split()
         url = url_alt[0]
 
         if len(url_alt) == 1:
-            txt = _id
+            txt = ref_id
         else:
             txt = ' '.join(url_alt[1:])
             txt = txt.strip('"')
@@ -1179,8 +1180,8 @@ def convert_md(conf, handler=None):
 
     ref_lines = [
         '[{id}]: {d}'.format(
-            id=_id, d=d
-        ) for _id, d in used_refs.items()
+            id=ref_id, d=used_refs[ref_id]
+        ) for ref_id in sorted(used_refs)
     ]
     out.extend(ref_lines)
 
