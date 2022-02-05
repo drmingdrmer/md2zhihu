@@ -154,7 +154,7 @@ def importer(mdrender, n, ctx=None):
     typ = n['type']
 
     if typ == 'image':
-        return image_local_to_remote(mdrender, n, ctx=ctx)
+        return save_image_to_asset_dir(mdrender, n, ctx=ctx)
 
     return None
 
@@ -175,7 +175,7 @@ def weibo_specific(mdrender, n, ctx=None):
     typ = n['type']
 
     if typ == 'image':
-        return image_local_to_remote(mdrender, n, ctx=ctx)
+        return save_image_to_asset_dir(mdrender, n, ctx=ctx)
 
     if typ == 'math_block':
         return math_block_to_imgtag(mdrender, n, ctx=ctx)
@@ -541,7 +541,7 @@ def asset_fn(text, suffix):
     return fn
 
 
-def image_local_to_remote(mdrender, n, ctx=None):
+def save_image_to_asset_dir(mdrender, n, ctx=None):
 
     #  {'alt': 'openacid',
     #   'src': 'https://...',
@@ -880,7 +880,7 @@ class AssetRepo(object):
 
 
 simple_features = dict(
-    image=image_local_to_remote,
+    image=save_image_to_asset_dir,
     math_block=math_block_to_jpg,
     math_inline=math_inline_to_jpg,
     table=table_to_jpg,
@@ -895,7 +895,7 @@ simple_features = dict(
 )
 
 wechat_features = dict(
-    image=image_local_to_remote,
+    image=save_image_to_asset_dir,
     math_block=math_block_to_imgtag,
     math_inline=math_inline_to_imgtag,
     table=table_to_barehtml,
@@ -909,7 +909,7 @@ wechat_features = dict(
 )
 
 zhihu_features = dict(
-    image=image_local_to_remote,
+    image=save_image_to_asset_dir,
     math_block=math_block_to_imgtag,
     math_inline=math_inline_to_imgtag,
     table=table_to_barehtml,
@@ -921,7 +921,7 @@ zhihu_features = dict(
 
 #  jekyll theme: minimal mistake
 minimal_mistake_features = dict(
-    image=image_local_to_remote,
+    image=save_image_to_asset_dir,
     block_code=dict(
         mermaid=block_code_mermaid_to_jpg,
         graphviz=block_code_graphviz_to_jpg,
@@ -932,7 +932,7 @@ minimal_mistake_features = dict(
 # type, subtype... action
 #
 all_features = dict(
-    image=dict(local_to_remote=image_local_to_remote, ),
+    image=dict(local_to_remote=save_image_to_asset_dir, ),
     math_block=dict(
         to_imgtag=math_block_to_imgtag,
         to_jpg=math_block_to_jpg,
@@ -1116,11 +1116,15 @@ class Config(object):
 
         return url
 
-    def push(self):
+    def push(self, args, src_dst_fns):
         x = dict(cwd=self.output_dir)
 
         git_path = pjoin(self.output_dir, '.git')
         has_git = os.path.exists(git_path)
+
+        args_str = '\n'.join([k + ': ' + str(v) for (k, v) in args.__dict__.items()])
+        conf_str = '\n'.join([k + ': ' + str(v) for (k, v) in self.__dict__.items()])
+        fns_str = '\n'.join([src for (src, dst) in src_dst_fns])
 
         cmdpass('git', 'init', **x)
         cmdpass('git', 'add', '.', **x)
@@ -1128,7 +1132,16 @@ class Config(object):
                 '-c', "user.name='drmingdrmer'",
                 '-c',  "user.email='drdr.xp@gmail.com'",
                 'commit', '--allow-empty',
-                '-m', 'by md2zhihu by drdr.xp@gmail.com',
+                '-m', '\n'.join(['Built pages by md2zhihu by drdr.xp@gmail.com',
+                                '',
+                                'CLI args:',
+                                args_str,
+                                '',
+                                'Config:',
+                                conf_str,
+                                '',
+                                'Converted:',
+                                fns_str, ]),
                 **x)
         cmdpass('git', 'push', '-f', self.asset_repo.url,
                 'HEAD:refs/heads/' + self.asset_repo.branch, **x)
@@ -1223,6 +1236,8 @@ def convert_md(conf, handler=None):
 
     with open(conf.md_output_path, 'w') as f:
         f.write(str('\n'.join(out)))
+
+    return conf.md_output_path
 
 
 class SmartFormatter(argparse.HelpFormatter):
@@ -1361,6 +1376,7 @@ def main():
     msg("Git dir: ", darkyellow(args.output_dir))
     msg("Gid dir will be pushed to: ", darkyellow(args.repo))
 
+    stat = []
     for path in args.src_path:
 
         #  TODO Config should accept only two arguments: the path and a args
@@ -1383,12 +1399,14 @@ def main():
 
         msg(sj("Done building ", darkyellow(conf.md_output_path)))
 
+        stat.append([path, conf.md_output_path])
+
     if conf.asset_repo.is_local:
         msg("No git repo specified")
     else:
         msg("Pushing ", darkyellow(conf.output_dir), " to ", darkyellow(
             conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
-        conf.push()
+        conf.push(args, stat)
 
     msg(green(sj("Great job!!!")))
 

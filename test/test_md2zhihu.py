@@ -295,7 +295,7 @@ class TestMd2zhihu(unittest.TestCase):
 
         got = md2zhihu.md2zhihu.rules_to_features(rules)
         want = {
-            'image': md2zhihu.md2zhihu.image_local_to_remote,
+            'image': md2zhihu.md2zhihu.save_image_to_asset_dir,
             'block_code': {
                 '': md2zhihu.md2zhihu.block_code_to_jpg,
                 '*': md2zhihu.md2zhihu.block_code_to_fixwidth_jpg,
