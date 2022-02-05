@@ -1,2 +1,2 @@
-__version__ = "0.9"
+__version__ = "0.10"
 __name__ = "md2zhihu"
