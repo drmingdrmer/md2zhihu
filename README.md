@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: drmingdrmer/md2zhihu@v0.11
+    - uses: drmingdrmer/md2zhihu@v0.12
       env:
         GITHUB_USERNAME: ${{ github.repository_owner }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -38,9 +38,31 @@ jobs:
             _posts/*.markdown
 ```
 
-The next push will trigger this action to run:
-It will convert markdowns in `_posts/` and will create a new branch with a name
-based on the pushed branch `master-md2zhihu` that contains the converted markdowns in folder `_md2zhihu`.
+The conversion will be triggered on next push:
+
+It will convert markdowns in dir `_posts/` and save them in dir `_md2zhihu`.
+
+A new branch `master-md2zhihu` containing these output will be created:
+
+Branch `master`:
+```
+▾ _posts/
+    2013-01-31-jobq.markdown
+    2013-01-31-resource.markdown
+    ...
+```
+
+Branch `master-md3zhihu`:
+```
+▾ _posts/
+    2013-01-31-jobq.md
+    2013-01-31-resource.md
+    ...
+▾ _md2zhihu/
+    jobq.md
+    resource.md
+    ...
+```
 
 E.g., one of the converted [single-file example](https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md) has all its assets stored
 remotely on github, thus it can be safely used everywhere, without worrying
@@ -115,6 +137,8 @@ md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git@test
 
 And you need **write access** on the git repo otherwise the assests can not be
 uploaded.
+
+**Other options**: `md2zhihu --help`
 
 ### Trouble shoot
 

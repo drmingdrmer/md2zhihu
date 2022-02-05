@@ -1189,6 +1189,14 @@ def convert_md(conf, handler=None):
         f.write(str('\n'.join(out)))
 
 
+class SmartFormatter(argparse.HelpFormatter):
+
+    def _split_lines(self, text, width):
+        if text.startswith('R|'):
+            return text[2:].splitlines() + ['']
+        # this is the RawTextHelpFormatter._split_lines
+        return argparse.HelpFormatter._split_lines(self, text, width) + ['']
+
 def main():
 
     # TODO refine arg names
@@ -1201,89 +1209,97 @@ def main():
     # TODO then test drmingdrmer.github.io with action
 
     parser = argparse.ArgumentParser(
-        description='Convert markdown to zhihu compatible')
+        description='Convert markdown to zhihu compatible',
+        formatter_class=SmartFormatter,
+    )
 
     parser.add_argument('src_path', type=str,
                         nargs='+',
-                        help='path to the markdown to process')
-
-    parser.add_argument('-o', '--md-output', action='store',
-                        help='sepcify output path for converted mds.'
-                        ' If the path specified ends with "/", it is treated as output dir, e.g. --md-output foo/ output the converted md to foo/<fn>.md.'
-                        ' Otherwise it should be the path to some md file such as a/b/c.md. '
-                        ' default: <output-dir>/<fn>.md')
+                        help='path to the markdowns to convert')
 
     parser.add_argument('-d', '--output-dir', action='store',
                         default='_md2',
-                        help='sepcify directory path to store outputs(default: "_md2")'
-                        ' It is the root dir of the git repo for storing assets')
+                        help='R|Sepcify dir path to store the outputs.'
+                        '\n' ' It is the root dir of the git repo to store the assets referenced by output markdowns.')
+
+    parser.add_argument('-o', '--md-output', action='store',
+                        help='R|Sepcify output path for converted mds.'
+                       '\n' 'If the path specified ends with "/", it is treated as output dir,'
+                       ' e.g., "--md-output foo/" output the converted md to foo/<fn>.md.'
+                       '\n' 'Default: <output-dir>/<fn>.md')
 
     parser.add_argument('--asset-output-dir', action='store',
-                        help='sepcify directory to store assets (default: <output-dir>)'
-                        ' If <asset-output-dir> is outside <output-dir>, nothing will be uploaded.')
+                        help='R|Sepcify dir to store assets'
+                        '\n' 'If <asset-output-dir> is outside <output-dir>, nothing will be uploaded.'
+                        '\n' 'Default: <output-dir>'
+                        )
 
     parser.add_argument('-r', '--repo', action='store',
                         required=False,
-                        help='sepcify the git url to store assets.'
-                             ' The url should be in a SSH form such as:'
-                             ' "git@github.com:openacid/openacid.github.io.git[@branch_name]".'
-                             ' When absent, assets are referenced by relative path and it will not push assets to remote.'
-                             ' If no branch is specified, a branch "_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}" is used,'
+                        help='R|Sepcify the git url to store assets.'
+                             '\n' 'The url should be in a SSH form such as:'
+                             '\n' '    "git@github.com:openacid/openacid.github.io.git[@branch_name]".'
+                             '\n'
+                             '\n' 'The repo has to be a public repo and you have the write access.'
+                             '\n'
+                             '\n' 'When absent, it works in local mode:'
+                             ' assets are referenced by relative path and will not be pushed to remote.'
+                             '\n'
+                             '\n' 'If no branch is specified, a branch "_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}" is used,'
                              ' in which cwd_tail is the last segment of current working dir.'
-                             ' It has to be a public repo and you have the write access.'
-                             ' "-r ." to use the git in CWD to store the assets.'
+                             '\n'
+                             '\n' '"--repo ." to use the git that is found in CWD'
                         )
 
     parser.add_argument('-p', '--platform', action='store',
                         required=False,
                         default='zhihu',
                         choices=["zhihu", "wechat", "weibo", "simple", "minimal_mistake"],
-                        help='convert to a platform compatible format.'
-                        ' simple is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
+                        help='R|Convert to a platform compatible format.'
+                        '\n' '"simple" is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
                         )
 
     parser.add_argument('--keep-meta', action='store_true',
                         required=False,
                         default=False,
-                        help='if keep meta header, which is wrapped with two "---" at file beginning.'
-                        ' default: False'
+                        help='If to keep meta header or not, the header is wrapped with two "---" at file beginning.'
                         )
 
     parser.add_argument('--jekyll', action='store_true',
                         required=False,
                         default=False,
-                        help='respect jekyll syntax: 1) implies <keep-meta>: do not trim md header meta;'
-                        ' 2) keep jekyll style name: YYYY-MM-DD-TITLE.md;'
-                        ' default: False'
+                        help='R|Respect jekyll syntax:'
+                        '\n' '1) It implies <keep-meta>: do not trim md header meta;'
+                        '\n' '2) It keep jekyll style file name with the date prefix: YYYY-MM-DD-TITLE.md.'
                         )
 
     parser.add_argument('--refs', action='append',
                         required=False,
-                        help='external file that contains ref definitions'
-                        ' A ref file is a yaml contains dict of list.'
-                        ' A dict key is the platform name, only visible to <platform> argument'
-                        ' "univeral" is visible with any <platform>'
-                        ' An example of ref file data:'
-                        '  {"universal": [{"grpc":"http:.."}, {"protobuf":"http:.."}],'
-                        '   "zhihu": [{"grpc":"http:.."}, {"protobuf":"http:.."}]'
-                        '}.'
-                        ' default: []'
+                        help='R|Specify the external file that contains ref definitions.'
+                        '\n' 'A ref file is a yaml contains reference definitions in a dict of list.'
+                        '\n' 'A dict key is the platform name, only visible when it is enabeld by <platform> argument.'
+                        '\n' '"univeral" is visible in any <platform>.'
+                        '\n'
+                        '\n' 'Example of ref file data:'
+                        '\n' '{ "universal": [{"grpc":"http:.."}, {"protobuf":"http:.."}],'
+                        '\n' '  "zhihu":     [{"grpc":"http:.."}, {"protobuf":"http:.."}]'
+                        '\n' '}.'
+                        '\n' 'With an external refs file being specified, in markdown one can just use the ref: e.g., "[grpc][]"'
                         )
 
     parser.add_argument('--rewrite', action='append',
                         nargs=2,
                         required=False,
-                        help='rewrite generated to image url.'
-                        ' E.g.: --rewrite "/asset/" "/resource/"'
-                        ' will transform "/asset/banner.jpg" to "/resource/banner.jpg"'
-                        ' default: []'
+                        help='R|Rewrite generated image url.'
+                        '\n' 'E.g.: --rewrite "/asset/" "/resource/"'
+                        '\n' 'will transform "/asset/banner.jpg" to "/resource/banner.jpg"'
+                        '\n' 'default: []'
                         )
 
     parser.add_argument('--code-width', action='store',
                         required=False,
                         default=1000,
                         help='specifies code image width.'
-                        ' default: 1000'
                         )
 
     args = parser.parse_args()
