@@ -559,7 +559,16 @@ def image_local_to_remote(mdrender, n, ctx=None):
         src = os.path.join(os.path.split(mdrender.conf.src_path)[0], src)
 
     fn = os.path.split(src)[1]
-    shutil.copyfile(src, pjoin(mdrender.conf.asset_output_dir, fn))
+
+    with open(src, 'rb') as f:
+        content = f.read()
+
+    content_md5 = hashlib.md5(content).hexdigest()
+    content_md5 = content_md5[:16]
+    fn = content_md5 + '-' + fn
+
+    target = pjoin(mdrender.conf.asset_output_dir, fn)
+    shutil.copyfile(src, target)
 
     n['src'] = mdrender.conf.img_url(fn)
 

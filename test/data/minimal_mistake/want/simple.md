@@ -26,13 +26,13 @@ next line
 ![](simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
 
 例如 `$$ ||X{\vec {\beta }}-Y||^{2} $$`
-![](simple/slim.jpg)
+![](simple/18b61671112f3aeb-slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
 例如 [slim](https://github.com/openacid/slim) 这个项目按天统计的 star 数:
 
-![](simple/slim.jpg)
-![](simple/slim.jpg)
+![](simple/18b61671112f3aeb-slim.jpg)
+![](simple/18b61671112f3aeb-slim.jpg)
 
 我们可以利用数据分布的特点, 将整体数据的大小压缩到**几分之一**.
 
@@ -160,7 +160,7 @@ table in list:
 
     | 源文件 | 转换后 | 导入后 |
     | :-: | :-: | :-: |
-    | ![](simple/slim.jpg) | fo | bar |
+    | ![](simple/18b61671112f3aeb-slim.jpg) | fo | bar |
     | a | b | c |
 
 

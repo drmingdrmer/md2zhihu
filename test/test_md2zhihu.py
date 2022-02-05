@@ -165,9 +165,9 @@ class TestMd2zhihu(unittest.TestCase):
             "assets/slim.jpg",
             "out.md",
             "simple.md",
+            "simple/18b61671112f3aeb-slim.jpg",
             "simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg",
             "simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg",
-            "simple/slim.jpg",
         ], out)
 
         cmdx('git', 'clean', '-dxf', cwd=pjoin('test/data', platform_type))
@@ -213,9 +213,9 @@ class TestMd2zhihu(unittest.TestCase):
 
         self.assertEqual([
             "assets/slim.jpg",
+            "foo/bar/simple/18b61671112f3aeb-slim.jpg",
             "foo/bar/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg",
             "foo/bar/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg",
-            "foo/bar/simple/slim.jpg",
             "out.md",
             "simple.md",
         ], out)
@@ -329,6 +329,9 @@ class TestMd2zhihu(unittest.TestCase):
 
     def test_zhihu_extrefs(self):
         self._test_platform('zhihu-extrefs', ['--refs', 'src/refs.yaml'])
+
+    def test_zhihu_img_url(self):
+        self._test_platform('zhihu-img-url', [])
 
     def test_zhihu_rewrite(self):
         self._test_platform_no_push('zhihu-rewrite', 'simple.md', ['--rewrite', '^s', '/foo/'])

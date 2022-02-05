@@ -1,4 +1,4 @@
-![](/foo/imple/slim.jpg)
+![](/foo/imple/18b61671112f3aeb-slim.jpg)
 
 
 
