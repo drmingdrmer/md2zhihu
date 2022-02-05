@@ -8,5 +8,5 @@ cd ..
 python setup.py install
 )
 
-PYTHONPATH="$(cd ..; pwd)" pytest -x -v
-# PYTHONPATH="$(cd ..; pwd)" pytest -x -v -k test_zhihu_img_url
+# PYTHONPATH="$(cd ..; pwd)" pytest -x -v
+PYTHONPATH="$(cd ..; pwd)" pytest -x -v -k test_zhihu_download

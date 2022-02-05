@@ -7,6 +7,7 @@ import shutil
 
 import k3down2
 import k3git
+import urllib3
 import yaml
 from k3color import darkyellow
 from k3color import green
@@ -549,6 +550,29 @@ def image_local_to_remote(mdrender, n, ctx=None):
 
     src = n['src']
     if re.match(r'https?://', src):
+        if not mdrender.conf.download:
+            return None
+
+        fn = src.split('/')[-1].split('#')[0].split('?')[0]
+
+        content_md5 = hashlib.md5(to_bytes(src)).hexdigest()
+        content_md5 = content_md5[:16]
+        fn = content_md5 + '-' + fn
+
+        target = pjoin(mdrender.conf.asset_output_dir, fn)
+
+        if not os.path.exists(target):
+
+            http = urllib3.PoolManager()
+            r = http.request('GET', src)
+            if r.status != 200:
+                raise Exception("Failure to download:", src)
+
+            with open(target, 'wb') as f:
+                f.write(r.data)
+
+        n['src'] = mdrender.conf.img_url(fn)
+
         return None
 
     if src.startswith('/'):
@@ -998,6 +1022,7 @@ class Config(object):
                  ref_files=None,
                  jekyll=False,
                  rewrite=None,
+                 download=False,
                  ):
         """
         Config of markdown rendering
@@ -1039,6 +1064,8 @@ class Config(object):
         if rewrite is None:
             rewrite = []
         self.rewrite = rewrite
+
+        self.download = download
 
         fn = os.path.split(self.src_path)[-1]
 
@@ -1305,6 +1332,12 @@ def main():
                         '\n' 'default: []'
                         )
 
+    parser.add_argument('--download', action='store_true',
+                        required=False,
+                        default=False,
+                        help='Download remote image url if a image url starts with http[s]://.'
+                        )
+
     parser.add_argument('--code-width', action='store',
                         required=False,
                         default=1000,
@@ -1343,6 +1376,7 @@ def main():
             ref_files=args.refs,
             jekyll=args.jekyll,
             rewrite=args.rewrite,
+            download=args.download,
         )
 
         convert_md(conf)

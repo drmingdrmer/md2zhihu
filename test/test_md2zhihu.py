@@ -327,6 +327,9 @@ class TestMd2zhihu(unittest.TestCase):
     def test_zhihu_meta(self):
         self._test_platform('zhihu-meta', ['--keep-meta'])
 
+    def test_zhihu_download(self):
+        self._test_platform('zhihu-download', ['--download'])
+
     def test_zhihu_extrefs(self):
         self._test_platform('zhihu-extrefs', ['--refs', 'src/refs.yaml'])
 
