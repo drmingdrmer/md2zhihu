@@ -22,7 +22,7 @@
 -   `target_platform`:
 
     The platform that the converted markdown should be compatible to.
-Currently supported platforms are zhihu, wechat, weibo, simple. `simple` converts almost everything to images and removes most text styles. E.g. inline code block is converted to normal text.
+    Currently supported platforms are zhihu, wechat, weibo, simple. `simple` converts almost everything to images and removes most text styles. E.g. inline code block is converted to normal text.
 
     **required**: True
     **default**: `zhihu`

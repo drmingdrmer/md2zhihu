@@ -1,23 +1,23 @@
 # md2zhihu
 
 Converts markdown to a single-file version that has no local asset dependency
-and can be imported into zhihu.com with just one click.
+and can be imported into [zhihu.com](zhihu.com) or other social platform with just one click.
+
+[md2zhihu on Marketplace](https://github.com/marketplace/actions/md2zhihu)
 
 |           | md                    | imported               |
 | :--       | :-:                   | :-:                    |
 | original  | ![](assets/md.png)    | ![](assets/before.png) |
 | converted | ![](assets/built.png) | ![](assets/after.png)  |
 
-## Usage
+# Usage
 
-### 1. Convert markdown remotely with github-action:
+## 1. Use it remotely with github-action:
 
 This is the recommended way since you do not need install anything locally, just
-a `git` is quite enough.
+a `git` is quite enough.  See: [md2zhihu on Marketplace](https://github.com/marketplace/actions/md2zhihu)
 
-`md2zhihu` action: https://github.com/marketplace/actions/md2zhihu
-
-Add action definition into the git repo you have markdowns to convert:
+Add action config into the git repo you have markdowns to convert:
 `.github/workflows/md2zhihu.yml`:
 
 ```yaml
@@ -38,19 +38,20 @@ jobs:
             _posts/*.markdown
 ```
 
-The next push github converts markdowns in `_posts/` and creates a new branch
-`master-md2zhihu` that contains the converted markdowns in folder `_md2zhihu`.
+The next push will trigger this action to run:
+It will convert markdowns in `_posts/` and will create a new branch with a name
+based on the pushed branch `master-md2zhihu` that contains the converted markdowns in folder `_md2zhihu`.
 
-E.g., the single-file version of one of my blog posts:
-https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md
+E.g., one of the converted [single-file example](https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md) has all its assets stored
+remotely on github, thus it can be safely used everywhere, without worrying
+about dealing with its dependency assets.
 
-To retrieve the converted markdowns, merge branch `_md2zhihu/md`,
-or access the branch directly on the web:
-https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md
-Since all external assets are uploaded copy-paste this page will work as expected.
+There are two ways to get the converted markdowns:
+- `git fetch` and `git merge` the branch `master-md2zhihu`.
+- Or access this branch directly on the web:
+  [single-file example](https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md)
 
-<details>
-<summary>Action Options</summary>
+**Action Options for md2zhihu**
 
 -   `pattern`:
 
@@ -80,12 +81,12 @@ Since all external assets are uploaded copy-paste this page will work as expecte
     **required**: True
     **default**: `zhihu`
 
-</details>
 
+## 2. Use it on your laptop
 
-### 2. Convert markdown on your laptop
+**System requirements**
 
-System requirement: MaxOS
+MaxOS
 
 ```sh
 # For rendering table to html
@@ -94,47 +95,45 @@ npm install -g @mermaid-js/mermaid-cli
 pip install md2zhihu
 ```
 
-In a git work dir:
+**Basic usage**:
+
+In a git working dir that contains markdowns to convert:
 
 ```sh
 md2zhihu your_great_work.md -r .
 ```
 
-This command convert `your_great_work.md` to `_md2/your_great_work.md`.
-And the assets it references are uploaded to the default git remote.
+This command converts `your_great_work.md` to `_md2/your_great_work.md`.
+And the assets it references are uploaded to the git repo found in current dir.
 
-Or using another git to store assets, e.g.:
+
+**Use another git to store assets**:
+
 ```
 md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git@test
 ```
 
-**You must have write access to the git repo**
+And you need **write access** on the git repo otherwise the assests can not be
+uploaded.
 
-<details>
-<summary><b>Trouble shoot</b></summary>
+### Trouble shoot
 
-### command not found: md2zhihu
+**command not found: md2zhihu**
 
 - `pip install --verbose md2zhihu` Confirm that install done successfully.
 - `which md2zhihu` Confirm that the binary can be found: e.g.: `/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`.
 - `echo $PATH` Confirmat that the install path is included in `PATH`: `...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
 
-</details>
-
-## Features
+# Features
 
 - Transform latex to image:
 
   E.g. ` $$ ||X{\vec {\beta }}-Y||^{2} $$ ` is converted to 
   ![](https://www.zhihu.com/equation?tex=%7C%7CX%7B%5Cvec%20%7B%5Cbeta%20%7D%7D-Y%7C%7C%5E%7B2%7D)
 
-  ```
-  <img src="https://www.zhihu.com/equation?tex=||X{\vec {\beta }}-Y||^{2}\\" ...>
-  ```
+- Transform table to HTML.
 
-- Transform table to html.
-
-- Upload images.
+- Upload images to specified git repo.
 
 - Transform mermaid code block to image:
 
@@ -174,9 +173,9 @@ md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git@test
     | ![](assets/ref-list/src.png) | ![](assets/ref-list/dst.png) | ![](assets/ref-list/imported.png) |
 
 
-## Limitation
+# Limitation
 
 - zhihu.com does not support markdown syntax inside a table cell.
-  These in-table-cell content are transformed to plain text.
+  These in-table-cell content are transformed into plain text.
 
 - md2zhihu can not deal with jekyll/github page tags. E.g. `{% octicon mark-github height:24 %}`.

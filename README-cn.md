@@ -1,6 +1,8 @@
 # md2zhihu
 
-将markdown转换成 知乎 兼容的 markdown 格式
+将 markdown 转换成 [知乎](zhihu.com) 兼容的 markdown 格式
+
+[md2zhihu on Marketplace](https://github.com/marketplace/actions/md2zhihu)
 
 |       | md源文件              | 导入知乎的效果          |
 |:--    | :-:                   | :-:                     |
@@ -68,7 +70,8 @@ md2zhihu your_great_work.md -r .
 
 md2zhihu 不支持windows, 可以通过github-action来实现远程转换:
 
-Action: https://github.com/marketplace/actions/md2zhihu
+[md2zhihu on Marketplace](https://github.com/marketplace/actions/md2zhihu)
+
 
 -   首先将要转换的 markdown 全部放在一个 github repo 中, 完成配置后, 每次 push 之后 github-action 将自动构建,
     例如 我自己的博客中的文章都在这个repo中: https://github.com/drmingdrmer/drmingdrmer.github.io
@@ -101,12 +104,12 @@ Action: https://github.com/marketplace/actions/md2zhihu
     保存到目录`_md2zhihu` 中. 并在当前分支创建一个新提交点(`master-md2zhihu`),
 
     例如我的博客中文章装换后在:
-    https://github.com/drmingdrmer/drmingdrmer.github.io/tree/master/_md2zhihu
+    [single-file example](https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md)
 
 -   要使用转换后的文档, 可以直接 merge 这个`master-md2zhihu`分支
 
     或直接从github repo 中访问, 例如:
-    https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master-md2zhihu/_md2zhihu/dict-cmp.md
+    [single-file example](https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md)
 
 
 ## Features
