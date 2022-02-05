@@ -333,6 +333,9 @@ class TestMd2zhihu(unittest.TestCase):
     def test_zhihu_rewrite(self):
         self._test_platform_no_push('zhihu-rewrite', 'simple.md', ['--rewrite', '^s', '/foo/'])
 
+    def test_zhihu_math_inline(self):
+        self._test_platform_no_push('zhihu-math-inline', 'simple.md', [])
+
     def test_zhihu_jekyll(self):
         self._test_platform_no_push('zhihu-jekyll', '2021-06-11-simple.md', ['--jekyll'])
 

@@ -455,7 +455,7 @@ def join_math_block(nodes):
     join_math_text(nodes)
 
 
-def parse_math(nodes):
+def parse_math(conf, nodes):
     """
     Extract all math segment such as ``$$ ... $$`` from a text and build a
     math_block or math_inline node.
@@ -466,10 +466,10 @@ def parse_math(nodes):
     for n in nodes:
 
         if 'children' in n:
-            n['children'] = parse_math(n['children'])
+            n['children'] = parse_math(conf, n['children'])
 
         if n['type'] == 'text':
-            new_children = extract_math(n)
+            new_children = extract_math(conf, n)
             children.extend(new_children)
         else:
             children.append(n)
@@ -502,22 +502,24 @@ def join_math_text(nodes):
             i += 1
 
 
-inline_math = r'\$\$(.*?)\$\$'
-
-
-def extract_math(n):
+def extract_math(conf, n):
     """
-    Extract ``$$ ... $$`` from a text node and build a new node.
+    Extract ``$$ ... $$`` or ``$ .. $` from a text node and build a new node.
     The original text node is split into multiple segments.
+
+    The math is a block if it is a paragraph.
+    Otherwise, it is an inline math.
     """
     children = []
 
+    math_regex = r'([$]|[$][$])([^$].*?)\1'
+
     t = n['text']
     while True:
-        match = re.search(inline_math, t, flags=re.DOTALL)
+        match = re.search(math_regex, t, flags=re.DOTALL)
         if match:
             children.append({'type': 'text', 'text': t[:match.start()]})
-            children.append({'type': 'math_inline', 'text': match.groups()[0]})
+            children.append({'type': 'math_inline', 'text': match.groups()[1]})
             t = t[match.end():]
 
             left = children[-2]['text']
@@ -1148,14 +1150,14 @@ def convert_md(conf, handler=None):
     used_refs = replace_ref_with_def(ast, refs)
 
     # extract already inlined math
-    ast = parse_math(ast)
+    ast = parse_math(conf, ast)
 
     #  with open('after-math-1', 'w') as f:
     #      f.write(pprint.pformat(ast))
 
     # join cross paragraph math
     join_math_block(ast)
-    ast = parse_math(ast)
+    ast = parse_math(conf, ast)
 
     #  with open('after-math-2', 'w') as f:
     #  f.write(pprint.pformat(ast))
