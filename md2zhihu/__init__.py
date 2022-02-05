@@ -1180,7 +1180,7 @@ def convert_md(conf, handler=None):
 
     ref_lines = [
         '[{id}]: {d}'.format(
-            id=ref_id, d=used_refs[
+            id=ref_id, d=used_refs[ref_id]
         ) for ref_id in sorted(used_refs)
     ]
     out.extend(ref_lines)
