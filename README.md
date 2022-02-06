@@ -52,7 +52,7 @@ Branch `master`:
     ...
 ```
 
-Branch `master-md3zhihu`:
+Branch `master-md2zhihu`:
 ```
 ▾ _posts/
     2013-01-31-jobq.md
