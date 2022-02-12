@@ -122,7 +122,6 @@ def to_plaintext(mdrender, n, ctx=None):
 
 
 def table_to_barehtml(mdrender, n, ctx=None):
-
     # create a markdown render to recursively deal with images etc.
     mdr = MDRender(mdrender.conf, platform=importer)
     md = mdr.render_node(n)
@@ -133,7 +132,6 @@ def table_to_barehtml(mdrender, n, ctx=None):
 
 
 def table_to_jpg(mdrender, n, ctx=None):
-
     mdr = MDRender(mdrender.conf, platform='')
     md = mdr.render_node(n)
     md = '\n'.join(md)
@@ -228,7 +226,6 @@ def simple_specific(mdrender, n, ctx=None):
 
 
 class MDRender(object):
-
     # platform specific renderer
     platforms = {
         'zhihu': zhihu_specific,
@@ -542,7 +539,6 @@ def asset_fn(text, suffix):
 
 
 def save_image_to_asset_dir(mdrender, n, ctx=None):
-
     #  {'alt': 'openacid',
     #   'src': 'https://...',
     #   'title': None,
@@ -602,7 +598,6 @@ def save_image_to_asset_dir(mdrender, n, ctx=None):
 
 
 def build_refs(meta):
-
     dic = {}
 
     if meta is None:
@@ -634,7 +629,7 @@ def replace_ref_with_def(nodes, refs):
     Convert ``[link-def]``       to ``[link-def](link-url)``
     """
 
-    used_defs={}
+    used_defs = {}
 
     for n in nodes:
 
@@ -705,7 +700,6 @@ def extract_jekyll_meta(cont):
 
 
 def render_ref_list(refs, platform):
-
     ref_lines = ["", "Reference:", ""]
     for ref_id in sorted(refs):
 
@@ -755,7 +749,6 @@ class LocalRepo(object):
 
 
 class AssetRepo(object):
-
     is_local = False
 
     def __init__(self, repo_url, cdn=True):
@@ -865,7 +858,6 @@ class AssetRepo(object):
                 # `branch` has no remote configured.
                 remote = g.cmdf("remote", flag="xo")[0]
 
-
         remote_url = g.remote_get(remote, flag='x')
         return remote_url
 
@@ -931,7 +923,6 @@ minimal_mistake_features = dict(
         graphviz=block_code_graphviz_to_jpg,
     )
 )
-
 
 # type, subtype... action
 #
@@ -1053,7 +1044,6 @@ class Config(object):
         self.platform = platform
         self.src_path = src_path
 
-
         self.code_width = code_width
         if keep_meta is None:
             keep_meta = False
@@ -1087,7 +1077,7 @@ class Config(object):
         self.asset_output_dir = pjoin(asset_output_dir, self.article_name)
         self.rel_dir = os.path.relpath(self.asset_output_dir, self.output_dir)
 
-        assert(self.md_output_path is not None)
+        assert (self.md_output_path is not None)
 
         if self.md_output_path.endswith('/'):
             self.md_output_base = self.md_output_path
@@ -1102,14 +1092,14 @@ class Config(object):
             self.asset_repo = AssetRepo(asset_repo_url)
 
         for k in (
-            "src_path",
-            "platform",
-            "output_dir",
-            "asset_output_dir",
-            "md_output_base",
-            "md_output_path",
+                "src_path",
+                "platform",
+                "output_dir",
+                "asset_output_dir",
+                "md_output_base",
+                "md_output_path",
         ):
-            msg(darkyellow(k), ": ",  getattr(self, k))
+            msg(darkyellow(k), ": ", getattr(self, k))
 
     def img_url(self, fn):
         url = self.asset_repo.path_pattern.format(
@@ -1134,18 +1124,18 @@ class Config(object):
         cmdpass('git', 'add', '.', **x)
         cmdpass('git',
                 '-c', "user.name='drmingdrmer'",
-                '-c',  "user.email='drdr.xp@gmail.com'",
+                '-c', "user.email='drdr.xp@gmail.com'",
                 'commit', '--allow-empty',
                 '-m', '\n'.join(['Built pages by md2zhihu by drdr.xp@gmail.com',
-                                '',
-                                'CLI args:',
-                                args_str,
-                                '',
-                                'Config:',
-                                conf_str,
-                                '',
-                                'Converted:',
-                                fns_str, ]),
+                                 '',
+                                 'CLI args:',
+                                 args_str,
+                                 '',
+                                 'Config:',
+                                 conf_str,
+                                 '',
+                                 'Converted:',
+                                 fns_str, ]),
                 **x)
         cmdpass('git', 'push', '-f', self.asset_repo.url,
                 'HEAD:refs/heads/' + self.asset_repo.branch, **x)
@@ -1155,20 +1145,60 @@ class Config(object):
             shutil.rmtree(self.output_dir + '/.git')
 
 
-def convert_md(conf, handler=None):
+class Article(object):
+    def __init__(self, conf, md_text):
+        self.conf = conf
 
-    os.makedirs(conf.output_dir, exist_ok=True)
-    os.makedirs(conf.asset_output_dir, exist_ok=True)
-    os.makedirs(conf.md_output_base, exist_ok=True)
+        # init
 
-    with open(conf.src_path, 'r') as f:
-        cont = f.read()
+        self.md_text = md_text
+        self.refs = {}
+        self.used_refs = None
+        self.meta = None
+        self.meta_text = None
+        self.ast = None
 
-    cont, meta, meta_text = extract_jekyll_meta(cont)
-    cont, article_refs = extract_ref_definitions(cont)
+        # extract article meta
 
+        self.md_text, self.meta, self.meta_text = extract_jekyll_meta(self.md_text)
+        self.md_text, article_refs = extract_ref_definitions(self.md_text)
+
+        # build refs
+
+        self.refs.update(load_external_refs(self.conf))
+        self.refs.update(build_refs(self.meta))
+        self.refs.update(article_refs)
+
+        # parse to ast and clean up
+
+        parse_to_ast = new_parser()
+        self.ast = parse_to_ast(self.md_text)
+
+        # TODO use feature detection to decide if we need to convert table to hml
+        if self.conf.platform == 'minimal_mistake':
+            #  jekyll output does render table well.
+            pass
+        else:
+            fix_tables(self.ast)
+
+        self.used_refs = replace_ref_with_def(self.ast, self.refs)
+
+        # extract already inlined math
+        self.ast = parse_math(self.conf, self.ast)
+
+        # join cross paragraph math
+        join_math_block(self.ast)
+        self.ast = parse_math(self.conf, self.ast)
+
+
+
+
+def parse(conf, text):
+    pass
+
+
+def load_external_refs(conf):
     refs = {}
-
     for ref_path in conf.ref_files:
         fcont = fread(ref_path)
         y = yaml.safe_load(fcont)
@@ -1177,64 +1207,42 @@ def convert_md(conf, handler=None):
         for r in y.get(conf.platform, []):
             refs.update(r)
 
+    return refs
 
-    meta_refs = build_refs(meta)
-    refs.update(meta_refs)
 
-    refs.update(article_refs)
+def convert_md(conf, handler=None):
 
-    parse_to_ast = new_parser()
-    ast = parse_to_ast(cont)
+    os.makedirs(conf.output_dir, exist_ok=True)
+    os.makedirs(conf.asset_output_dir, exist_ok=True)
+    os.makedirs(conf.md_output_base, exist_ok=True)
 
-    #  with open('ast', 'w') as f:
-    #      f.write(pprint.pformat(ast))
+    # load md text
 
-    # TODO use feature detection to decide if we need to convert table to hml
-    if conf.platform == 'minimal_mistake':
-        #  jekyll output does render table well.
-        pass
-    else:
-        fix_tables(ast)
+    md_text = fread(conf.src_path)
 
-    #  with open('fixed-table', 'w') as f:
-    #      f.write(pprint.pformat(ast))
-
-    used_refs = replace_ref_with_def(ast, refs)
-
-    # extract already inlined math
-    ast = parse_math(conf, ast)
-
-    #  with open('after-math-1', 'w') as f:
-    #      f.write(pprint.pformat(ast))
-
-    # join cross paragraph math
-    join_math_block(ast)
-    ast = parse_math(conf, ast)
-
-    #  with open('after-math-2', 'w') as f:
-    #  f.write(pprint.pformat(ast))
+    article = Article(conf, md_text)
 
     if handler is None:
         mdr = MDRender(conf, platform=conf.platform)
     else:
         mdr = MDRender(conf, platform=handler)
 
-    out = mdr.render(ast)
+    out = mdr.render(article.ast)
 
     if conf.keep_meta:
-        out = ['---', meta_text, '---'] + out
+        out = ['---', article.meta_text, '---'] + out
 
     out.append('')
 
-    ref_list = render_ref_list(used_refs, conf.platform)
+    ref_list = render_ref_list(article.used_refs, conf.platform)
     out.extend(ref_list)
 
     out.append('')
 
     ref_lines = [
         '[{id}]: {d}'.format(
-            id=ref_id, d=used_refs[ref_id]
-        ) for ref_id in sorted(used_refs)
+            id=ref_id, d=article.used_refs[ref_id]
+        ) for ref_id in sorted(article.used_refs)
     ]
     out.extend(ref_lines)
 
@@ -1252,8 +1260,8 @@ class SmartFormatter(argparse.HelpFormatter):
         # this is the RawTextHelpFormatter._split_lines
         return argparse.HelpFormatter._split_lines(self, text, width) + ['']
 
-def main():
 
+def main():
     # TODO refine arg names
     # md2zhihu a.md --output-dir res/ --platform xxx --md-output foo/
     # res/fn.md
@@ -1275,18 +1283,18 @@ def main():
     parser.add_argument('-d', '--output-dir', action='store',
                         default='_md2',
                         help='R|Sepcify dir path to store the outputs.'
-                        '\n' ' It is the root dir of the git repo to store the assets referenced by output markdowns.')
+                             '\n' ' It is the root dir of the git repo to store the assets referenced by output markdowns.')
 
     parser.add_argument('-o', '--md-output', action='store',
                         help='R|Sepcify output path for converted mds.'
-                       '\n' 'If the path specified ends with "/", it is treated as output dir,'
-                       ' e.g., "--md-output foo/" output the converted md to foo/<fn>.md.'
-                       '\n' 'Default: <output-dir>/<fn>.md')
+                             '\n' 'If the path specified ends with "/", it is treated as output dir,'
+                             ' e.g., "--md-output foo/" output the converted md to foo/<fn>.md.'
+                             '\n' 'Default: <output-dir>/<fn>.md')
 
     parser.add_argument('--asset-output-dir', action='store',
                         help='R|Sepcify dir to store assets'
-                        '\n' 'If <asset-output-dir> is outside <output-dir>, nothing will be uploaded.'
-                        '\n' 'Default: <output-dir>'
+                             '\n' 'If <asset-output-dir> is outside <output-dir>, nothing will be uploaded.'
+                             '\n' 'Default: <output-dir>'
                         )
 
     parser.add_argument('-r', '--repo', action='store',
@@ -1311,7 +1319,7 @@ def main():
                         default='zhihu',
                         choices=["zhihu", "wechat", "weibo", "simple", "minimal_mistake"],
                         help='R|Convert to a platform compatible format.'
-                        '\n' '"simple" is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
+                             '\n' '"simple" is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
                         )
 
     parser.add_argument('--keep-meta', action='store_true',
@@ -1324,31 +1332,31 @@ def main():
                         required=False,
                         default=False,
                         help='R|Respect jekyll syntax:'
-                        '\n' '1) It implies <keep-meta>: do not trim md header meta;'
-                        '\n' '2) It keep jekyll style file name with the date prefix: YYYY-MM-DD-TITLE.md.'
+                             '\n' '1) It implies <keep-meta>: do not trim md header meta;'
+                             '\n' '2) It keep jekyll style file name with the date prefix: YYYY-MM-DD-TITLE.md.'
                         )
 
     parser.add_argument('--refs', action='append',
                         required=False,
                         help='R|Specify the external file that contains ref definitions.'
-                        '\n' 'A ref file is a yaml contains reference definitions in a dict of list.'
-                        '\n' 'A dict key is the platform name, only visible when it is enabeld by <platform> argument.'
-                        '\n' '"univeral" is visible in any <platform>.'
-                        '\n'
-                        '\n' 'Example of ref file data:'
-                        '\n' '{ "universal": [{"grpc":"http:.."}, {"protobuf":"http:.."}],'
-                        '\n' '  "zhihu":     [{"grpc":"http:.."}, {"protobuf":"http:.."}]'
-                        '\n' '}.'
-                        '\n' 'With an external refs file being specified, in markdown one can just use the ref: e.g., "[grpc][]"'
+                             '\n' 'A ref file is a yaml contains reference definitions in a dict of list.'
+                             '\n' 'A dict key is the platform name, only visible when it is enabeld by <platform> argument.'
+                             '\n' '"univeral" is visible in any <platform>.'
+                             '\n'
+                             '\n' 'Example of ref file data:'
+                             '\n' '{ "universal": [{"grpc":"http:.."}, {"protobuf":"http:.."}],'
+                             '\n' '  "zhihu":     [{"grpc":"http:.."}, {"protobuf":"http:.."}]'
+                             '\n' '}.'
+                             '\n' 'With an external refs file being specified, in markdown one can just use the ref: e.g., "[grpc][]"'
                         )
 
     parser.add_argument('--rewrite', action='append',
                         nargs=2,
                         required=False,
                         help='R|Rewrite generated image url.'
-                        '\n' 'E.g.: --rewrite "/asset/" "/resource/"'
-                        '\n' 'will transform "/asset/banner.jpg" to "/resource/banner.jpg"'
-                        '\n' 'default: []'
+                             '\n' 'E.g.: --rewrite "/asset/" "/resource/"'
+                             '\n' 'will transform "/asset/banner.jpg" to "/resource/banner.jpg"'
+                             '\n' 'default: []'
                         )
 
     parser.add_argument('--download', action='store_true',
@@ -1382,7 +1390,6 @@ def main():
 
     stat = []
     for path in args.src_path:
-
         #  TODO Config should accept only two arguments: the path and a args
         conf = Config(
             path,
