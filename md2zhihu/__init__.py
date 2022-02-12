@@ -1190,6 +1190,31 @@ class Article(object):
         join_math_block(self.ast)
         self.ast = parse_math(self.conf, self.ast)
 
+    def render(self):
+
+        mdr = MDRender(self.conf, platform=self.conf.platform)
+
+        output_lines = mdr.render(self.ast)
+
+        if self.conf.keep_meta:
+            output_lines = ['---', self.meta_text, '---'] + output_lines
+
+        output_lines.append('')
+
+        ref_list = render_ref_list(self.used_refs, self.conf.platform)
+        output_lines.extend(ref_list)
+
+        output_lines.append('')
+
+        ref_lines = [
+            '[{id}]: {d}'.format(
+                id=ref_id, d=self.used_refs[ref_id]
+            ) for ref_id in sorted(self.used_refs)
+        ]
+        output_lines.extend(ref_lines)
+
+        return output_lines
+
 
 
 
@@ -1210,7 +1235,7 @@ def load_external_refs(conf):
     return refs
 
 
-def convert_md(conf, handler=None):
+def convert_md(conf):
 
     os.makedirs(conf.output_dir, exist_ok=True)
     os.makedirs(conf.asset_output_dir, exist_ok=True)
@@ -1222,32 +1247,10 @@ def convert_md(conf, handler=None):
 
     article = Article(conf, md_text)
 
-    if handler is None:
-        mdr = MDRender(conf, platform=conf.platform)
-    else:
-        mdr = MDRender(conf, platform=handler)
-
-    out = mdr.render(article.ast)
-
-    if conf.keep_meta:
-        out = ['---', article.meta_text, '---'] + out
-
-    out.append('')
-
-    ref_list = render_ref_list(article.used_refs, conf.platform)
-    out.extend(ref_list)
-
-    out.append('')
-
-    ref_lines = [
-        '[{id}]: {d}'.format(
-            id=ref_id, d=article.used_refs[ref_id]
-        ) for ref_id in sorted(article.used_refs)
-    ]
-    out.extend(ref_lines)
+    output_lines = article.render()
 
     with open(conf.md_output_path, 'w') as f:
-        f.write(str('\n'.join(out)))
+        f.write(str('\n'.join(output_lines)))
 
     return conf.md_output_path
 
