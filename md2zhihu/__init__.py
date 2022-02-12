@@ -860,7 +860,11 @@ class AssetRepo(object):
 
         if remote is None:
             branch = g.head_branch(flag='x')
-            remote = g.branch_default_remote(branch, flag='x')
+            remote = g.branch_default_remote(branch, flag='n')
+            if remote is None:
+                # `branch` has no remote configured.
+                remote = g.cmdf("remote", flag="xo")[0]
+
 
         remote_url = g.remote_get(remote, flag='x')
         return remote_url
