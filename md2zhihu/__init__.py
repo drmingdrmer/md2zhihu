@@ -475,6 +475,113 @@ def parse_math(conf, nodes):
     return children
 
 
+def embed(conf, nodes, used_refs):
+    """
+    Embed the content of url in ![](url) if url matches specified regex
+    """
+
+    children = []
+
+    for n in nodes:
+
+        if 'children' in n:
+            n['children'] = embed(conf, n['children'], used_refs)
+
+        if n['type'] != 'paragraph' or len(n.get('children', [])) != 1:
+            children.append(n)
+            continue
+
+        child = n['children'][0]
+
+        if child['type'] != 'image':
+            children.append(n)
+            continue
+
+        #  {'alt': 'openacid',
+        #   'src': 'https://...',
+        #   'title': None,
+        #   'type': 'image'},
+
+        if not regex_search_any(conf.embed, child['src']):
+            children.append(n)
+            continue
+
+        article_path = conf.relpath_from_cwd(child['src'])
+        md_text = fread(article_path)
+
+        # save and restore parent src_path
+
+        old = conf.src_path
+        conf.src_path = article_path
+
+        article = Article(conf, md_text)
+
+        conf.src_path = old
+
+        # rebase urls in embedded article
+
+        child_base = os.path.split(article_path)[0]
+        parent_base = os.path.split(conf.src_path)[0]
+
+        new_children = article.ast
+        rebase_url_in_ast(conf, child_base, parent_base, new_children)
+
+        children.extend(new_children)
+
+        # update used_refs
+
+        used = {}
+        for k,v in article.used_refs.items():
+            v = v.strip()
+            used[k] = rebase_url(child_base, parent_base,v)
+
+        used_refs.update(used)
+
+    return children
+
+
+def rebase_url_in_ast(conf, frm, to, nodes):
+
+    for n in nodes:
+
+        if 'children' in n:
+            rebase_url_in_ast(conf, frm, to, n['children'])
+
+        if n['type'] == 'image':
+            n['src'] = rebase_url(frm, to, n['src'])
+            continue
+
+        if n['type'] == 'link':
+            n['link'] = rebase_url(frm, to, n['link'])
+            continue
+
+
+def rebase_url(frm, to, src):
+    """
+    Change relative path based from ``frm`` to from ``to``.
+    """
+    if re.match(r"http[s]?://", src):
+        return src
+
+    if src.startswith('/'):
+        return src
+
+    p = os.path.join(frm, src)
+    p = os.path.relpath(p, start=to)
+
+    return p
+
+
+
+def regex_search_any(regex_list, s):
+    for regex in regex_list:
+        m = re.search(regex, s)
+        if m:
+            return True
+
+    return False
+
+
 def join_math_text(nodes):
     i = 0
     while i < len(nodes) - 1:
@@ -571,12 +678,7 @@ def save_image_to_asset_dir(mdrender, n, ctx=None):
 
         return None
 
-    if src.startswith('/'):
-        # absolute path from CWD.
-        src = src[1:]
-    else:
-        # relative path from markdown containing dir.
-        src = os.path.join(os.path.split(mdrender.conf.src_path)[0], src)
+    src = mdrender.conf.relpath_from_cwd(src)
 
     fn = os.path.split(src)[1]
 
@@ -1018,6 +1120,7 @@ class Config(object):
                  jekyll=False,
                  rewrite=None,
                  download=False,
+                 embed=None,
                  ):
         """
         Config of markdown rendering
@@ -1043,6 +1146,7 @@ class Config(object):
         self.md_output_path = md_output_path
         self.platform = platform
         self.src_path = src_path
+        self.root_src_path = self.src_path
 
         self.code_width = code_width
         if keep_meta is None:
@@ -1060,6 +1164,7 @@ class Config(object):
         self.rewrite = rewrite
 
         self.download = download
+        self.embed = embed or []
 
         fn = os.path.split(self.src_path)[-1]
 
@@ -1109,6 +1214,25 @@ class Config(object):
             url = re.sub(pattern, repl, url)
 
         return url
+
+    def relpath_from_cwd(self, p):
+        """
+        If ``p`` starts with "/", it is path starts from CWD.
+        Otherwise, it is relative to the md src path.
+
+        :return the path that can be used to read or write.
+        """
+
+        if p.startswith('/'):
+            # absolute path from CWD.
+            p = p[1:]
+        else:
+            # relative path from markdown containing dir.
+            p = os.path.join(os.path.split(self.src_path)[0], p)
+            abs_path = os.path.abspath(p)
+            p = os.path.relpath(abs_path, start=os.getcwd())
+
+        return p
 
     def push(self, args, src_dst_fns):
         x = dict(cwd=self.output_dir)
@@ -1190,6 +1314,13 @@ class Article(object):
         join_math_block(self.ast)
         self.ast = parse_math(self.conf, self.ast)
 
+        self.parse_embed()
+
+    def parse_embed(self):
+        used_refs = {}
+        self.ast = embed(self.conf, self.ast, used_refs)
+        self.used_refs.update(used_refs)
+
     def render(self):
 
         mdr = MDRender(self.conf, platform=self.conf.platform)
@@ -1216,12 +1347,6 @@ class Article(object):
         return output_lines
 
 
-
-
-def parse(conf, text):
-    pass
-
-
 def load_external_refs(conf):
     refs = {}
     for ref_path in conf.ref_files:
@@ -1236,12 +1361,9 @@ def load_external_refs(conf):
 
 
 def convert_md(conf):
-
     os.makedirs(conf.output_dir, exist_ok=True)
     os.makedirs(conf.asset_output_dir, exist_ok=True)
     os.makedirs(conf.md_output_base, exist_ok=True)
-
-    # load md text
 
     md_text = fread(conf.src_path)
 
@@ -1368,6 +1490,14 @@ def main():
                         help='Download remote image url if a image url starts with http[s]://.'
                         )
 
+    parser.add_argument('--embed', action='store',
+                        nargs="+",
+                        required=False,
+                        default=[r'[.]md$'],
+                        help='R|Specifies regex of url in `![](url)` to embed'
+                             '\n' 'Example: --embed "[.]md$" will replace ![](x.md) with the content of x.md'
+                        )
+
     parser.add_argument('--code-width', action='store',
                         required=False,
                         default=1000,
@@ -1407,6 +1537,7 @@ def main():
             jekyll=args.jekyll,
             rewrite=args.rewrite,
             download=args.download,
+            embed=args.embed,
         )
 
         convert_md(conf)
