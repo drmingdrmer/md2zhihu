@@ -1,5 +1,7 @@
 # md2zhihu
 
+中文介绍在: [md2zhihu-中文介绍](README-cn.md).
+
 Converts markdown to a single-file version that has no local asset dependency
 and can be imported into [zhihu.com](zhihu.com) or other social platform with just one click.
 
@@ -11,6 +13,9 @@ and can be imported into [zhihu.com](zhihu.com) or other social platform with ju
 | converted | ![](assets/built.png) | ![](assets/after.png)  |
 
 # Usage
+
+**md2zhihu DOES NOT support Windows**: [Issue: no module termios](https://github.com/drmingdrmer/md2zhihu/issues/7),
+Use it remotely with github-action:
 
 ## 1. Use it remotely with github-action:
 

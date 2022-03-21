@@ -11,6 +11,9 @@
 
 ## Install
 
+**md2zhihu 不支持windows**: [Issue: no module termios](https://github.com/drmingdrmer/md2zhihu/issues/7),
+参考下面的 [使用 github-action 远程转换](#使用-github-action-远程转换-适合-windows-用户)
+
 System requirement: MaxOS
 
 ```sh
