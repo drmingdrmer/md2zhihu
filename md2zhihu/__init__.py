@@ -1408,7 +1408,9 @@ def main():
     parser.add_argument('-d', '--output-dir', action='store',
                         default='_md2',
                         help='R|Sepcify dir path to store the outputs.'
-                             '\n' ' It is the root dir of the git repo to store the assets referenced by output markdowns.')
+                             '\n' 'It is the root dir of the git repo to store the assets referenced by output markdowns.'
+                             '\n' 'Deafult: "_md2"'
+    )
 
     parser.add_argument('-o', '--md-output', action='store',
                         help='R|Sepcify output path for converted mds.'
@@ -1445,6 +1447,7 @@ def main():
                         choices=["zhihu", "wechat", "weibo", "simple", "minimal_mistake"],
                         help='R|Convert to a platform compatible format.'
                              '\n' '"simple" is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
+                             '\n' 'Default: "zhihu"'
                         )
 
     parser.add_argument('--keep-meta', action='store_true',
@@ -1481,27 +1484,29 @@ def main():
                         help='R|Rewrite generated image url.'
                              '\n' 'E.g.: --rewrite "/asset/" "/resource/"'
                              '\n' 'will transform "/asset/banner.jpg" to "/resource/banner.jpg"'
-                             '\n' 'default: []'
+                             '\n' 'Default: []'
                         )
 
     parser.add_argument('--download', action='store_true',
                         required=False,
                         default=False,
-                        help='Download remote image url if a image url starts with http[s]://.'
+                        help='R|Download remote image url if a image url starts with http[s]://.'
                         )
 
     parser.add_argument('--embed', action='store',
                         nargs="+",
                         required=False,
                         default=[r'[.]md$'],
-                        help='R|Specifies regex of url in `![](url)` to embed'
+                        help='R|Specifies regex of url in `![](url)` to embed.'
                              '\n' 'Example: --embed "[.]md$" will replace ![](x.md) with the content of x.md'
+                             '\n' 'Default: ["[.]md$"]'
                         )
 
     parser.add_argument('--code-width', action='store',
                         required=False,
                         default=1000,
-                        help='specifies code image width.'
+                        help='R|specifies code image width.'
+                        '\n' 'Default: 1000'
                         )
 
     args = parser.parse_args()
