@@ -12,7 +12,7 @@ jobs:
       # parallel running result in conflict when git-push to a same branch
       max-parallel: 1
       matrix:
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
