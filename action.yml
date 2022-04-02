@@ -44,15 +44,36 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: install deps
+    - name: Add npm bin into PATH
+      shell: bash
       run: |
-        cd $HOME
-        npm install @mermaid-js/mermaid-cli@8.8.4
+        npm bin >> $GITHUB_PATH
+        npm bin
+        echo $PATH
+
+    - name: Install mermaid
+      shell: bash
+      run: |
+        npm install --verbose @mermaid-js/mermaid-cli@8.8.4
+        mmdc --version
+
+    - name: Install pandoc
+      shell: bash
+      run: |
         sudo apt-get install pandoc
+        pandoc --version
+
+    - name: Install graphviz
+      shell: bash
+      run: |
         sudo apt-get install graphviz
+        dot -V
+
+    - name: Install python dep in requirements.txt
+      shell: bash
+      run: |
         pip3 install setuptools wheel
         pip3 install -r ${{ github.action_path }}/requirements.txt
-      shell: bash
 
     - name: convert
       id: convert
