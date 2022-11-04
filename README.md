@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: drmingdrmer/md2zhihu@v0.15
+    - uses: drmingdrmer/md2zhihu@main
       env:
         GITHUB_USERNAME: ${{ github.repository_owner }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -99,7 +99,15 @@ There are two ways to get the converted markdowns:
     The branch name in which assets are stored.
 
     **required**: True
-    **default**: `_md2zhihu/asset`
+    **default**: `${{ github.ref_name }}-md2zhihu-asset`
+
+-   `output_branch`:
+
+    The branch name to which output markdowns are stored.
+    Set this to "" to disable push, in which case, user commit and push it manually.
+
+    **required**: True
+    **default**: `${{ github.ref_name }}-md2zhihu`
 
 -   `target_platform`:
 
