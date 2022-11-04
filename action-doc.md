@@ -27,3 +27,11 @@
     **required**: True
     **default**: `zhihu`
 
+
+-   `output_branch`:
+
+    Commit and push the `output_dir` to a branch of this repo.
+    Set this to "" to disable push, in which case, user commit and push it manually.
+
+    **required**: True
+    **default**: '<branch-name>-md2zhihu'

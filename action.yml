@@ -37,6 +37,14 @@ inputs:
     required: true
     default: 'zhihu'
 
+  output_branch:
+    description: >
+      Commit and push the "output_dir" to a branch of this repo.
+      Set this to "" to disable push, in which case, user commit and push it manually.
+
+    required: true
+    default: '${{ github.ref_name }}-md2zhihu'
+
 outputs:
   converted_branch:
     description: "The url of the branch of converted markdowns"
@@ -89,17 +97,21 @@ runs:
 
         rm -rf ./md2zhihu
 
-        git add ${{ inputs.output_dir }}
+        if [ ".${{ inputs.output_branch }}" == "." ]; then
+          echo "output branch is empty, skip push"
+        else
+          git add ${{ inputs.output_dir }}
 
-        git \
-          -c "user.name=drmingdrmer" \
-          -c "user.email=drdr.xp@gmail.com" \
-          commit \
-          --allow-empty \
-          -m "md2zhihu built"
+          git \
+            -c "user.name=drmingdrmer" \
+            -c "user.email=drdr.xp@gmail.com" \
+            commit \
+            --allow-empty \
+            -m "md2zhihu built"
 
 
-        git push -f origin HEAD:${{ github.ref }}-md2zhihu
+          git push -f origin HEAD:refs/heads/${{ inputs.output_branch }}
 
-        echo "::set-output name=converted_branch::https://github.com/${{ github.repository }}/tree/${{ github.ref }}-md2zhihu"
+          echo "::set-output name=converted_branch::https://github.com/${{ github.repository }}/tree/${{ github.ref }}-md2zhihu"
+        fi
       shell: bash
