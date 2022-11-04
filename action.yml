@@ -54,7 +54,7 @@ runs:
     - name: Install mermaid
       shell: bash
       run: |
-        npm install --verbose @mermaid-js/mermaid-cli@8.8.4
+        npm install -g --verbose @mermaid-js/mermaid-cli@8.8.4
         mmdc --version
 
     - name: Install pandoc
