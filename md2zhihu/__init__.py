@@ -104,6 +104,9 @@ def math_block_to_imgtag(mdrender, n, ctx=None):
 def math_inline_to_imgtag(mdrender, n, ctx=None):
     return [k3down2.convert('tex_inline', n['text'], 'imgtag')]
 
+def math_inline_single_dolar(mdrender, n, ctx=None):
+    return ['$' + n['text'].strip() + '$']
+
 
 def math_block_to_jpg(mdrender, n, ctx=None):
     return typ_text_to_jpg(mdrender, 'tex_block', n['text'])
@@ -1026,6 +1029,8 @@ zhihu_features = dict(
 #  - mermaid
 github_features = dict(
     image=save_image_to_asset_dir,
+    # github use single dolar inline math.
+    math_inline=math_inline_single_dolar,
     # TODO: bug:
     # md2zhihu: bug:
     #  -   链接列表:
