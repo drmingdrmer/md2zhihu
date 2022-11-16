@@ -354,6 +354,8 @@ class TestMd2zhihu(unittest.TestCase):
     def test_zhihu(self):
         self._test_platform('zhihu', [])
 
+    def test_github(self):
+        self._test_platform('github', ['-p', 'github'])
 
     def test_wechat(self):
         self._test_platform('wechat', ['-p', 'wechat'])

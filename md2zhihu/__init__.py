@@ -160,6 +160,8 @@ def importer(mdrender, n, ctx=None):
 def zhihu_specific(mdrender, n, ctx=None):
     return render_with_features(mdrender, n, ctx=ctx, features=zhihu_features)
 
+def github_specific(mdrender, n, ctx=None):
+    return render_with_features(mdrender, n, ctx=ctx, features=github_features)
 
 def minimal_mistake_specific(mdrender, n, ctx=None):
     return render_with_features(mdrender, n, ctx=ctx, features=minimal_mistake_features)
@@ -229,6 +231,7 @@ class MDRender(object):
     # platform specific renderer
     platforms = {
         'zhihu': zhihu_specific,
+        'github': github_specific,
         'wechat': wechat_specific,
         'weibo': weibo_specific,
         'minimal_mistake': minimal_mistake_specific,
@@ -1017,6 +1020,30 @@ zhihu_features = dict(
     )
 )
 
+#  Display markdown in github.com
+#  Github supports:
+#  - latex math
+#  - mermaid
+github_features = dict(
+    image=save_image_to_asset_dir,
+    # TODO: bug:
+    # md2zhihu: bug:
+    #  -   链接列表:
+    #      | 源文件 | 转换后 | 导入后 |
+    #      | :-: | :-: | :-: |
+    #      | ![](assets/slim.jpg) | fo | bar |
+    #      | a | b | c |
+    #  with --platform github, (without converting table to html)
+    #  in-paragraph table is converted to
+    #  -   链接列表:
+    #      | 源文件 | 转换后 | 导入后 || :-: | :-: | :-: || ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/18b61671112f3aeb-slim.jpg) | fo | bar || a | b | c |
+    #  there should be line break.
+    table=table_to_barehtml,
+    block_code=dict(
+        graphviz=block_code_graphviz_to_jpg,
+    )
+)
+
 #  jekyll theme: minimal mistake
 minimal_mistake_features = dict(
     image=save_image_to_asset_dir,
@@ -1444,7 +1471,7 @@ def main():
     parser.add_argument('-p', '--platform', action='store',
                         required=False,
                         default='zhihu',
-                        choices=["zhihu", "wechat", "weibo", "simple", "minimal_mistake"],
+                        choices=["zhihu", "github", "wechat", "weibo", "simple", "minimal_mistake"],
                         help='R|Convert to a platform compatible format.'
                              '\n' '"simple" is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
                              '\n' 'Default: "zhihu"'
