@@ -67,7 +67,9 @@ def code_join(n):
     return txt
 
 
-def block_code_to_jpg(mdrender, n, width=None, ctx=None):
+def block_code_to_jpg(mdrender, rnode, width=None):
+    n = rnode.node
+
     txt = code_join(n)
 
     w = width
@@ -77,15 +79,17 @@ def block_code_to_jpg(mdrender, n, width=None, ctx=None):
     return typ_text_to_jpg(mdrender, 'code', txt, opt={'html': {'width': w}})
 
 
-def block_code_to_fixwidth_jpg(mdrender, n, ctx=None):
-    return block_code_to_jpg(mdrender, n, width=600, ctx=ctx)
+def block_code_to_fixwidth_jpg(mdrender, rnode):
+    return block_code_to_jpg(mdrender, rnode, width=600)
 
 
-def block_code_mermaid_to_jpg(mdrender, n, ctx=None):
+def block_code_mermaid_to_jpg(mdrender, rnode):
+    n = rnode.node
     return typ_text_to_jpg(mdrender, 'mermaid', n['text'])
 
 
-def block_code_graphviz_to_jpg(mdrender, n, ctx=None):
+def block_code_graphviz_to_jpg(mdrender, rnode):
+    n = rnode.node
     return typ_text_to_jpg(mdrender, 'graphviz', n['text'])
 
 
@@ -97,46 +101,69 @@ def typ_text_to_jpg(mdrender, typ, txt, opt=None):
     return [r'![]({})'.format(mdrender.conf.img_url(fn)), '']
 
 
-def math_block_to_imgtag(mdrender, n, ctx=None):
+def math_block_to_imgtag(mdrender, rnode):
+    n = rnode.node
     return [k3down2.convert('tex_block', n['text'], 'imgtag')]
 
 
-def math_inline_to_imgtag(mdrender, n, ctx=None):
+def math_inline_to_imgtag(mdrender, rnode):
+    n = rnode.node
     return [k3down2.convert('tex_inline', n['text'], 'imgtag')]
 
-def math_inline_single_dolar(mdrender, n, ctx=None):
+def math_block_join_dolar_when_nested(mdrender, rnode):
+
+    n = rnode.node
+
+    # If it is not a top level paragraph, convert block math to one-line math.
+    # e.g., github does not support multi line block math that is nested in a list item
+
+    # ROOT -> paragraph -> math_block
+    # 0       1            2
+    if rnode.level > 2:
+        return ['$$' + n['text'].strip() + '$$']
+
+    return ['$$', n['text'], '$$']
+
+def math_inline_single_dolar(mdrender, rnode):
+    n = rnode.node
     return ['$' + n['text'].strip() + '$']
 
 
-def math_block_to_jpg(mdrender, n, ctx=None):
+def math_block_to_jpg(mdrender, rnode):
+    n = rnode.node
     return typ_text_to_jpg(mdrender, 'tex_block', n['text'])
 
 
-def math_inline_to_jpg(mdrender, n, ctx=None):
+def math_inline_to_jpg(mdrender, rnode):
+    n = rnode.node
     return typ_text_to_jpg(mdrender, 'tex_inline', n['text'])
 
 
-def math_inline_to_plaintext(mdrender, n, ctx=None):
+def math_inline_to_plaintext(mdrender, rnode):
+    n = rnode.node
     return [escape(k3down2.convert('tex_inline', n['text'], 'plain'))]
 
 
-def to_plaintext(mdrender, n, ctx=None):
+def to_plaintext(mdrender, rnode):
+    n = rnode.node
     return [escape(n['text'])]
 
 
-def table_to_barehtml(mdrender, n, ctx=None):
+def table_to_barehtml(mdrender, rnode):
     # create a markdown render to recursively deal with images etc.
     mdr = MDRender(mdrender.conf, platform=importer)
-    md = mdr.render_node(n)
+
+    md = mdr.render_node(rnode)
     md = '\n'.join(md)
 
     tablehtml = k3down2.convert('table', md, 'html')
     return [tablehtml, '']
 
 
-def table_to_jpg(mdrender, n, ctx=None):
+def table_to_jpg(mdrender, rnode):
     mdr = MDRender(mdrender.conf, platform='')
-    md = mdr.render_node(n)
+
+    md = mdr.render_node(rnode)
     md = '\n'.join(md)
 
     md_base_path = os.path.split(mdrender.conf.src_path)[0]
@@ -145,49 +172,53 @@ def table_to_jpg(mdrender, n, ctx=None):
         'asset_base': os.path.abspath(md_base_path),
     }})
 
-
-def importer(mdrender, n, ctx=None):
+def importer(mdrender, rnode):
     '''
     Importer is only used to copy local image to output dir and update image urls.
     This is used to deal with partial renderers, e.g., table_to_barehtml,
     which is not handled by univertial image importer, but need to import the image when rendering a table with images.
     '''
+
+    n = rnode.node
+
     typ = n['type']
 
     if typ == 'image':
-        return save_image_to_asset_dir(mdrender, n, ctx=ctx)
+        return save_image_to_asset_dir(mdrender, rnode)
 
     return None
 
 
-def zhihu_specific(mdrender, n, ctx=None):
-    return render_with_features(mdrender, n, ctx=ctx, features=zhihu_features)
+def zhihu_specific(mdrender, rnode):
+    return render_with_features(mdrender, rnode, features=zhihu_features)
 
-def github_specific(mdrender, n, ctx=None):
-    return render_with_features(mdrender, n, ctx=ctx, features=github_features)
+def github_specific(mdrender, rnode):
+    return render_with_features(mdrender, rnode, features=github_features)
 
-def minimal_mistake_specific(mdrender, n, ctx=None):
-    return render_with_features(mdrender, n, ctx=ctx, features=minimal_mistake_features)
-
-
-def wechat_specific(mdrender, n, ctx=None):
-    return render_with_features(mdrender, n, ctx=ctx, features=wechat_features)
+def minimal_mistake_specific(mdrender, rnode):
+    return render_with_features(mdrender, rnode, features=minimal_mistake_features)
 
 
-def weibo_specific(mdrender, n, ctx=None):
+def wechat_specific(mdrender, rnode):
+    return render_with_features(mdrender, rnode, features=wechat_features)
+
+
+def weibo_specific(mdrender, rnode):
+    n = rnode.node
+
     typ = n['type']
 
     if typ == 'image':
-        return save_image_to_asset_dir(mdrender, n, ctx=ctx)
+        return save_image_to_asset_dir(mdrender, rnode)
 
     if typ == 'math_block':
-        return math_block_to_imgtag(mdrender, n, ctx=ctx)
+        return math_block_to_imgtag(mdrender, rnode)
 
     if typ == 'math_inline':
-        return math_inline_to_plaintext(mdrender, n, ctx=ctx)
+        return math_inline_to_plaintext(mdrender, rnode)
 
     if typ == 'table':
-        return table_to_jpg(mdrender, n, ctx=ctx)
+        return table_to_jpg(mdrender, rnode)
 
     if typ == 'codespan':
         return [escape(n['text'])]
@@ -196,38 +227,38 @@ def weibo_specific(mdrender, n, ctx=None):
 
     if typ == 'list':
         lines = []
-        lines.extend(mdrender.render(n['children']))
+        lines.extend(mdrender.render(rnode))
         lines.append('')
         return lines
 
     if typ == 'list_item':
         lines = []
-        lines.extend(mdrender.render(n['children']))
+        lines.extend(mdrender.render(rnode))
         lines.append('')
         return lines
 
     if typ == 'block_quote':
-        lines = mdrender.render(n['children'])
+        lines = mdrender.render(rnode)
         lines = strip_paragraph_end(lines)
         return lines
 
     if typ == 'block_code':
         lang = n['info'] or ''
         if lang == 'mermaid':
-            return block_code_mermaid_to_jpg(mdrender, n, ctx=ctx)
+            return block_code_mermaid_to_jpg(mdrender, rnode)
         if lang == 'graphviz':
-            return block_code_graphviz_to_jpg(mdrender, n, ctx=ctx)
+            return block_code_graphviz_to_jpg(mdrender, rnode)
 
         if lang == '':
-            return block_code_to_jpg(mdrender, n, ctx=ctx)
+            return block_code_to_jpg(mdrender, rnode)
         else:
-            return block_code_to_jpg(mdrender, n, width=600, ctx=ctx)
+            return block_code_to_jpg(mdrender, rnode, width=600)
 
     return None
 
 
-def simple_specific(mdrender, n, ctx=None):
-    return render_with_features(mdrender, n, ctx=ctx, features=simple_features)
+def simple_specific(mdrender, rnode):
+    return render_with_features(mdrender, rnode, features=simple_features)
 
 
 class MDRender(object):
@@ -248,15 +279,20 @@ class MDRender(object):
         else:
             self.handlers = platform
 
-    def render_node(self, n, ctx=None):
+    def render_node(self, rnode):
         """
         Render a AST node into lines of text
+
+        Args:
+            rnode is a RenderNode instance
         """
+
+        n = rnode.node
         typ = n['type']
 
         #  customized renderers:
 
-        lines = self.handlers(self, n, ctx=ctx)
+        lines = self.handlers(self, rnode)
         if lines is not None:
             return lines
         else:
@@ -269,14 +305,14 @@ class MDRender(object):
             return ['---', '']
 
         if typ == 'paragraph':
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             return ''.join(lines).split('\n') + ['']
 
         if typ == 'text':
             return [n['text']]
 
         if typ == 'strong':
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             lines[0] = '**' + lines[0]
             lines[-1] = lines[-1] + '**'
             return lines
@@ -288,7 +324,7 @@ class MDRender(object):
             return ['$$ ' + n['text'].strip() + ' $$']
 
         if typ == 'table':
-            return self.render(n['children']) + ['']
+            return self.render(rnode) + ['']
 
         if typ == 'table_head':
             alignmap = {
@@ -297,20 +333,20 @@ class MDRender(object):
                 'center': ':-:',
                 None: '---',
             }
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             aligns = [alignmap[x['align']] for x in n['children']]
             aligns = '| ' + ' | '.join(aligns) + ' |'
             return ['| ' + ' | '.join(lines) + ' |', aligns]
 
         if typ == 'table_cell':
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             return [''.join(lines)]
 
         if typ == 'table_body':
-            return self.render(n['children'])
+            return self.render(rnode)
 
         if typ == 'table_row':
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             return ['| ' + ' | '.join(lines) + ' |']
 
         if typ == 'block_code':
@@ -327,26 +363,30 @@ class MDRender(object):
                 return ['![{alt}]({src} {title})'.format(**n)]
 
         if typ == 'list':
-            head = '-   '
-            if n['ordered']:
-                head = '1.  '
-
-            lines = self.render(n['children'], head)
+            lines = self.render(rnode)
             return add_paragraph_end(lines)
 
         if typ == 'list_item':
-            lines = self.render(n['children'])
-            # ctx is head passed from list
-            lines[0] = ctx + lines[0]
+            lines = self.render(rnode)
+
+            # parent is a `list` node
+            parent = rnode.parent
+            assert parent.node['type'] == 'list'
+
+            head = '-   '
+            if parent.node['ordered']:
+                head = '1.  '
+
+            lines[0] = head + lines[0]
             lines = lines[0:1] + [indent(x) for x in lines[1:]]
             return lines
 
         if typ == 'block_text':
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             return ''.join(lines).split('\n')
 
         if typ == 'block_quote':
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             lines = strip_paragraph_end(lines)
             lines = ['> ' + x for x in lines]
             return lines + ['']
@@ -359,25 +399,25 @@ class MDRender(object):
 
         if typ == 'link':
             #  TODO title
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             lines[0] = '[' + lines[0]
             lines[-1] = lines[-1] + '](' + n['link'] + ')'
 
             return lines
 
         if typ == 'heading':
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             lines[0] = '#' * n['level'] + ' ' + lines[0]
             return lines + ['']
 
         if typ == 'strikethrough':
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             lines[0] = '~~' + lines[0]
             lines[-1] = lines[-1] + '~~'
             return lines
 
         if typ == 'emphasis':
-            lines = self.render(n['children'])
+            lines = self.render(rnode)
             lines[0] = '*' + lines[0]
             lines[-1] = lines[-1] + '*'
             return lines
@@ -392,10 +432,11 @@ class MDRender(object):
         pprint.pprint(n)
         return ['***:' + typ]
 
-    def render(self, nodes, ctx=None):
+    def render(self, rnode):
         rst = []
-        for n in nodes:
-            rst.extend(self.render_node(n, ctx))
+        for n in rnode.node['children']:
+            child = rnode.new_child(n)
+            rst.extend(self.render_node(child))
 
         return rst
 
@@ -430,7 +471,7 @@ def fix_tables(nodes):
             match = re.match(table_reg, txt)
             if match:
                 mdr = MDRender(None, platform='')
-                partialmd = mdr.render(children)
+                partialmd = mdr.render(RenderNode(n))
                 partialmd = ''.join(partialmd)
 
                 parser = new_parser()
@@ -651,11 +692,13 @@ def asset_fn(text, suffix):
     return fn
 
 
-def save_image_to_asset_dir(mdrender, n, ctx=None):
+def save_image_to_asset_dir(mdrender, rnode):
     #  {'alt': 'openacid',
     #   'src': 'https://...',
     #   'title': None,
     #   'type': 'image'},
+
+    n = rnode.node
 
     src = n['src']
     if re.match(r'https?://', src):
@@ -841,6 +884,34 @@ def fwrite(*p):
     with open(os.path.join(*p), 'wb') as f:
         f.write(cont)
 
+
+class RenderNode(object):
+    """
+    RenderNode is a container of current ast-node and parent
+    """
+    def __init__(self, n, parent=None):
+        """
+        :param n: ast node: a normal dictionary such as {'type': 'text' ... }
+        :param parent: parent RenderNode
+        """
+        self.node = n
+
+        self.level = 0
+
+        # parent RenderNode
+        self.parent = parent
+
+    def new_child(self, n):
+        c = RenderNode(n, parent=self)
+        c.level = self.level + 1
+        return c
+
+    def to_str(self):
+        t = "{}".format(self.node.get('type'))
+        if self.parent is None:
+            return t
+
+        return self.parent.to_str() + " -> " + t
 
 class LocalRepo(object):
     is_local = True
@@ -1029,6 +1100,7 @@ zhihu_features = dict(
 #  - mermaid
 github_features = dict(
     image=save_image_to_asset_dir,
+    math_block=math_block_join_dolar_when_nested,
     # github use single dolar inline math.
     math_inline=math_inline_single_dolar,
     # TODO: bug:
@@ -1112,7 +1184,9 @@ def rules_to_features(rules):
 
 
 #  features: {typ:action(), typ2:{subtyp:action()}}
-def render_with_features(mdrender, n, ctx=None, features=None):
+def render_with_features(mdrender, rnode, features=None):
+    n = rnode.node
+
     typ = n['type']
 
     f = features
@@ -1122,16 +1196,16 @@ def render_with_features(mdrender, n, ctx=None, features=None):
 
     f = f[typ]
     if callable(f):
-        return f(mdrender, n, ctx=ctx)
+        return f(mdrender, rnode)
 
     #  subtype is info
     lang = n['info'] or ''
 
     if lang in f:
-        return f[lang](mdrender, n, ctx=ctx)
+        return f[lang](mdrender, rnode)
 
     if '*' in f:
-        return f['*'](mdrender, n, ctx=ctx)
+        return f['*'](mdrender, rnode)
 
     return None
 
@@ -1357,7 +1431,11 @@ class Article(object):
 
         mdr = MDRender(self.conf, platform=self.conf.platform)
 
-        output_lines = mdr.render(self.ast)
+        root_node = {
+            'type': 'ROOT',
+            'children': self.ast,
+        }
+        output_lines = mdr.render(RenderNode(root_node))
 
         if self.conf.keep_meta:
             output_lines = ['---', self.meta_text, '---'] + output_lines
