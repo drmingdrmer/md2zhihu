@@ -12,7 +12,7 @@ jobs:
       # parallel running result in conflict when git-push to a same branch
       max-parallel: 1
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -31,7 +31,11 @@ jobs:
 
     - name: Install npm dependencies
       run: |
-        if [ -f package.json ]; then npm install; fi
+        if [ -f package.json ]; then
+          npm install;
+        fi
+        echo "add node module path: $GITHUB_WORKSPACE/node_modules/.bin/"
+        echo "$GITHUB_WORKSPACE/node_modules/.bin/" >> $GITHUB_PATH
 
     - name: Install apt dependencies
       run: |

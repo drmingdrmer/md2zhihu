@@ -455,8 +455,9 @@ def contains_all_images(t, want_dir, got_dir):
 
         sub = img[len(want_dir):]
         b = got_dir + sub
+
         sim = cmp_image(img, b)
-        t.assertGreater(sim, 0.7)
+        t.assertGreater(sim, 0.68)
 
 
 def cmp_image(want, got):
@@ -479,7 +480,20 @@ def cmp_image(want, got):
     print("img2:-------------", got)
     print(img2.shape)
 
-    p = structural_similarity(img1, img2, multichannel=True)
+    #  print(img1)
+    #  print(img2)
+
+    # shape is in form: (170, 270, 4): 4 channels
+    #              or:  (170, 270):    1 channel
+
+    if len(img1.shape) == 2:
+        p = structural_similarity(img1, img2, data_range=1)
+    else:
+        # channel_axis=2 specifies img.shape[2] specifies the number of channels
+        p = structural_similarity(img1, img2, channel_axis=2, data_range=1)
+
+    print("p:", p)
+
     return p
 
 

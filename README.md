@@ -2,8 +2,9 @@
 
 中文介绍在: [md2zhihu-中文介绍](README-cn.md).
 
-Converts markdown to a single-file version that has no local asset dependency
-and can be imported into [zhihu.com](zhihu.com) or other social platform with just one click.
+Converts markdown into a single-file version with no local asset dependencies,
+which can be directly imported into [zhihu.com](zhihu.com) or other social
+platforms with a single click.
 
 [md2zhihu on Marketplace](https://github.com/marketplace/actions/md2zhihu)
 
@@ -14,15 +15,17 @@ and can be imported into [zhihu.com](zhihu.com) or other social platform with ju
 
 # Usage
 
-**md2zhihu DOES NOT support Windows**: [Issue: no module termios](https://github.com/drmingdrmer/md2zhihu/issues/7),
-Use it remotely with github-action:
+**md2zhihu DOES NOT support Windows**: [Issue: no module termios](https://github.com/drmingdrmer/md2zhihu/issues/7).
+Use it remotely with GitHub Action:
 
-## 1. Use it remotely with github-action:
+## 1. Use it remotely with GitHub Action:
 
-This is the recommended way since you do not need install anything locally, just
-a `git` is quite enough.  See: [md2zhihu on Marketplace](https://github.com/marketplace/actions/md2zhihu)
+This is the recommended method since you do not need to install anything
+locally. Only `git` is required. See: [md2zhihu on
+Marketplace](https://github.com/marketplace/actions/md2zhihu)
 
-Add action config into the git repo you have markdowns to convert:
+Add the action configuration into the git repository where your markdown files
+are located for conversion:
 `.github/workflows/md2zhihu.yml`:
 
 ```yaml
@@ -43,11 +46,11 @@ jobs:
             _posts/*.markdown
 ```
 
-The conversion will be triggered on next push:
+The conversion will be triggered on the next push:
 
-It will convert markdowns in dir `_posts/` and save them in dir `_md2zhihu`.
+It will convert markdown files in the `_posts/` directory and save them in the `_md2zhihu` directory.
 
-A new branch `master-md2zhihu` containing these output will be created:
+A new branch `master-md2zhihu` containing these outputs will be created:
 
 Branch `master`:
 ```
@@ -69,11 +72,11 @@ Branch `master-md2zhihu`:
     ...
 ```
 
-E.g., one of the converted [single-file example](https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md) has all its assets stored
-remotely on github, thus it can be safely used everywhere, without worrying
-about dealing with its dependency assets.
+For example, one of the converted [single-file examples](https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md)
+has all its assets stored remotely on GitHub, so it can be safely used anywhere
+without worrying about handling its dependency assets.
 
-There are two ways to get the converted markdowns:
+There are two ways to get the converted markdown files:
 - `git fetch` and `git merge` the branch `master-md2zhihu`.
 - Or access this branch directly on the web:
   [single-file example](https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md)
@@ -82,17 +85,42 @@ There are two ways to get the converted markdowns:
 
 -   `pattern`:
 
-    file pattern to convert
+    File pattern to convert
 
     **required**: True
     **default**: `**/*.md`
 
 -   `output_dir`:
 
-    dir to store converted markdown
+    Directory to store converted markdown
 
     **required**: True
     **default**: `_md2zhihu`
+
+-   `asset_repo`:
+
+    Specify the git repo for asset storage.
+
+    The converted markdown will reference images in this repo. Supported providers include `github.com` and `gitee.com`.
+    When this option is absent, assets are pushed to the current repo: `https://github.com/{{ github.repository }}.git`.
+
+    To push assets to `gitee.com`:
+
+    1. On gitee.com, create an access token at https://gitee.com/personal_access_tokens, to enable pushing assets to gitee.com;
+
+    2. Add a secret to the GitHub markdown repository that contains your gitee.com username and token (e.g., `GITEE_AUTH=drdrxp:abcd...xyz`) at `https://github.com/<username>/<repo>/settings/secrets/actions`.
+
+    3. Set `asset_repo` to the gitee.com repo push URL with the auth token, such as:
+
+       ```markdown
+       - uses: drmingdrmer/md2zhihu@main
+         with:
+           pattern: _posts/*.md
+           asset_repo: https://${{ secrets.GITEE_AUTH }}@gitee.com/drdrxp/bed.git
+       ```
+
+    **required**: False
+    **default**: the local repo: 'https://github.com/${{github.repository}}.git'
 
 -   `asset_branch`:
 
@@ -174,7 +202,7 @@ uploaded.
 
 - Transform mermaid code block to image:
 
-    ```mermaid
+    ```
     graph LR
         A[Hard edge] -->|Link text| B(Round edge)
         B --> C{Decision}
@@ -203,7 +231,7 @@ uploaded.
     ![](assets/graphviz.jpg)
 
 
--   Generate link list::
+-   Generate link list:
 
     | original | converted | imported |
     | :-: | :-: | :-: |
