@@ -143,7 +143,9 @@ There are two ways to get the converted markdown files:
 
 -   `target_platform`:
 
-    The platform that the converted markdown should be compatible toṫCurrently supported platforms are zhihu, wechat, weibo, simple. `simple` converts almost everything to images and removes most text styles. E.g. inline code block is converted to normal text.
+    The platform that the converted markdown should be compatible with the
+    specified platform.
+    the currently supported platforms are zhihu, wechat, weibo, simple. `simple` converts almost everything to images and removes most text styles. E.g. inline code block is converted to normal text.
 
     **required**: True
     **default**: `zhihu`
