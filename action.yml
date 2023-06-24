@@ -28,6 +28,7 @@ inputs:
       To push assets to `gitee.com`:
 
       1. On gitee.com, create a access token at https://gitee.com/personal_access_tokens, to enable pushing assets to gitee.com;
+         The token must enable `projects` privileges.
 
       2. Add a secret to the GitHub markdown repository that contains your gitee.com username and token (e.g., `GITEE_AUTH=drdrxp:abcd...xyz`) at `https://github.com/<username>/<repo>/settings/secrets/actions`.
 
