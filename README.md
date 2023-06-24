@@ -2,7 +2,7 @@
 
 中文介绍在: [md2zhihu-中文介绍](README-cn.md).
 
-Converts markdown into a single-file version with no local asset dependencies,
+Converts markdown into a single-file version without local asset dependencies,
 which can be directly imported into [zhihu.com](zhihu.com) or other social
 platforms with a single click.
 
@@ -24,6 +24,8 @@ This is the recommended method since you do not need to install anything
 locally. Only `git` is required. See: [md2zhihu on
 Marketplace](https://github.com/marketplace/actions/md2zhihu)
 
+**Note**: use `asset_repo` to specify a gitee.com repo so that zhihu.com load images from it when importing.
+
 Add the action configuration into the git repository where your markdown files
 are located for conversion:
 `.github/workflows/md2zhihu.yml`:
@@ -44,12 +46,13 @@ jobs:
         pattern: >
             _posts/*.md
             _posts/*.markdown
+
+        asset_repo: https://${{ secrets.GITEE_PUSH_DRDRXP_REPO }}@gitee.com/drdrxp/bed.git
 ```
 
 The conversion will be triggered on the next push:
 
 It will convert markdown files in the `_posts/` directory and save them in the `_md2zhihu` directory.
-
 A new branch `master-md2zhihu` containing these outputs will be created:
 
 Branch `master`:
@@ -73,8 +76,8 @@ Branch `master-md2zhihu`:
 ```
 
 For example, one of the converted [single-file examples](https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md)
-has all its assets stored remotely on GitHub, so it can be safely used anywhere
-without worrying about handling its dependency assets.
+has all its assets stored remotely on gitee.com, so it can be safely used
+anywhere without worrying about handling its dependency assets.
 
 There are two ways to get the converted markdown files:
 - `git fetch` and `git merge` the branch `master-md2zhihu`.
