@@ -9,6 +9,7 @@ import k3down2
 import k3git
 import urllib3
 import yaml
+from k3color import darkred
 from k3color import darkyellow
 from k3color import green
 from k3handy import cmdpass
@@ -1638,6 +1639,7 @@ def main():
 
     stat = []
     for path in args.src_path:
+
         #  TODO Config should accept only two arguments: the path and a args
         conf = Config(
             path,
@@ -1654,6 +1656,13 @@ def main():
             download=args.download,
             embed=args.embed,
         )
+
+        # Check if file exists
+        try:
+            fread(conf.src_path)
+        except FileNotFoundError as e:
+            msg(darkred(sj("Warn: file not found: ", repr(conf.src_path))))
+            continue
 
         convert_md(conf)
 
