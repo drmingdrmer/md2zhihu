@@ -114,13 +114,13 @@ jobs:
     **required**: True
     **default**: `${{ github.ref_name }}-md2zhihu`
 
-    
+
 -   `target_platform`:
 
     转换后的 Markdown 应与指定的平台兼容。
     目前支持的平台有`zhihu`, `wechat`, `weibo`, `simple`。`simple` 将几乎所有内容(公式, 图表等)转换为图片，并删除大部分文本样式。
     例如，将内联代码块转换为普通文本。
-    
+
     **required**: True
     **default**: `zhihu`
 
@@ -161,17 +161,36 @@ md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git@test
 ### 故障排查
 
 
-**command not found: md2zhihu**
+- **command not found: md2zhihu**
 
-- `pip install --verbose md2zhihu` 确认已成功安装。
-- `which md2zhihu` 确认可以找到二进制文件，例如：`/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`。
-- `echo $PATH` 确认安装路径已包含在 `PATH` 中：`...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
+  尝试以下步骤：
+
+  - `pip install --verbose md2zhihu` 确认已成功安装。
+  - `which md2zhihu` 确认可以找到二进制文件，例如：`/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`。
+  - `echo $PATH` 确认安装路径已包含在 `PATH` 中：`...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
+
+- Github workflow 报错: **remote: Permission to ... denied to github-actions**
+
+  ```
+  remote: Permission to <your_repo>.git denied to github-actions[bot].
+  fatal: unable to access 'https://github.com/<your_name>/<your_repo>.git/': The requested URL returned error: 403
+  ```
+
+  尝试以下步骤：
+
+  - 进入repo settings
+  - 点击 "Action" 下拉菜单
+  - 然后点击 "General"
+  - 向下滚动一点，直到你看到 "Workflow permissions"
+  - 它可能设置在 "Read repository contents and packages permissions"
+  - 点击 "Read and write permissions"
+  - 向下滚动并保存。
 
 # Features
 
 - 将 LaTeX 转换为图片：
 
-  例如，` $$ ||X{\vec {\beta }}-Y||^{2} $$ ` 被转换为 
+  例如，` $$ ||X{\vec {\beta }}-Y||^{2} $$ ` 被转换为
   ![](https://www.zhihu.com/equation?tex=%7C%7CX%7B%5Cvec%20%7B%5Cbeta%20%7D%7D-Y%7C%7C%5E%7B2%7D)
 
 - 将表格转换为 HTML。

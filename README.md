@@ -189,17 +189,37 @@ uploaded.
 
 ### Trouble shoot
 
-**command not found: md2zhihu**
+- **command not found: md2zhihu**
 
-- `pip install --verbose md2zhihu` Confirm that install done successfully.
-- `which md2zhihu` Confirm that the binary can be found: e.g.: `/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`.
-- `echo $PATH` Confirmat that the install path is included in `PATH`: `...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
+  Try:
+
+  - `pip install --verbose md2zhihu` Confirm that install done successfully.
+  - `which md2zhihu` Confirm that the binary can be found: e.g.: `/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`.
+  - `echo $PATH` Confirmat that the install path is included in `PATH`: `...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
+
+- Github workflow complains about permission: **remote: Permission to ... denied to github-actions**
+
+  ```
+  remote: Permission to <your_repo>.git denied to github-actions[bot].
+  fatal: unable to access 'https://github.com/<your_name>/<your_repo>.git/': The requested URL returned error: 403
+  ```
+
+  Try:
+
+  - Navigate into the repo settings
+  - Click the "Action" dropdown
+  - Then "General"
+  - Scroll down a little till you see "Workflow permissions"
+  - It is probably on "Read repository contents and packages permissions"
+  - Click "Read and write permissions"
+  - Scroll down and save.
+
 
 # Features
 
 - Transform latex to image:
 
-  E.g. ` $$ ||X{\vec {\beta }}-Y||^{2} $$ ` is converted to 
+  E.g. ` $$ ||X{\vec {\beta }}-Y||^{2} $$ ` is converted to
   ![](https://www.zhihu.com/equation?tex=%7C%7CX%7B%5Cvec%20%7B%5Cbeta%20%7D%7D-Y%7C%7C%5E%7B2%7D)
 
 - Transform table to HTML.
