@@ -4,7 +4,7 @@ import os
 import pprint
 import re
 import shutil
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 import k3down2
 import k3git
@@ -187,7 +187,7 @@ def to_plaintext(mdrender, rnode):
 
 def table_to_barehtml(mdrender, rnode) -> List[str]:
     # create a markdown render to recursively deal with images etc.
-    mdr = MDRender(mdrender.conf, platform=importer)
+    mdr = MDRender(mdrender.conf, features=importer_features)
 
     md = mdr.render_node(rnode)
     md = '\n'.join(md)
@@ -198,7 +198,7 @@ def table_to_barehtml(mdrender, rnode) -> List[str]:
 
 
 def table_to_jpg(mdrender, rnode):
-    mdr = MDRender(mdrender.conf, platform='')
+    mdr = MDRender(mdrender.conf, features={})
 
     md = mdr.render_node(rnode)
     md = '\n'.join(md)
@@ -209,38 +209,8 @@ def table_to_jpg(mdrender, rnode):
         'asset_base': os.path.abspath(md_base_path),
     }})
 
-def importer(mdrender, rnode):
-    '''
-    Importer is only used to copy local image to output dir and update image urls.
-    This is used to deal with partial renderers, e.g., table_to_barehtml,
-    which is not handled by univertial image importer, but need to import the image when rendering a table with images.
-    '''
 
-    n = rnode.node
-
-    typ = n['type']
-
-    if typ == 'image':
-        return save_image_to_asset_dir(mdrender, rnode)
-
-    return None
-
-
-def zhihu_specific(mdrender, rnode):
-    return render_with_features(mdrender, rnode, features=zhihu_features)
-
-def github_specific(mdrender, rnode):
-    return render_with_features(mdrender, rnode, features=github_features)
-
-def minimal_mistake_specific(mdrender, rnode):
-    return render_with_features(mdrender, rnode, features=minimal_mistake_features)
-
-
-def wechat_specific(mdrender, rnode):
-    return render_with_features(mdrender, rnode, features=wechat_features)
-
-
-def weibo_specific(mdrender, rnode):
+def weibo_specific(mdrender, rnode) -> Optional[List[str]]:
     n = rnode.node
 
     typ = n['type']
@@ -294,27 +264,12 @@ def weibo_specific(mdrender, rnode):
     return None
 
 
-def simple_specific(mdrender, rnode):
-    return render_with_features(mdrender, rnode, features=simple_features)
-
-
 class MDRender(object):
     # platform specific renderer
-    platforms = {
-        'zhihu': zhihu_specific,
-        'github': github_specific,
-        'wechat': wechat_specific,
-        'weibo': weibo_specific,
-        'minimal_mistake': minimal_mistake_specific,
-        'simple': simple_specific,
-    }
 
-    def __init__(self, conf, platform='zhihu'):
+    def __init__(self, conf, features: dict):
         self.conf = conf
-        if isinstance(platform, str):
-            self.handlers = self.platforms.get(platform, lambda *x, **y: None)
-        else:
-            self.handlers = platform
+        self.features = features
 
     def render_node(self, rnode):
         """
@@ -329,7 +284,7 @@ class MDRender(object):
 
         #  customized renderers:
 
-        lines = self.handlers(self, rnode)
+        lines = render_with_features(self, rnode, self.features)
         if lines is not None:
             return lines
         else:
@@ -523,7 +478,7 @@ def convert_paragraph_table(node: dict) -> List[dict]:
 
     match = re.match(table_reg, txt)
     if match:
-        mdr = MDRender(None, platform='')
+        mdr = MDRender(None, features={})
         partialmd = mdr.render(RenderNode(node))
         partialmd = ''.join(partialmd)
 
@@ -1085,6 +1040,13 @@ class AssetRepo(object):
         return branch
 
 
+# Importer is only used to copy local image to output dir and update image urls.
+# This is used to deal with partial renderers, e.g., table_to_barehtml,
+# which is not handled by universal image importer, but need to import the image when rendering a table with images.
+importer_features = dict(
+    image=save_image_to_asset_dir,
+)
+
 simple_features = dict(
     image=save_image_to_asset_dir,
     math_block=math_block_to_jpg,
@@ -1099,6 +1061,11 @@ simple_features = dict(
            },
     )
 )
+
+weibo_features = {
+    "*": weibo_specific
+}
+
 
 wechat_features = dict(
     image=save_image_to_asset_dir,
@@ -1179,6 +1146,15 @@ all_features = dict(
     )
 )
 
+platform_feature_dict = {
+    'zhihu': zhihu_features,
+    'github': github_features,
+    'wechat': wechat_features,
+    'weibo': weibo_features,
+    'minimal_mistake': minimal_mistake_features,
+    'simple': simple_features,
+}
+
 
 def rules_to_features(rules):
     features = {}
@@ -1208,7 +1184,10 @@ def render_with_features(mdrender, rnode: RenderNode, features=dict) -> Optional
     node_type = n['type']
 
     if node_type not in features:
-        return None
+        if '*' in features:
+            return features['*'](mdrender, rnode)
+        else:
+            return None
 
     type_handler = features[node_type]
     if callable(type_handler):
@@ -1274,7 +1253,8 @@ class Config(object):
         """
         self.output_dir = output_dir
         self.md_output_path = md_output_path
-        self.platform = platform
+        self.platform: str = platform
+        self.features: dict = platform_feature_dict.get(platform, dict())
         self.src_path = src_path
         self.root_src_path = self.src_path
 
@@ -1456,7 +1436,7 @@ class Article(object):
 
     def render(self):
 
-        mdr = MDRender(self.conf, platform=self.conf.platform)
+        mdr = MDRender(self.conf, features=self.conf.features)
 
         root_node = {
             'type': 'ROOT',
@@ -1469,7 +1449,7 @@ class Article(object):
 
         output_lines.append('')
 
-        ref_list = render_ref_list(self.used_refs, self.conf.platform)
+        ref_list = render_ref_list(self.used_refs, self.conf.features)
         output_lines.extend(ref_list)
 
         output_lines.append('')
