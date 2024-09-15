@@ -185,15 +185,16 @@ def to_plaintext(mdrender, rnode):
     return [escape(n['text'])]
 
 
-def table_to_barehtml(mdrender, rnode):
+def table_to_barehtml(mdrender, rnode) -> List[str]:
     # create a markdown render to recursively deal with images etc.
     mdr = MDRender(mdrender.conf, platform=importer)
 
     md = mdr.render_node(rnode)
     md = '\n'.join(md)
 
-    tablehtml = k3down2.convert('table', md, 'html')
-    return [tablehtml, '']
+    table_html = k3down2.convert('table', md, 'html')
+    table_html = table_html.split("\n") + ['']
+    return table_html
 
 
 def table_to_jpg(mdrender, rnode):
