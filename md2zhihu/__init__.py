@@ -4,6 +4,7 @@ import os
 import pprint
 import re
 import shutil
+from typing import Optional
 
 import k3down2
 import k3git
@@ -18,6 +19,34 @@ from k3handy import to_bytes
 from k3fs import fread
 
 from .. import mistune
+
+class MarkdownMeta(object):
+    def __init__(self, meta_text: str):
+        self.text = meta_text
+        self.dict_data = yaml.safe_load(meta_text)
+
+    def build_refs(self, platform: str) -> dict:
+        dic = {}
+
+        meta = self.dict_data
+
+        # Collect universal refs
+        if 'refs' in meta:
+            refs = meta['refs']
+
+            for r in refs:
+                dic.update(r)
+
+        # Collect platform specific refs
+        if 'platform_refs' in meta:
+            refs = meta['platform_refs']
+            if platform in refs:
+                refs = refs[platform]
+
+                for r in refs:
+                    dic.update(r)
+
+        return dic
 
 
 def sj(*args):
@@ -501,7 +530,7 @@ def join_math_block(nodes):
     join_math_text(nodes)
 
 
-def parse_math(conf, nodes):
+def parse_math(nodes):
     """
     Extract all math segment such as ``$$ ... $$`` from a text and build a
     math_block or math_inline node.
@@ -512,10 +541,10 @@ def parse_math(conf, nodes):
     for n in nodes:
 
         if 'children' in n:
-            n['children'] = parse_math(conf, n['children'])
+            n['children'] = parse_math(n['children'])
 
         if n['type'] == 'text':
-            new_children = extract_math(conf, n)
+            new_children = extract_math(n)
             children.extend(new_children)
         else:
             children.append(n)
@@ -655,7 +684,7 @@ def join_math_text(nodes):
             i += 1
 
 
-def extract_math(conf, n):
+def extract_math(n):
     """
     Extract ``$$ ... $$`` or ``$ .. $` from a text node and build a new node.
     The original text node is split into multiple segments.
@@ -749,31 +778,6 @@ def save_image_to_asset_dir(mdrender, rnode):
     return None
 
 
-def build_refs(meta):
-    dic = {}
-
-    if meta is None:
-        return dic
-
-    if 'refs' in meta:
-        refs = meta['refs']
-
-        for r in refs:
-            dic.update(r)
-
-    platform = 'zhihu'
-
-    if 'platform_refs' in meta:
-        refs = meta['platform_refs']
-        if platform in refs:
-            refs = refs[platform]
-
-            for r in refs:
-                dic.update(r)
-
-    return dic
-
-
 def replace_ref_with_def(nodes, refs):
     """
     Convert ``[text][link-def]`` to ``[text](link-url)``
@@ -840,15 +844,14 @@ def extract_ref_definitions(cont):
 
 def extract_jekyll_meta(cont):
     meta = None
-    meta_text = None
     m = re.match(r'^ *--- *\n(.*?)\n---\n', cont,
                  flags=re.DOTALL | re.UNICODE)
     if m:
         cont = cont[m.end():]
         meta_text = m.groups()[0].strip()
-        meta = yaml.safe_load(meta_text)
+        meta = MarkdownMeta(meta_text)
 
-    return cont, meta, meta_text
+    return cont, meta
 
 
 def render_ref_list(refs, platform):
@@ -1211,6 +1214,14 @@ def render_with_features(mdrender, rnode, features=None):
     return None
 
 
+class ParserConfig(object):
+    """
+    Config for parsing markdown file.
+    """
+    def __init__(self):
+        pass
+
+
 class Config(object):
 
     #  TODO refactor var names
@@ -1377,27 +1388,35 @@ class Config(object):
 
 
 class Article(object):
-    def __init__(self, conf, md_text):
+    def __init__(self, conf: Config, md_text: str):
         self.conf = conf
 
         # init
 
-        self.md_text = md_text
+        # Input markdown in str
+        self.md_text: str = md_text
+
+        # References defined in this markdown
         self.refs = {}
+
+        # References used in this markdown
         self.used_refs = None
-        self.meta = None
-        self.meta_text = None
+
+        self.meta: Optional[MarkdownMeta] = None
+
+        # Parsed AST of the markdown
         self.ast = None
 
         # extract article meta
 
-        self.md_text, self.meta, self.meta_text = extract_jekyll_meta(self.md_text)
+        self.md_text, self.meta = extract_jekyll_meta(self.md_text)
         self.md_text, article_refs = extract_ref_definitions(self.md_text)
 
         # build refs
 
         self.refs.update(load_external_refs(self.conf))
-        self.refs.update(build_refs(self.meta))
+        if self.meta is not None:
+            self.refs.update(self.meta.build_refs("zhihu"))
         self.refs.update(article_refs)
 
         # parse to ast and clean up
@@ -1415,11 +1434,11 @@ class Article(object):
         self.used_refs = replace_ref_with_def(self.ast, self.refs)
 
         # extract already inlined math
-        self.ast = parse_math(self.conf, self.ast)
+        self.ast = parse_math(self.ast)
 
         # join cross paragraph math
         join_math_block(self.ast)
-        self.ast = parse_math(self.conf, self.ast)
+        self.ast = parse_math(self.ast)
 
         self.parse_embed()
 
@@ -1438,8 +1457,8 @@ class Article(object):
         }
         output_lines = mdr.render(RenderNode(root_node))
 
-        if self.conf.keep_meta:
-            output_lines = ['---', self.meta_text, '---'] + output_lines
+        if self.conf.keep_meta and self.meta is not None:
+            output_lines = ['---', self.meta.text, '---'] + output_lines
 
         output_lines.append('')
 
@@ -1458,7 +1477,7 @@ class Article(object):
         return output_lines
 
 
-def load_external_refs(conf):
+def load_external_refs(conf: Config) -> dict:
     refs = {}
     for ref_path in conf.ref_files:
         fcont = fread(ref_path)
