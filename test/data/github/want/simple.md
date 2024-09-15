@@ -1,23 +1,10 @@
 
 # 场景和问题
 
-<table>
-<tr class="header">
-<th style="text-align: left;"></th>
-<th style="text-align: center;">md源文件</th>
-<th style="text-align: center;">导入知乎的效果</th>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">使用前</td>
-<td style="text-align: center;">a</td>
-<td style="text-align: center;">c</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">转换后</td>
-<td style="text-align: center;">b</td>
-<td style="text-align: center;">d</td>
-</tr>
-</table>
+|  | md源文件 | 导入知乎的效果 |
+| :-- | :-: | :-: |
+| 使用前 | a | c |
+| 转换后 | b | d |
 
 ```mermaid
 graph LR
@@ -42,48 +29,12 @@ graph LR
 
 我们可以利用数据分布的特点, 将整体数据的大小压缩到**几分之一**.
 
-<table>
-<tr class="header">
-<th style="text-align: right;">Data size</th>
-<th style="text-align: left;">Data Set</th>
-<th style="text-align: right;">gzip size</th>
-<th style="text-align: left;">slimarry size</th>
-<th style="text-align: right;">avg size</th>
-<th style="text-align: right;">ratio</th>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">1,000</td>
-<td style="text-align: left;">rand u32: [0, 1000]</td>
-<td style="text-align: right;">x</td>
-<td style="text-align: left;">824 byte</td>
-<td style="text-align: right;">6 bit/elt</td>
-<td style="text-align: right;">18%</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">1,000,000</td>
-<td style="text-align: left;">rand u32: [0, 1000,000]</td>
-<td style="text-align: right;">x</td>
-<td style="text-align: left;">702 KB</td>
-<td style="text-align: right;">5 bit/elt</td>
-<td style="text-align: right;">15%</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">1,000,000</td>
-<td style="text-align: left;">IPv4 DB</td>
-<td style="text-align: right;">2 MB</td>
-<td style="text-align: left;">2 MB</td>
-<td style="text-align: right;">16 bit/elt</td>
-<td style="text-align: right;">50%</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">600</td>
-<td style="text-align: left;"><a href="https://github.com/openacid/slim">slim</a> star count</td>
-<td style="text-align: right;">602 byte</td>
-<td style="text-align: left;">832 byte</td>
-<td style="text-align: right;">10 bit/elt</td>
-<td style="text-align: right;">26%</td>
-</tr>
-</table>
+| Data size | Data Set | gzip size | slimarry size | avg size | ratio |
+| --: | :-- | --: | :-- | --: | --: |
+| 1,000 | rand u32: [0, 1000] | x | 824 byte | 6 bit/elt | 18% |
+| 1,000,000 | rand u32: [0, 1000,000] | x | 702 KB | 5 bit/elt | 15% |
+| 1,000,000 | IPv4 DB | 2 MB | 2 MB | 16 bit/elt | 50% |
+| 600 | [slim](https://github.com/openacid/slim) star count | 602 byte | 832 byte | 10 bit/elt | 26% |
 
 在达到gzip同等压缩率的前提下, 构建 slimarray 和 访问的性能也非常高:
 
@@ -196,23 +147,10 @@ table in list:
 
 -   链接列表:
 
-    <table>
-    <tr class="header">
-    <th style="text-align: center;">源文件</th>
-    <th style="text-align: center;">转换后</th>
-    <th style="text-align: center;">导入后</th>
-    </tr>
-    <tr class="odd">
-    <td style="text-align: center;"><img src="https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/18b61671112f3aeb-slim.jpg" /></td>
-    <td style="text-align: center;">fo</td>
-    <td style="text-align: center;">bar</td>
-    </tr>
-    <tr class="even">
-    <td style="text-align: center;">a</td>
-    <td style="text-align: center;">b</td>
-    <td style="text-align: center;">c</td>
-    </tr>
-    </table>
+    | 源文件 | 转换后 | 导入后 |
+    | :-: | :-: | :-: |
+    | ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/18b61671112f3aeb-slim.jpg) | fo | bar |
+    | a | b | c |
 
 no lang code:
 

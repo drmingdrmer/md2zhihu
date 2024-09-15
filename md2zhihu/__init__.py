@@ -1134,19 +1134,6 @@ github_features = dict(
     math_block=math_block_join_dolar_when_nested,
     # github use single dolar inline math.
     math_inline=math_inline_single_dolar,
-    # TODO: bug:
-    # md2zhihu: bug:
-    #  -   链接列表:
-    #      | 源文件 | 转换后 | 导入后 |
-    #      | :-: | :-: | :-: |
-    #      | ![](assets/slim.jpg) | fo | bar |
-    #      | a | b | c |
-    #  with --platform github, (without converting table to html)
-    #  in-paragraph table is converted to
-    #  -   链接列表:
-    #      | 源文件 | 转换后 | 导入后 || :-: | :-: | :-: || ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/18b61671112f3aeb-slim.jpg) | fo | bar || a | b | c |
-    #  there should be line break.
-    table=table_to_barehtml,
     block_code=dict(
         graphviz=block_code_graphviz_to_jpg,
     )
