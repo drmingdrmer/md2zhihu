@@ -12,7 +12,7 @@ jobs:
       # parallel running result in conflict when git-push to a same branch
       max-parallel: 1
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, "3.10", 3.11, 3.12]
 
     steps:
     - uses: actions/checkout@v2
@@ -64,7 +64,7 @@ jobs:
         )
         PATH="$PATH:$(npm bin)" PYTHONPATH="$(cd ..; pwd)" pytest
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         path: test/
