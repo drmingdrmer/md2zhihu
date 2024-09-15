@@ -4,7 +4,7 @@ import os
 import pprint
 import re
 import shutil
-from typing import Optional
+from typing import Optional, List
 
 import k3down2
 import k3git
@@ -20,15 +20,21 @@ from k3fs import fread
 
 from .. import mistune
 
-class MarkdownMeta(object):
-    def __init__(self, meta_text: str):
-        self.text = meta_text
-        self.dict_data = yaml.safe_load(meta_text)
+class FrontMatter(object):
+    """
+    The font matter is the yaml enclosed between `---` at the top of a markdown.
+    """
+    def __init__(self, front_matter_text: str):
+        self.text = front_matter_text
+        self.data = yaml.safe_load(front_matter_text)
 
-    def build_refs(self, platform: str) -> dict:
+    def get_refs(self, platform: str) -> dict:
+        """
+        Get refs from front matter.
+        """
         dic = {}
 
-        meta = self.dict_data
+        meta = self.data
 
         # Collect universal refs
         if 'refs' in meta:
@@ -462,11 +468,12 @@ class MDRender(object):
         pprint.pprint(n)
         return ['***:' + typ]
 
-    def render(self, rnode):
+    def render(self, rnode) -> List[str]:
         rst = []
         for n in rnode.node['children']:
             child = rnode.new_child(n)
-            rst.extend(self.render_node(child))
+            lines = self.render_node(child)
+            rst.extend(lines)
 
         return rst
 
@@ -474,39 +481,58 @@ class MDRender(object):
         msg(*args)
 
 
-def fix_tables(nodes):
+def parse_in_list_tables(nodes) -> List[dict]:
     """
     mistune does not parse table in list item.
     We need to recursively fix it.
     """
 
+    rst = []
     for n in nodes:
         if 'children' in n:
-            fix_tables(n['children'])
+            n['children'] = parse_in_list_tables(n['children'])
 
-        if n['type'] == 'paragraph':
-            children = n['children']
+        nodes = convert_paragraph_table(n)
+        rst.extend(nodes)
 
-            if len(children) == 0:
-                continue
+    return rst
 
-            c0 = children[0]
-            if c0['type'] != 'text':
-                continue
+def convert_paragraph_table(node: dict) -> List[dict]:
+    """
+    Parse table text in a paragraph and returns the ast of parsed table.
 
-            txt = c0['text']
+    :return List[dict]: a list of ast nodes.
+    """
 
-            table_reg = r' {0,3}\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*'
+    if node['type'] != 'paragraph':
+        return [node]
 
-            match = re.match(table_reg, txt)
-            if match:
-                mdr = MDRender(None, platform='')
-                partialmd = mdr.render(RenderNode(n))
-                partialmd = ''.join(partialmd)
+    children = node['children']
 
-                parser = new_parser()
-                new_children = parser(partialmd)
-                n['children'] = new_children
+    if len(children) == 0:
+        return [node]
+
+    c0 = children[0]
+    if c0['type'] != 'text':
+        return [node]
+
+    txt = c0['text']
+
+    table_reg = r' {0,3}\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*'
+
+    match = re.match(table_reg, txt)
+    if match:
+        mdr = MDRender(None, platform='')
+        partialmd = mdr.render(RenderNode(node))
+        partialmd = ''.join(partialmd)
+
+        parser = new_parser()
+        new_children = parser(partialmd)
+
+        return new_children
+    else:
+        return [node]
+
 
 
 def join_math_block(nodes):
@@ -842,14 +868,14 @@ def extract_ref_definitions(cont):
     return '\n'.join(rst), refs
 
 
-def extract_jekyll_meta(cont):
+def extract_front_matter(cont):
     meta = None
     m = re.match(r'^ *--- *\n(.*?)\n---\n', cont,
                  flags=re.DOTALL | re.UNICODE)
     if m:
         cont = cont[m.end():]
         meta_text = m.groups()[0].strip()
-        meta = MarkdownMeta(meta_text)
+        meta = FrontMatter(meta_text)
 
     return cont, meta
 
@@ -1402,21 +1428,21 @@ class Article(object):
         # References used in this markdown
         self.used_refs = None
 
-        self.meta: Optional[MarkdownMeta] = None
+        self.front_matter: Optional[FrontMatter] = None
 
         # Parsed AST of the markdown
         self.ast = None
 
         # extract article meta
 
-        self.md_text, self.meta = extract_jekyll_meta(self.md_text)
+        self.md_text, self.front_matter = extract_front_matter(self.md_text)
         self.md_text, article_refs = extract_ref_definitions(self.md_text)
 
         # build refs
 
         self.refs.update(load_external_refs(self.conf))
-        if self.meta is not None:
-            self.refs.update(self.meta.build_refs("zhihu"))
+        if self.front_matter is not None:
+            self.refs.update(self.front_matter.get_refs("zhihu"))
         self.refs.update(article_refs)
 
         # parse to ast and clean up
@@ -1424,12 +1450,7 @@ class Article(object):
         parse_to_ast = new_parser()
         self.ast = parse_to_ast(self.md_text)
 
-        # TODO use feature detection to decide if we need to convert table to hml
-        if self.conf.platform == 'minimal_mistake':
-            #  jekyll output does render table well.
-            pass
-        else:
-            fix_tables(self.ast)
+        self.ast = parse_in_list_tables(self.ast)
 
         self.used_refs = replace_ref_with_def(self.ast, self.refs)
 
@@ -1457,8 +1478,8 @@ class Article(object):
         }
         output_lines = mdr.render(RenderNode(root_node))
 
-        if self.conf.keep_meta and self.meta is not None:
-            output_lines = ['---', self.meta.text, '---'] + output_lines
+        if self.conf.keep_meta and self.front_matter is not None:
+            output_lines = ['---', self.front_matter.text, '---'] + output_lines
 
         output_lines.append('')
 

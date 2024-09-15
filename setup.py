@@ -3,10 +3,8 @@
 
 import setuptools
 
-import imp
-
-pseudo = "pseudo"
-pkg = imp.load_source(pseudo, 'md2zhihu/version.py')
+import importlib
+pkg = importlib.import_module('md2zhihu.version')
 
 setuptools.setup(
     name="md2zhihu",
