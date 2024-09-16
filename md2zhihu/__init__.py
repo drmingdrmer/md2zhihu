@@ -1452,16 +1452,28 @@ class Article(object):
         yield str chunks of the markdown file.
         """
         if self.front_matter is not None:
-            yield "front_matter", '---\n' + self.front_matter.text + '\n---'
+            yield "front_matter", "", '---\n' + self.front_matter.text + '\n---'
+
+        mdr = MDRender(self.conf, features=self.conf.features)
 
         for node in self.ast:
-            mdr = MDRender(self.conf, features=self.conf.features)
-            root_node = {
-                'type': 'ROOT',
-                'children': [node],
-            }
-            output_lines = mdr.render(RenderNode(root_node))
-            yield "content", node['type'], "\n".join(output_lines)
+
+            # render list items separately
+            if node['type'] == 'list':
+                root_node = RenderNode(node)
+                for n in node['children']:
+                    child = root_node.new_child(n)
+                    output_lines = mdr.render_node(child)
+                    output_lines = add_paragraph_end(output_lines)
+                    yield "content", n['type'], "\n".join(output_lines)
+                yield "content", "new_line", ""
+            else:
+                root_node = RenderNode({
+                    'type': 'ROOT',
+                    'children': [node],
+                })
+                output_lines = mdr.render(root_node)
+                yield "content", node['type'], "\n".join(output_lines)
 
 
         ref_lines = [
@@ -1470,7 +1482,7 @@ class Article(object):
             ) for ref_id in sorted(self.used_refs)
         ]
 
-        yield "ref_def", '\n'.join(ref_lines)
+        yield "ref_def", "", '\n'.join(ref_lines)
 
     def render(self):
         mdr = MDRender(self.conf, features=self.conf.features)
