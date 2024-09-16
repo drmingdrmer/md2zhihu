@@ -4,7 +4,7 @@ import os
 import pprint
 import re
 import shutil
-from typing import Optional, List, Dict
+from typing import Optional, List
 
 import k3down2
 import k3git
@@ -534,77 +534,12 @@ def parse_math(nodes):
     return children
 
 
-def embed(conf, nodes, used_refs):
-    """
-    Embed the content of url in ![](url) if url matches specified regex
-    """
-
-    children = []
+def rebase_url_in_ast(frm, to, nodes):
 
     for n in nodes:
 
         if 'children' in n:
-            n['children'] = embed(conf, n['children'], used_refs)
-
-        if n['type'] != 'paragraph' or len(n.get('children', [])) != 1:
-            children.append(n)
-            continue
-
-        child = n['children'][0]
-
-        if child['type'] != 'image':
-            children.append(n)
-            continue
-
-        #  {'alt': 'openacid',
-        #   'src': 'https://...',
-        #   'title': None,
-        #   'type': 'image'},
-
-        if not regex_search_any(conf.embed, child['src']):
-            children.append(n)
-            continue
-
-        article_path = conf.relpath_from_cwd(child['src'])
-        md_text = fread(article_path)
-
-        # save and restore parent src_path
-
-        old = conf.src_path
-        conf.src_path = article_path
-
-        article = Article(conf, md_text)
-
-        conf.src_path = old
-
-        # rebase urls in embedded article
-
-        child_base = os.path.split(article_path)[0]
-        parent_base = os.path.split(conf.src_path)[0]
-
-        new_children = article.ast
-        rebase_url_in_ast(conf, child_base, parent_base, new_children)
-
-        children.extend(new_children)
-
-        # update used_refs
-
-        used = {}
-        for k,v in article.used_refs.items():
-            v = v.strip()
-            used[k] = rebase_url(child_base, parent_base,v)
-
-        used_refs.update(used)
-
-    return children
-
-
-def rebase_url_in_ast(conf, frm, to, nodes):
-
-    for n in nodes:
-
-        if 'children' in n:
-            rebase_url_in_ast(conf, frm, to, n['children'])
+            rebase_url_in_ast(frm, to, n['children'])
 
         if n['type'] == 'image':
             n['src'] = rebase_url(frm, to, n['src'])
@@ -632,7 +567,7 @@ def rebase_url(frm, to, src):
 
 
 
-def regex_search_any(regex_list, s):
+def regex_search_any(regex_list: List[str], s):
     for regex in regex_list:
         m = re.search(regex, s)
         if m:
@@ -760,11 +695,14 @@ def save_image_to_asset_dir(mdrender, rnode):
     return None
 
 
-def replace_ref_with_def(nodes, refs):
+def replace_ref_with_def(nodes, refs, do_replace: bool):
     """
     Convert ``[text][link-def]`` to ``[text](link-url)``
     Convert ``[link-def][]``     to ``[link-def](link-url)``
     Convert ``[link-def]``       to ``[link-def](link-url)``
+
+    If `do_replace` is True, replace the ref with def.
+    Otherwise, just extract the used refs.
     """
 
     used_defs = {}
@@ -772,30 +710,35 @@ def replace_ref_with_def(nodes, refs):
     for n in nodes:
 
         if 'children' in n:
-            used = replace_ref_with_def(n['children'], refs)
+            used = replace_ref_with_def(n['children'], refs, do_replace)
             used_defs.update(used)
 
-        if n['type'] == 'text':
-            t = n['text']
-            link = re.match(r'^\[(.*?)\](\[([^\]]*?)\])?$', t)
-            if not link:
-                continue
+        if n['type'] != 'text':
+            continue
 
-            gs = link.groups()
-            txt = gs[0]
-            if len(gs) >= 3:
-                definition = gs[2]
+        t = n['text']
+        link = re.match(r'^\[(.*?)\](\[([^\]]*?)\])?$', t)
+        if not link:
+            continue
 
-            if definition is None or definition == '':
-                definition = txt
+        gs = link.groups()
+        txt = gs[0]
+        if len(gs) >= 3:
+            definition = gs[2]
 
-            if definition in refs:
+        if definition is None or definition == '':
+            definition = txt
+
+        if definition in refs:
+
+            if do_replace:
                 n['type'] = 'link'
                 r = refs[definition]
                 #  TODO title
                 n['link'] = r.split()[0]
                 n['children'] = [{'type': 'text', 'text': txt}]
-                used_defs[definition] = r
+
+            used_defs[definition] = r
 
     return used_defs
 
@@ -1208,9 +1151,14 @@ def render_with_features(mdrender, rnode: RenderNode, features=dict) -> Optional
 class ParserConfig(object):
     """
     Config for parsing markdown file.
+
+    `populate_reference`: whether to replace reference with definition.
+
+    `embed_patterns`: the url regex patterns to replace the content of url in ![](url).
     """
-    def __init__(self):
-        pass
+    def __init__(self, populate_reference: bool, embed_patterns: List[str]):
+        self.populate_reference = populate_reference
+        self.embed_patterns = embed_patterns
 
 
 class Config(object):
@@ -1229,7 +1177,6 @@ class Config(object):
                  jekyll=False,
                  rewrite=None,
                  download=False,
-                 embed=None,
                  ):
         """
         Config of markdown rendering
@@ -1274,7 +1221,6 @@ class Config(object):
         self.rewrite = rewrite
 
         self.download = download
-        self.embed = embed or []
 
         fn = os.path.split(self.src_path)[-1]
 
@@ -1380,7 +1326,9 @@ class Config(object):
 
 
 class Article(object):
-    def __init__(self, conf: Config, md_text: str):
+    def __init__(self, parser_config: ParserConfig, conf: Config, md_text: str):
+        self.parser_config = parser_config
+
         self.conf = conf
 
         # init
@@ -1408,7 +1356,7 @@ class Article(object):
 
         self.refs.update(load_external_refs(self.conf))
         if self.front_matter is not None:
-            self.refs.update(self.front_matter.get_refs("zhihu"))
+            self.refs.update(self.front_matter.get_refs(conf.platform))
         self.refs.update(article_refs)
 
         # parse to ast and clean up
@@ -1418,8 +1366,7 @@ class Article(object):
 
         self.ast = parse_in_list_tables(self.ast)
 
-        # TODO: optional disable replacing ref
-        self.used_refs = replace_ref_with_def(self.ast, self.refs)
+        self.used_refs = replace_ref_with_def(self.ast, self.refs, self.parser_config.populate_reference)
 
         # extract already inlined math
         self.ast = parse_math(self.ast)
@@ -1433,8 +1380,72 @@ class Article(object):
 
     def parse_embed(self):
         used_refs = {}
-        self.ast = embed(self.conf, self.ast, used_refs)
+        self.ast = self.embed(self.ast, used_refs)
         self.used_refs.update(used_refs)
+
+    def embed(self, nodes, used_refs):
+        """
+        Embed the content of url in ![](url) if url matches specified regex
+        """
+
+        children = []
+
+        for n in nodes:
+
+            if 'children' in n:
+                n['children'] = self.embed(n['children'], used_refs)
+
+            if n['type'] != 'paragraph' or len(n.get('children', [])) != 1:
+                children.append(n)
+                continue
+
+            child = n['children'][0]
+
+            if child['type'] != 'image':
+                children.append(n)
+                continue
+
+            #  {'alt': 'openacid',
+            #   'src': 'https://...',
+            #   'title': None,
+            #   'type': 'image'},
+
+            if not regex_search_any(self.parser_config.embed_patterns, child['src']):
+                children.append(n)
+                continue
+
+            article_path = self.conf.relpath_from_cwd(child['src'])
+            md_text = fread(article_path)
+
+            # save and restore parent src_path
+
+            old = self.conf.src_path
+            self.conf.src_path = article_path
+
+            article = Article(self.parser_config, self.conf, md_text)
+
+            self.conf.src_path = old
+
+            # rebase urls in embedded article
+
+            child_base = os.path.split(article_path)[0]
+            parent_base = os.path.split(self.conf.src_path)[0]
+
+            new_children = article.ast
+            rebase_url_in_ast(child_base, parent_base, new_children)
+
+            children.extend(new_children)
+
+            # update used_refs
+
+            used = {}
+            for k,v in article.used_refs.items():
+                v = v.strip()
+                used[k] = rebase_url(child_base, parent_base,v)
+
+            used_refs.update(used)
+
+        return children
 
     def render(self):
         mdr = MDRender(self.conf, features=self.conf.features)
@@ -1478,14 +1489,14 @@ def load_external_refs(conf: Config) -> dict:
     return refs
 
 
-def convert_md(conf):
+def convert_md(parser_config, conf):
     os.makedirs(conf.output_dir, exist_ok=True)
     os.makedirs(conf.asset_output_dir, exist_ok=True)
     os.makedirs(conf.md_output_base, exist_ok=True)
 
     md_text = fread(conf.src_path)
 
-    article = Article(conf, md_text)
+    article = Article(parser_config, conf, md_text)
 
     output_lines = article.render()
 
@@ -1587,7 +1598,7 @@ def main():
                         help='R|Specify the external file that contains ref definitions.'
                              '\n' 'A ref file is a yaml contains reference definitions in a dict of list.'
                              '\n' 'A dict key is the platform name, only visible when it is enabeld by <platform> argument.'
-                             '\n' '"univeral" is visible in any <platform>.'
+                             '\n' '"universal" is visible in any <platform>.'
                              '\n'
                              '\n' 'Example of ref file data:'
                              '\n' '{ "universal": [{"grpc":"http:.."}, {"protobuf":"http:.."}],'
@@ -1661,8 +1672,9 @@ def main():
             jekyll=args.jekyll,
             rewrite=args.rewrite,
             download=args.download,
-            embed=args.embed,
         )
+
+        parser_config = ParserConfig(True, args.embed)
 
         # Check if file exists
         try:
@@ -1671,7 +1683,7 @@ def main():
             msg(darkred(sj("Warn: file not found: ", repr(conf.src_path))))
             continue
 
-        convert_md(conf)
+        convert_md(parser_config, conf)
 
         msg(sj("Done building ", darkyellow(conf.md_output_path)))
 
