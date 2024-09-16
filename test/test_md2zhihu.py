@@ -123,7 +123,7 @@ class TestMd2zhihu(unittest.TestCase):
         got = list(article.chunks())
 
         want = [
-            ('front_matter', '---\nrefs:\n    - "slim":      https://github.com/openacid/slim "slim"\n    - "slimarray": https://github.com/openacid/slimarray "slimarray"\n    - "vlink": https://vlink "vlink"\n\nplatform_refs:\n    zhihu:\n        - "vlink": https://vlink.zhihu "vlink"\n---'),
+            ('front_matter', '', '---\nrefs:\n    - "slim":      https://github.com/openacid/slim "slim"\n    - "slimarray": https://github.com/openacid/slimarray "slimarray"\n    - "vlink": https://vlink "vlink"\n\nplatform_refs:\n    zhihu:\n        - "vlink": https://vlink.zhihu "vlink"\n---'),
             ('content', 'newline', ''),
             ('content', 'heading', '# 场景和问题\n'),
             ('content', 'table', '|  | md源文件 | 导入知乎的效果 |\n| :-- | :-: | :-: |\n| 使用前 | a | c |\n| 转换后 | b | d |\n'),
@@ -138,7 +138,9 @@ class TestMd2zhihu(unittest.TestCase):
             ('content', 'paragraph', '我们可以利用数据分布的特点, 将整体数据的大小压缩到**几分之一**.\n'),
             ('content', 'table', '| Data size | Data Set | gzip size | slimarry size | avg size | ratio |\n| --: | :-- | --: | :-- | --: | --: |\n| 1,000 | rand u32: [0, 1000] | x | 824 byte | 6 bit/elt | 18% |\n| 1,000,000 | rand u32: [0, 1000,000] | x | 702 KB | 5 bit/elt | 15% |\n| 1,000,000 | IPv4 DB | 2 MB | 2 MB | 16 bit/elt | 50% |\n| 600 | [slim][] star count | 602 byte | 832 byte | 10 bit/elt | 26% |\n'),
             ('content', 'paragraph', '在达到gzip同等压缩率的前提下, 构建 slimarray 和 访问的性能也非常高:\n'),
-            ('content', 'list', '-   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n-   读取一个数组元素平均花费 7 ns/op.\n    -   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n    -   读取一个数组元素平均花费 `7 ns/op`.\n'),
+            ('content', 'list_item', '-   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n'),
+            ('content', 'list_item', '-   读取一个数组元素平均花费 7 ns/op.\n    -   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n    -   读取一个数组元素平均花费 `7 ns/op`.\n'),
+            ('content', 'new_line', ''),
             ('content', 'block_quote', '> 在达到gzip同等压缩率的前提下, 构建 slimarray 和 访问的性能也非常高:\n> \n> -   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n> -   读取一个数组元素平均花费 7 ns/op.\n>     -   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n>     -   读取一个数组元素平均花费 `7 ns/op`.\n'),
             ('content', 'newline', ''),
             ('content', 'paragraph', '按照这种思路, **在给定数组中找到一条曲线来描述点的趋势,**\n**再用一个比较小的delta数组修正曲线到实际点的距离, 得到原始值, 就可以实现大幅度的数据压缩. 而且所有的数据都无需解压全部数据就直接读取任意一个.**\n'),
@@ -148,14 +150,65 @@ class TestMd2zhihu(unittest.TestCase):
             ('content', 'paragraph', '`spanIndex = OnesCount(bitmap & (1<<(i/16) - 1))`\n'),
             ('content', 'heading', '## 读取过程\n'),
             ('content', 'paragraph', '读取过程通过找span, 读取span配置,还原原始数据几个步骤完成, 假设 slimarray 的对象是`sa`:\n'),
-            ('content', 'list', '-   通过下标`i` 得到 spanIndex: `spanIndex = OnesCount(sa.bitmap & (1<<(i/16) - 1))`;\n-   通过 spanIndex 得到多项式的3个系数: `[b₀, b₁, b₂] = sa.polynomials[spanIndex: spanIndex + 3]`;\n-   读取 delta 数组起始位置, 和 delta 数组中每个 delta 的 bit 宽度: `config=sa.configs[spanIndex]`;\n-   delta 的值保存在 delta 数组的`config.offset + i*config.width`的位置, 从这个位置读取`width`个 bit 得到 delta 的值.\n-   计算 `nums[i]` 的值: `b₀ + b₁*i + b₂*i²` 再加上 delta 的值.\n'),
+            ('content', 'list_item', '-   通过下标`i` 得到 spanIndex: `spanIndex = OnesCount(sa.bitmap & (1<<(i/16) - 1))`;\n'),
+            ('content', 'list_item', '-   通过 spanIndex 得到多项式的3个系数: `[b₀, b₁, b₂] = sa.polynomials[spanIndex: spanIndex + 3]`;\n'),
+            ('content', 'list_item', '-   读取 delta 数组起始位置, 和 delta 数组中每个 delta 的 bit 宽度: `config=sa.configs[spanIndex]`;\n'),
+            ('content', 'list_item', '-   delta 的值保存在 delta 数组的`config.offset + i*config.width`的位置, 从这个位置读取`width`个 bit 得到 delta 的值.\n'),
+            ('content', 'list_item', '-   计算 `nums[i]` 的值: `b₀ + b₁*i + b₂*i²` 再加上 delta 的值.\n'),
+            ('content', 'new_line', ''),
             ('content', 'paragraph', '简化的读取逻辑如下:\n'),
             ('content', 'block_code', '```go\nfunc (sm *SlimArray) Get(i int32) uint32 {\n\n    x := float64(i)\n\n    bm := sm.spansBitmap & bitmap.Mask[i>>4]\n    spanIdx := bits.OnesCount64(bm)\n\n    j := spanIdx * polyCoefCnt\n    p := sm.Polynomials\n    v := int64(p[j] + p[j+1]*x + p[j+2]*x*x)\n\n    config := sm.Configs[spanIdx]\n    deltaWidth := config & 0xff\n    offset := config >> 8\n\n    bitIdx := offset + int64(i)*deltaWidth\n\n    d := sm.Deltas[bitIdx>>6]\n    d = d >> uint(bitIdx&63)\n\n    return uint32(v + int64(d&bitmap.Mask[deltaWidth]))\n}\n```\n'),
             ('content', 'paragraph', 'formula in list:\n'),
-            ('content', 'list', "-   对奇数节点, n = 2k+1, 还是沿用 **多数派** 节点的集合, 大部分场合都可以很好的工作:\n\n    $$\n    Q_{odd}(C) = M(C) = \\{ q : q \\subseteq C,  |q| > |C|/2 \\}\n    $$\n\n-   对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,\n    我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,\n\n    以本文的场景为例,\n\n    -   可以设置 Q' = M(abcd) ∪ {ab, bc, ca}, Q'中任意2个元素都有交集;\n    -   也可以是 Q' = M(abcd) ∪ {bc, cd, bd};\n\n    要找到一个更好的偶节点的 quorum 集合, 一个方法是可以把偶数节点的集群看做是一个奇数节点集群加上一个节点x:\n    $$ D = C \\cup \\{x\\} $$\n\n    于是偶数节点的 quorum 集合就可以是 M(D) 的一个扩张:\n\n    $$\n    Q_{even}(D)_x = M(D) \\cup M(D \\setminus \\{x\\})\n    $$\n\n    当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么\n    Q' = M(abcd) ∪ {ab, bc, ca};\n"),
+            ('content', 'list_item', '-   对奇数节点, n = 2k+1, 还是沿用 **多数派** 节点的集合, 大部分场合都可以很好的工作:\n\n    $$\n    Q_{odd}(C) = M(C) = \\{ q : q \\subseteq C,  |q| > |C|/2 \\}\n    $$\n'),
+            ('content', 'list_item', "-   对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,\n    我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,\n\n    以本文的场景为例,\n\n    -   可以设置 Q' = M(abcd) ∪ {ab, bc, ca}, Q'中任意2个元素都有交集;\n    -   也可以是 Q' = M(abcd) ∪ {bc, cd, bd};\n\n    要找到一个更好的偶节点的 quorum 集合, 一个方法是可以把偶数节点的集群看做是一个奇数节点集群加上一个节点x:\n    $$ D = C \\cup \\{x\\} $$\n\n    于是偶数节点的 quorum 集合就可以是 M(D) 的一个扩张:\n\n    $$\n    Q_{even}(D)_x = M(D) \\cup M(D \\setminus \\{x\\})\n    $$\n\n    当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么\n    Q' = M(abcd) ∪ {ab, bc, ca};\n"),
+            ('content', 'new_line', ''),
             ('content', 'paragraph', 'table in list:\n'),
-            ('content', 'list', '-   链接列表:\n\n    | 源文件 | 转换后 | 导入后 |\n    | :-: | :-: | :-: |\n    | ![](assets/slim.jpg) | fo | bar |\n    | a | b | c |\n'),
-            ('ref_def', '[slim]: https://github.com/openacid/slim "slim"\n[slimarray]: https://github.com/openacid/slimarray "slimarray"'),
+            ('content', 'list_item', '-   链接列表:\n\n    | 源文件 | 转换后 | 导入后 |\n    | :-: | :-: | :-: |\n    | ![](assets/slim.jpg) | fo | bar |\n    | a | b | c |\n'),
+            ('content', 'new_line', ''),
+            ('ref_def', '', '[slim]: https://github.com/openacid/slim "slim"\n[slimarray]: https://github.com/openacid/slimarray "slimarray"'),
+        ]
+
+        self.assertEqual(want, got)
+
+    def test_chunks_list(self):
+        parser_config = md2zhihu.ParserConfig(False, [])
+        conf = md2zhihu.Config(
+            "foo.md", "null", "output_foo", "output_asset_dir",
+            md_output_path="output_md",
+        )
+
+        article = md2zhihu.Article(
+            parser_config,
+            conf,"""# 本文结构
+
+- 提出问题
+- 协议推导
+    - 定义 commit
+    - 定义 系统状态(State)
+- 协议描述
+- 工程实践
+- 成员变更
+- 使用 abstract-paxos 描述 paxos
+- 使用 abstract-paxos 描述 raft
+    ```rust
+    block();
+    ```
+""",
+        )
+
+        got = list(article.chunks())
+
+        want = [
+            ('content', 'heading', '# 本文结构\n'),
+            ('content', 'list_item', '-   提出问题\n'),
+            ('content', 'list_item', '-   协议推导\n    -   定义 commit\n    -   定义 系统状态(State)\n'),
+            ('content', 'list_item', '-   协议描述\n'),
+            ('content', 'list_item', '-   工程实践\n'),
+            ('content', 'list_item', '-   成员变更\n'),
+            ('content', 'list_item', '-   使用 abstract-paxos 描述 paxos\n'),
+            ('content', 'list_item', '-   使用 abstract-paxos 描述 raft\n    ```rust\n    block();\n    ```\n'),
+            ('content', 'new_line', ''),
+            ('ref_def', '', ''),
         ]
 
         self.assertEqual(want, got)
