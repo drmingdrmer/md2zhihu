@@ -731,14 +731,15 @@ def replace_ref_with_def(nodes, refs, do_replace: bool):
 
         if definition in refs:
 
+            r = refs[definition]
+            used_defs[definition] = r
+
             if do_replace:
                 n['type'] = 'link'
-                r = refs[definition]
                 #  TODO title
                 n['link'] = r.split()[0]
                 n['children'] = [{'type': 'text', 'text': txt}]
 
-            used_defs[definition] = r
 
     return used_defs
 
@@ -1375,7 +1376,6 @@ class Article(object):
         join_math_block(self.ast)
         self.ast = parse_math(self.ast)
 
-        # TODO: optional disable embed
         self.parse_embed()
 
     def parse_embed(self):
@@ -1447,6 +1447,31 @@ class Article(object):
 
         return children
 
+    def chunks(self):
+        """
+        yield str chunks of the markdown file.
+        """
+        if self.front_matter is not None:
+            yield "front_matter", '---\n' + self.front_matter.text + '\n---'
+
+        for node in self.ast:
+            mdr = MDRender(self.conf, features=self.conf.features)
+            root_node = {
+                'type': 'ROOT',
+                'children': [node],
+            }
+            output_lines = mdr.render(RenderNode(root_node))
+            yield "content", node['type'], "\n".join(output_lines)
+
+
+        ref_lines = [
+            '[{id}]: {d}'.format(
+                id=ref_id, d=self.used_refs[ref_id]
+            ) for ref_id in sorted(self.used_refs)
+        ]
+
+        yield "ref_def", '\n'.join(ref_lines)
+
     def render(self):
         mdr = MDRender(self.conf, features=self.conf.features)
 
@@ -1461,7 +1486,7 @@ class Article(object):
 
         output_lines.append('')
 
-        ref_list = render_ref_list(self.used_refs, self.conf.features)
+        ref_list = render_ref_list(self.used_refs, self.conf.platform)
         output_lines.extend(ref_list)
 
         output_lines.append('')

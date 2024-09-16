@@ -101,6 +101,65 @@ class TestMd2zhihu(unittest.TestCase):
             local = md2zhihu.LocalRepo(md_path, asset_path)
             self.assertEqual(want, local.path_pattern)
 
+
+    def test_chunks(self):
+        parser_config = md2zhihu.ParserConfig(False, [])
+        conf = md2zhihu.Config(
+            "foo.md", "null", "output_foo", "output_asset_dir",
+            md_output_path="output_md",
+        )
+
+        md_text = k3fs.fread(test_data + '/simple/src/simple.md')
+
+        article = md2zhihu.Article(
+            parser_config,
+            conf,
+            md_text,
+        )
+
+        for c in article.chunks():
+            print(c)
+
+        got = list(article.chunks())
+
+        want = [
+            ('front_matter', '---\nrefs:\n    - "slim":      https://github.com/openacid/slim "slim"\n    - "slimarray": https://github.com/openacid/slimarray "slimarray"\n    - "vlink": https://vlink "vlink"\n\nplatform_refs:\n    zhihu:\n        - "vlink": https://vlink.zhihu "vlink"\n---'),
+            ('content', 'newline', ''),
+            ('content', 'heading', '# 场景和问题\n'),
+            ('content', 'table', '|  | md源文件 | 导入知乎的效果 |\n| :-- | :-: | :-: |\n| 使用前 | a | c |\n| 转换后 | b | d |\n'),
+            ('content', 'block_code', '```mermaid\ngraph LR\n    A[Hard edge] -->|Link text| B(Round edge)\n    B --> C{Decision}\n    C -->|One| D[Result one]\n    C -->|Two| E[Result two]\n```\n'),
+            ('content', 'heading', '### graphviz\n'),
+            ('content', 'block_code', '```graphviz\ndigraph R {\nnode [shape=plaintext]\nrankdir=LR\nX0X0 [ label="0-0"]\nX0X0 -> X1X0 [ color="#aaaadd"]\nX0X0 -> X2X3 [ color="#aaaadd"]\n}\n```\n'),
+            ('content', 'paragraph', 'inline code: `foo = bar`\n'),
+            ('content', 'paragraph', 'inline math $$ ||X{\\vec {\\beta }}-Y||^{2} $$ foo\n'),
+            ('content', 'paragraph', 'inline math in codespan `$$ ||X{\\vec {\\beta }}-Y||^{2} $$`\n![](assets/slim.jpg)\n'),
+            ('content', 'paragraph', '在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,\n例如 [slim] 这个项目按天统计的 star 数:\n'),
+            ('content', 'paragraph', '![](assets/slim.jpg)\n![](/src/assets/slim.jpg)\n'),
+            ('content', 'paragraph', '我们可以利用数据分布的特点, 将整体数据的大小压缩到**几分之一**.\n'),
+            ('content', 'table', '| Data size | Data Set | gzip size | slimarry size | avg size | ratio |\n| --: | :-- | --: | :-- | --: | --: |\n| 1,000 | rand u32: [0, 1000] | x | 824 byte | 6 bit/elt | 18% |\n| 1,000,000 | rand u32: [0, 1000,000] | x | 702 KB | 5 bit/elt | 15% |\n| 1,000,000 | IPv4 DB | 2 MB | 2 MB | 16 bit/elt | 50% |\n| 600 | [slim][] star count | 602 byte | 832 byte | 10 bit/elt | 26% |\n'),
+            ('content', 'paragraph', '在达到gzip同等压缩率的前提下, 构建 slimarray 和 访问的性能也非常高:\n'),
+            ('content', 'list', '-   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n-   读取一个数组元素平均花费 7 ns/op.\n    -   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n    -   读取一个数组元素平均花费 `7 ns/op`.\n'),
+            ('content', 'block_quote', '> 在达到gzip同等压缩率的前提下, 构建 slimarray 和 访问的性能也非常高:\n> \n> -   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n> -   读取一个数组元素平均花费 7 ns/op.\n>     -   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n>     -   读取一个数组元素平均花费 `7 ns/op`.\n'),
+            ('content', 'newline', ''),
+            ('content', 'paragraph', '按照这种思路, **在给定数组中找到一条曲线来描述点的趋势,**\n**再用一个比较小的delta数组修正曲线到实际点的距离, 得到原始值, 就可以实现大幅度的数据压缩. 而且所有的数据都无需解压全部数据就直接读取任意一个.**\n'),
+            ('content', 'heading', '# 找到趋势函数\n'),
+            ('content', 'paragraph', '寻找这样一条曲线就使用线性回归,\n例如在 [slimarray] 中使用2次曲线 `f(x) = β₁ + β₂x + β₃x²`, 所要做的就是确定每个βᵢ的值,\n以使得`f(xⱼ) - yⱼ`的均方差最小. xⱼ是数组下标0, 1, 2...; yⱼ是数组中每个元素的值.\n'),
+            ('content', 'paragraph', '$$\nX = \\begin{bmatrix}\n1      & x_1    & x_1^2 \\\\\n1      & x_2    & x_2^2 \\\\\n\\vdots & \\vdots & \\vdots    \\\\\n1      & x_n    & x_n^2\n\\end{bmatrix}\n,\n\n\\vec{\\beta} =\n\\begin{bmatrix}\n\\beta_1 \\\\\n\\beta_2 \\\\\n\\beta_3 \\\\\n\\end{bmatrix}\n,\n\nY =\n\\begin{bmatrix}\ny_1 \\\\\ny_2 \\\\\n\\vdots \\\\\ny_n\n\\end{bmatrix}\n$$\n'),
+            ('content', 'paragraph', '`spanIndex = OnesCount(bitmap & (1<<(i/16) - 1))`\n'),
+            ('content', 'heading', '## 读取过程\n'),
+            ('content', 'paragraph', '读取过程通过找span, 读取span配置,还原原始数据几个步骤完成, 假设 slimarray 的对象是`sa`:\n'),
+            ('content', 'list', '-   通过下标`i` 得到 spanIndex: `spanIndex = OnesCount(sa.bitmap & (1<<(i/16) - 1))`;\n-   通过 spanIndex 得到多项式的3个系数: `[b₀, b₁, b₂] = sa.polynomials[spanIndex: spanIndex + 3]`;\n-   读取 delta 数组起始位置, 和 delta 数组中每个 delta 的 bit 宽度: `config=sa.configs[spanIndex]`;\n-   delta 的值保存在 delta 数组的`config.offset + i*config.width`的位置, 从这个位置读取`width`个 bit 得到 delta 的值.\n-   计算 `nums[i]` 的值: `b₀ + b₁*i + b₂*i²` 再加上 delta 的值.\n'),
+            ('content', 'paragraph', '简化的读取逻辑如下:\n'),
+            ('content', 'block_code', '```go\nfunc (sm *SlimArray) Get(i int32) uint32 {\n\n    x := float64(i)\n\n    bm := sm.spansBitmap & bitmap.Mask[i>>4]\n    spanIdx := bits.OnesCount64(bm)\n\n    j := spanIdx * polyCoefCnt\n    p := sm.Polynomials\n    v := int64(p[j] + p[j+1]*x + p[j+2]*x*x)\n\n    config := sm.Configs[spanIdx]\n    deltaWidth := config & 0xff\n    offset := config >> 8\n\n    bitIdx := offset + int64(i)*deltaWidth\n\n    d := sm.Deltas[bitIdx>>6]\n    d = d >> uint(bitIdx&63)\n\n    return uint32(v + int64(d&bitmap.Mask[deltaWidth]))\n}\n```\n'),
+            ('content', 'paragraph', 'formula in list:\n'),
+            ('content', 'list', "-   对奇数节点, n = 2k+1, 还是沿用 **多数派** 节点的集合, 大部分场合都可以很好的工作:\n\n    $$\n    Q_{odd}(C) = M(C) = \\{ q : q \\subseteq C,  |q| > |C|/2 \\}\n    $$\n\n-   对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,\n    我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,\n\n    以本文的场景为例,\n\n    -   可以设置 Q' = M(abcd) ∪ {ab, bc, ca}, Q'中任意2个元素都有交集;\n    -   也可以是 Q' = M(abcd) ∪ {bc, cd, bd};\n\n    要找到一个更好的偶节点的 quorum 集合, 一个方法是可以把偶数节点的集群看做是一个奇数节点集群加上一个节点x:\n    $$ D = C \\cup \\{x\\} $$\n\n    于是偶数节点的 quorum 集合就可以是 M(D) 的一个扩张:\n\n    $$\n    Q_{even}(D)_x = M(D) \\cup M(D \\setminus \\{x\\})\n    $$\n\n    当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么\n    Q' = M(abcd) ∪ {ab, bc, ca};\n"),
+            ('content', 'paragraph', 'table in list:\n'),
+            ('content', 'list', '-   链接列表:\n\n    | 源文件 | 转换后 | 导入后 |\n    | :-: | :-: | :-: |\n    | ![](assets/slim.jpg) | fo | bar |\n    | a | b | c |\n'),
+            ('ref_def', '[slim]: https://github.com/openacid/slim "slim"\n[slimarray]: https://github.com/openacid/slimarray "slimarray"'),
+        ]
+
+        self.assertEqual(want, got)
+
     def test_option_no_push(self):
 
         # - Without --repo, do not transform image url.
