@@ -1418,6 +1418,7 @@ class Article(object):
 
         self.ast = parse_in_list_tables(self.ast)
 
+        # TODO: optional disable replacing ref
         self.used_refs = replace_ref_with_def(self.ast, self.refs)
 
         # extract already inlined math
@@ -1427,6 +1428,7 @@ class Article(object):
         join_math_block(self.ast)
         self.ast = parse_math(self.ast)
 
+        # TODO: optional disable embed
         self.parse_embed()
 
     def parse_embed(self):
@@ -1435,7 +1437,6 @@ class Article(object):
         self.used_refs.update(used_refs)
 
     def render(self):
-
         mdr = MDRender(self.conf, features=self.conf.features)
 
         root_node = {
