@@ -991,6 +991,10 @@ importer_features = dict(
     image=save_image_to_asset_dir,
 )
 
+transparent_features = dict(
+    image=save_image_to_asset_dir,
+)
+
 simple_features = dict(
     image=save_image_to_asset_dir,
     math_block=math_block_to_jpg,
@@ -1097,6 +1101,7 @@ platform_feature_dict = {
     'weibo': weibo_features,
     'minimal_mistake': minimal_mistake_features,
     'simple': simple_features,
+    'transparent': transparent_features,
 }
 
 
@@ -1610,7 +1615,7 @@ def main():
     parser.add_argument('-p', '--platform', action='store',
                         required=False,
                         default='zhihu',
-                        choices=["zhihu", "github", "wechat", "weibo", "simple", "minimal_mistake"],
+                        choices=["zhihu", "github", "wechat", "weibo", "simple", "minimal_mistake", "transparent"],
                         help='R|Convert to a platform compatible format.'
                              '\n' '"simple" is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
                              '\n' 'Default: "zhihu"'

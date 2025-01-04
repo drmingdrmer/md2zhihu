@@ -478,6 +478,9 @@ class TestMd2zhihu(unittest.TestCase):
     def test_simple(self):
         self._test_platform('simple', ['-p', 'simple'])
 
+    def test_transparent(self):
+        self._test_platform_no_push('transparent', 'transparent.md', ['-p', 'transparent'])
+
     def _test_platform(self, platform_type, args):
 
         d = 'test/data/{}'.format(platform_type)
@@ -524,8 +527,11 @@ class TestMd2zhihu(unittest.TestCase):
         d = 'test/data/{}'.format(platform_type)
         got_dir = 'dst'
         want_dir = 'want'
-        got_asset_dir = 'dst/simple'
-        want_asset_dir = 'want/simple'
+
+        # Derive asset directory from filename (remove extension)
+        asset_name = fn.rsplit('.', 1)[0]
+        got_asset_dir = pjoin('dst', asset_name)
+        want_asset_dir = pjoin('want', asset_name)
 
         k3fs.remove(d, got_dir, onerror="ignore")
 
