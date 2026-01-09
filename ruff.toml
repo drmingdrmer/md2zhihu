@@ -1,0 +1,20 @@
+# Ruff configuration
+# See: https://docs.astral.sh/ruff/
+
+# Set line length to 127 (GitHub editor width)
+line-length = 127
+
+[lint]
+# Enable pycodestyle (E), pyflakes (F)
+select = ["E", "F"]
+ignore = [
+    "E501",  # Line too long - let formatter handle it
+]
+
+[lint.per-file-ignores]
+# Allow unused imports in __init__.py files (they are re-exports)
+"__init__.py" = ["F401"]
+
+[format]
+# Use double quotes for strings
+quote-style = "double"

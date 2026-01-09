@@ -12,13 +12,9 @@ def parse_def_list(block, m, state):
         if not line:
             continue
         if line.strip()[0] == ":":
-            definition_list_items.append(
-                {"type": "def_list_item", "text": line[1:].strip()}
-            )
+            definition_list_items.append({"type": "def_list_item", "text": line[1:].strip()})
         else:
-            definition_list_items.append(
-                {"type": "def_list_header", "text": line.strip()}
-            )
+            definition_list_items.append({"type": "def_list_header", "text": line.strip()})
     return {"type": "def_list", "children": definition_list_items}
 
 

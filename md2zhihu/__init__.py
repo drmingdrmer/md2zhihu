@@ -20,10 +20,12 @@ from k3fs import fread
 
 from .. import mistune
 
+
 class FrontMatter(object):
     """
     The font matter is the yaml enclosed between `---` at the top of a markdown.
     """
+
     def __init__(self, front_matter_text: str):
         self.text = front_matter_text
         self.data = yaml.safe_load(front_matter_text)
@@ -37,15 +39,15 @@ class FrontMatter(object):
         meta = self.data
 
         # Collect universal refs
-        if 'refs' in meta:
-            refs = meta['refs']
+        if "refs" in meta:
+            refs = meta["refs"]
 
             for r in refs:
                 dic.update(r)
 
         # Collect platform specific refs
-        if 'platform_refs' in meta:
-            refs = meta['platform_refs']
+        if "platform_refs" in meta:
+            refs = meta["platform_refs"]
             if platform in refs:
                 refs = refs[platform]
 
@@ -56,17 +58,17 @@ class FrontMatter(object):
 
 
 def sj(*args):
-    return ''.join([str(x) for x in args])
+    return "".join([str(x) for x in args])
 
 
 def msg(*args):
-    print('>', ''.join([str(x) for x in args]))
+    print(">", "".join([str(x) for x in args]))
 
 
 def indent(line):
-    if line == '':
-        return ''
-    return '    ' + line
+    if line == "":
+        return ""
+    return "    " + line
 
 
 def escape(s, quote=True):
@@ -80,25 +82,25 @@ def escape(s, quote=True):
 
 def add_paragraph_end(lines):
     #  add blank line to a paragraph block
-    if lines[-1] == '':
+    if lines[-1] == "":
         return lines
 
-    lines.append('')
+    lines.append("")
     return lines
 
 
 def strip_paragraph_end(lines):
     #  remove last blank lines
-    if lines[-1] == '':
+    if lines[-1] == "":
         return strip_paragraph_end(lines[:-1])
 
     return lines
 
 
 def code_join(n):
-    lang = n['info'] or ''
-    lines = n['text'][:-1].split('\n')
-    txt = '\n'.join(['```' + lang] + lines + ['```', ''])
+    lang = n["info"] or ""
+    lines = n["text"][:-1].split("\n")
+    txt = "\n".join(["```" + lang] + lines + ["```", ""])
     return txt
 
 
@@ -111,7 +113,7 @@ def block_code_to_jpg(mdrender, rnode, width=None):
     if w is None:
         w = mdrender.conf.code_width
 
-    return typ_text_to_jpg(mdrender, 'code', txt, opt={'html': {'width': w}})
+    return typ_text_to_jpg(mdrender, "code", txt, opt={"html": {"width": w}})
 
 
 def block_code_to_fixwidth_jpg(mdrender, rnode):
@@ -120,33 +122,33 @@ def block_code_to_fixwidth_jpg(mdrender, rnode):
 
 def block_code_mermaid_to_jpg(mdrender, rnode):
     n = rnode.node
-    return typ_text_to_jpg(mdrender, 'mermaid', n['text'])
+    return typ_text_to_jpg(mdrender, "mermaid", n["text"])
 
 
 def block_code_graphviz_to_jpg(mdrender, rnode):
     n = rnode.node
-    return typ_text_to_jpg(mdrender, 'graphviz', n['text'])
+    return typ_text_to_jpg(mdrender, "graphviz", n["text"])
 
 
 def typ_text_to_jpg(mdrender, typ, txt, opt=None):
-    d = k3down2.convert(typ, txt, 'jpg', opt=opt)
-    fn = asset_fn(txt, 'jpg')
+    d = k3down2.convert(typ, txt, "jpg", opt=opt)
+    fn = asset_fn(txt, "jpg")
     fwrite(mdrender.conf.asset_output_dir, fn, d)
 
-    return [r'![]({})'.format(mdrender.conf.img_url(fn)), '']
+    return [r"![]({})".format(mdrender.conf.img_url(fn)), ""]
 
 
 def math_block_to_imgtag(mdrender, rnode):
     n = rnode.node
-    return [k3down2.convert('tex_block', n['text'], 'imgtag')]
+    return [k3down2.convert("tex_block", n["text"], "imgtag")]
 
 
 def math_inline_to_imgtag(mdrender, rnode):
     n = rnode.node
-    return [k3down2.convert('tex_inline', n['text'], 'imgtag')]
+    return [k3down2.convert("tex_inline", n["text"], "imgtag")]
+
 
 def math_block_join_dolar_when_nested(mdrender, rnode):
-
     n = rnode.node
 
     # If it is not a top level paragraph, convert block math to one-line math.
@@ -155,33 +157,34 @@ def math_block_join_dolar_when_nested(mdrender, rnode):
     # ROOT -> paragraph -> math_block
     # 0       1            2
     if rnode.level > 2:
-        return ['$$' + n['text'].strip() + '$$']
+        return ["$$" + n["text"].strip() + "$$"]
 
-    return ['$$', n['text'], '$$']
+    return ["$$", n["text"], "$$"]
+
 
 def math_inline_single_dolar(mdrender, rnode):
     n = rnode.node
-    return ['$' + n['text'].strip() + '$']
+    return ["$" + n["text"].strip() + "$"]
 
 
 def math_block_to_jpg(mdrender, rnode):
     n = rnode.node
-    return typ_text_to_jpg(mdrender, 'tex_block', n['text'])
+    return typ_text_to_jpg(mdrender, "tex_block", n["text"])
 
 
 def math_inline_to_jpg(mdrender, rnode):
     n = rnode.node
-    return typ_text_to_jpg(mdrender, 'tex_inline', n['text'])
+    return typ_text_to_jpg(mdrender, "tex_inline", n["text"])
 
 
 def math_inline_to_plaintext(mdrender, rnode):
     n = rnode.node
-    return [escape(k3down2.convert('tex_inline', n['text'], 'plain'))]
+    return [escape(k3down2.convert("tex_inline", n["text"], "plain"))]
 
 
 def to_plaintext(mdrender, rnode):
     n = rnode.node
-    return [escape(n['text'])]
+    return [escape(n["text"])]
 
 
 def table_to_barehtml(mdrender, rnode) -> List[str]:
@@ -189,10 +192,10 @@ def table_to_barehtml(mdrender, rnode) -> List[str]:
     mdr = MDRender(mdrender.conf, features=importer_features)
 
     md = mdr.render_node(rnode)
-    md = '\n'.join(md)
+    md = "\n".join(md)
 
-    table_html = k3down2.convert('table', md, 'html')
-    table_html = table_html.split("\n") + ['']
+    table_html = k3down2.convert("table", md, "html")
+    table_html = table_html.split("\n") + [""]
     return table_html
 
 
@@ -200,62 +203,69 @@ def table_to_jpg(mdrender, rnode):
     mdr = MDRender(mdrender.conf, features={})
 
     md = mdr.render_node(rnode)
-    md = '\n'.join(md)
+    md = "\n".join(md)
 
     md_base_path = os.path.split(mdrender.conf.src_path)[0]
 
-    return typ_text_to_jpg(mdrender, 'md', md, opt={'html': {
-        'asset_base': os.path.abspath(md_base_path),
-    }})
+    return typ_text_to_jpg(
+        mdrender,
+        "md",
+        md,
+        opt={
+            "html": {
+                "asset_base": os.path.abspath(md_base_path),
+            }
+        },
+    )
 
 
 def weibo_specific(mdrender, rnode) -> Optional[List[str]]:
     n = rnode.node
 
-    typ = n['type']
+    typ = n["type"]
 
-    if typ == 'image':
+    if typ == "image":
         return save_image_to_asset_dir(mdrender, rnode)
 
-    if typ == 'math_block':
+    if typ == "math_block":
         return math_block_to_imgtag(mdrender, rnode)
 
-    if typ == 'math_inline':
+    if typ == "math_inline":
         return math_inline_to_plaintext(mdrender, rnode)
 
-    if typ == 'table':
+    if typ == "table":
         return table_to_jpg(mdrender, rnode)
 
-    if typ == 'codespan':
-        return [escape(n['text'])]
+    if typ == "codespan":
+        return [escape(n["text"])]
 
     #  weibo does not support pasting <p> in <li>
 
-    if typ == 'list':
+    if typ == "list":
         lines = []
         lines.extend(mdrender.render(rnode))
-        lines.append('')
+        lines.append("")
         return lines
 
-    if typ == 'list_item':
+    if typ == "list_item":
         lines = []
         lines.extend(mdrender.render(rnode))
-        lines.append('')
+        lines.append("")
         return lines
 
-    if typ == 'block_quote':
+    if typ == "block_quote":
         lines = mdrender.render(rnode)
         lines = strip_paragraph_end(lines)
         return lines
 
-    if typ == 'block_code':
-        lang = n['info'] or ''
-        if lang == 'mermaid':
+    if typ == "block_code":
+        lang = n["info"] or ""
+        if lang == "mermaid":
             return block_code_mermaid_to_jpg(mdrender, rnode)
-        if lang == 'graphviz':
+        if lang == "graphviz":
             return block_code_graphviz_to_jpg(mdrender, rnode)
 
-        if lang == '':
+        if lang == "":
             return block_code_to_jpg(mdrender, rnode)
         else:
             return block_code_to_jpg(mdrender, rnode, width=600)
@@ -279,7 +289,7 @@ class MDRender(object):
         """
 
         n = rnode.node
-        typ = n['type']
+        typ = n["type"]
 
         #  customized renderers:
 
@@ -292,140 +302,140 @@ class MDRender(object):
 
         # default renderers:
 
-        if typ == 'thematic_break':
-            return ['---', '']
+        if typ == "thematic_break":
+            return ["---", ""]
 
-        if typ == 'paragraph':
+        if typ == "paragraph":
             lines = self.render(rnode)
-            return ''.join(lines).split('\n') + ['']
+            return "".join(lines).split("\n") + [""]
 
-        if typ == 'text':
-            return [n['text']]
+        if typ == "text":
+            return [n["text"]]
 
-        if typ == 'strong':
+        if typ == "strong":
             lines = self.render(rnode)
-            lines[0] = '**' + lines[0]
-            lines[-1] = lines[-1] + '**'
+            lines[0] = "**" + lines[0]
+            lines[-1] = lines[-1] + "**"
             return lines
 
-        if typ == 'math_block':
-            return ['$$', n['text'], '$$']
+        if typ == "math_block":
+            return ["$$", n["text"], "$$"]
 
-        if typ == 'math_inline':
-            return ['$$ ' + n['text'].strip() + ' $$']
+        if typ == "math_inline":
+            return ["$$ " + n["text"].strip() + " $$"]
 
-        if typ == 'table':
-            return self.render(rnode) + ['']
+        if typ == "table":
+            return self.render(rnode) + [""]
 
-        if typ == 'table_head':
+        if typ == "table_head":
             alignmap = {
-                'left': ':--',
-                'right': '--:',
-                'center': ':-:',
-                None: '---',
+                "left": ":--",
+                "right": "--:",
+                "center": ":-:",
+                None: "---",
             }
             lines = self.render(rnode)
-            aligns = [alignmap[x['align']] for x in n['children']]
-            aligns = '| ' + ' | '.join(aligns) + ' |'
-            return ['| ' + ' | '.join(lines) + ' |', aligns]
+            aligns = [alignmap[x["align"]] for x in n["children"]]
+            aligns = "| " + " | ".join(aligns) + " |"
+            return ["| " + " | ".join(lines) + " |", aligns]
 
-        if typ == 'table_cell':
+        if typ == "table_cell":
             lines = self.render(rnode)
-            return [''.join(lines)]
+            return ["".join(lines)]
 
-        if typ == 'table_body':
+        if typ == "table_body":
             return self.render(rnode)
 
-        if typ == 'table_row':
+        if typ == "table_row":
             lines = self.render(rnode)
-            return ['| ' + ' | '.join(lines) + ' |']
+            return ["| " + " | ".join(lines) + " |"]
 
-        if typ == 'block_code':
+        if typ == "block_code":
             # remove the last \n
-            return ['```' + (n['info'] or '')] + n['text'][:-1].split('\n') + ['```', '']
+            return ["```" + (n["info"] or "")] + n["text"][:-1].split("\n") + ["```", ""]
 
-        if typ == 'codespan':
-            return [('`' + n['text'] + '`')]
+        if typ == "codespan":
+            return [("`" + n["text"] + "`")]
 
-        if typ == 'image':
-            if n['title'] is None:
-                return ['![{alt}]({src})'.format(**n)]
+        if typ == "image":
+            if n["title"] is None:
+                return ["![{alt}]({src})".format(**n)]
             else:
-                return ['![{alt}]({src} {title})'.format(**n)]
+                return ["![{alt}]({src} {title})".format(**n)]
 
-        if typ == 'list':
+        if typ == "list":
             lines = self.render(rnode)
             return add_paragraph_end(lines)
 
-        if typ == 'list_item':
+        if typ == "list_item":
             lines = self.render(rnode)
 
             # parent is a `list` node
             parent = rnode.parent
-            assert parent.node['type'] == 'list'
+            assert parent.node["type"] == "list"
 
-            head = '-   '
-            if parent.node['ordered']:
-                head = '1.  '
+            head = "-   "
+            if parent.node["ordered"]:
+                head = "1.  "
 
             lines[0] = head + lines[0]
             lines = lines[0:1] + [indent(x) for x in lines[1:]]
             return lines
 
-        if typ == 'block_text':
+        if typ == "block_text":
             lines = self.render(rnode)
-            return ''.join(lines).split('\n')
+            return "".join(lines).split("\n")
 
-        if typ == 'block_quote':
+        if typ == "block_quote":
             lines = self.render(rnode)
             lines = strip_paragraph_end(lines)
-            lines = ['> ' + x for x in lines]
-            return lines + ['']
+            lines = ["> " + x for x in lines]
+            return lines + [""]
 
-        if typ == 'newline':
-            return ['']
+        if typ == "newline":
+            return [""]
 
-        if typ == 'block_html':
-            return add_paragraph_end([n['text']])
+        if typ == "block_html":
+            return add_paragraph_end([n["text"]])
 
-        if typ == 'link':
+        if typ == "link":
             #  TODO title
             lines = self.render(rnode)
-            lines[0] = '[' + lines[0]
-            lines[-1] = lines[-1] + '](' + n['link'] + ')'
+            lines[0] = "[" + lines[0]
+            lines[-1] = lines[-1] + "](" + n["link"] + ")"
 
             return lines
 
-        if typ == 'heading':
+        if typ == "heading":
             lines = self.render(rnode)
-            lines[0] = '#' * n['level'] + ' ' + lines[0]
-            return lines + ['']
+            lines[0] = "#" * n["level"] + " " + lines[0]
+            return lines + [""]
 
-        if typ == 'strikethrough':
+        if typ == "strikethrough":
             lines = self.render(rnode)
-            lines[0] = '~~' + lines[0]
-            lines[-1] = lines[-1] + '~~'
+            lines[0] = "~~" + lines[0]
+            lines[-1] = lines[-1] + "~~"
             return lines
 
-        if typ == 'emphasis':
+        if typ == "emphasis":
             lines = self.render(rnode)
-            lines[0] = '*' + lines[0]
-            lines[-1] = lines[-1] + '*'
+            lines[0] = "*" + lines[0]
+            lines[-1] = lines[-1] + "*"
             return lines
 
-        if typ == 'inline_html':
-            return [n['text']]
+        if typ == "inline_html":
+            return [n["text"]]
 
-        if typ == 'linebreak':
+        if typ == "linebreak":
             return ["  \n"]
 
         print(typ, n.keys())
         pprint.pprint(n)
-        return ['***:' + typ]
+        return ["***:" + typ]
 
     def render(self, rnode) -> List[str]:
         rst = []
-        for n in rnode.node['children']:
+        for n in rnode.node["children"]:
             child = rnode.new_child(n)
             lines = self.render_node(child)
             rst.extend(lines)
@@ -444,8 +454,8 @@ def parse_in_list_tables(nodes) -> List[dict]:
 
     rst = []
     for n in nodes:
-        if 'children' in n:
-            n['children'] = parse_in_list_tables(n['children'])
+        if "children" in n:
+            n["children"] = parse_in_list_tables(n["children"])
 
         nodes = convert_paragraph_table(n)
         rst.extend(nodes)
@@ -460,27 +470,27 @@ def convert_paragraph_table(node: dict) -> List[dict]:
     :return List[dict]: a list of ast nodes.
     """
 
-    if node['type'] != 'paragraph':
+    if node["type"] != "paragraph":
         return [node]
 
-    children = node['children']
+    children = node["children"]
 
     if len(children) == 0:
         return [node]
 
     c0 = children[0]
-    if c0['type'] != 'text':
+    if c0["type"] != "text":
         return [node]
 
-    txt = c0['text']
+    txt = c0["text"]
 
-    table_reg = r' {0,3}\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*'
+    table_reg = r" {0,3}\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*"
 
     match = re.match(table_reg, txt)
     if match:
         mdr = MDRender(None, features={})
         partialmd = mdr.render(RenderNode(node))
-        partialmd = ''.join(partialmd)
+        partialmd = "".join(partialmd)
 
         parser = new_parser()
         new_children = parser(partialmd)
@@ -504,9 +514,8 @@ def join_math_block(nodes):
     """
 
     for n in nodes:
-
-        if 'children' in n:
-            join_math_block(n['children'])
+        if "children" in n:
+            join_math_block(n["children"])
 
     join_math_text(nodes)
 
@@ -520,11 +529,10 @@ def parse_math(nodes):
     children = []
 
     for n in nodes:
+        if "children" in n:
+            n["children"] = parse_math(n["children"])
 
-        if 'children' in n:
-            n['children'] = parse_math(n['children'])
-
-        if n['type'] == 'text':
+        if n["type"] == "text":
             new_children = extract_math(n)
             children.extend(new_children)
         else:
@@ -534,18 +542,16 @@ def parse_math(nodes):
 
 
 def rebase_url_in_ast(frm, to, nodes):
-
     for n in nodes:
+        if "children" in n:
+            rebase_url_in_ast(frm, to, n["children"])
 
-        if 'children' in n:
-            rebase_url_in_ast(frm, to, n['children'])
-
-        if n['type'] == 'image':
-            n['src'] = rebase_url(frm, to, n['src'])
+        if n["type"] == "image":
+            n["src"] = rebase_url(frm, to, n["src"])
             continue
 
-        if n['type'] == 'link':
-            n['link'] = rebase_url(frm, to, n['link'])
+        if n["type"] == "link":
+            n["link"] = rebase_url(frm, to, n["link"])
             continue
 
 
@@ -556,7 +562,7 @@ def rebase_url(frm, to, src):
     if re.match(r"http[s]?://", src):
         return src
 
-    if src.startswith('/'):
+    if src.startswith("/"):
         return src
 
     p = os.path.join(frm, src)
@@ -579,17 +585,18 @@ def join_math_text(nodes):
     while i < len(nodes) - 1:
         n1 = nodes[i]
         n2 = nodes[i + 1]
-        if ('children' in n1
-                and 'children' in n2
-                and len(n1['children']) > 0
-                and len(n2['children']) > 0
-                and n1['children'][-1]['type'] == 'text'
-                and n2['children'][0]['type'] == 'text'
-                and '$$' in n1['children'][-1]['text']):
-
-            has_dd = '$$' in n2['children'][0]['text']
-            n1['children'][-1]['text'] += '\n\n' + n2['children'][0]['text']
-            n1['children'].extend(n2['children'][1:])
+        if (
+            "children" in n1
+            and "children" in n2
+            and len(n1["children"]) > 0
+            and len(n2["children"]) > 0
+            and n1["children"][-1]["type"] == "text"
+            and n2["children"][0]["type"] == "text"
+            and "$$" in n1["children"][-1]["text"]
+        ):
+            has_dd = "$$" in n2["children"][0]["text"]
+            n1["children"][-1]["text"] += "\n\n" + n2["children"][0]["text"]
+            n1["children"].extend(n2["children"][1:])
 
             nodes.pop(i + 1)
 
@@ -609,31 +616,31 @@ def extract_math(n):
     """
     children = []
 
-    math_regex = r'([$]|[$][$])([^$].*?)\1'
+    math_regex = r"([$]|[$][$])([^$].*?)\1"
 
-    t = n['text']
+    t = n["text"]
     while True:
         match = re.search(math_regex, t, flags=re.DOTALL)
         if match:
-            children.append({'type': 'text', 'text': t[:match.start()]})
-            children.append({'type': 'math_inline', 'text': match.groups()[1]})
-            t = t[match.end():]
+            children.append({"type": "text", "text": t[: match.start()]})
+            children.append({"type": "math_inline", "text": match.groups()[1]})
+            t = t[match.end() :]
 
-            left = children[-2]['text']
+            left = children[-2]["text"]
             right = t
-            if (left == '' or left.endswith('\n\n')) and (right == '' or right.startswith('\n')):
-                children[-1]['type'] = 'math_block'
+            if (left == "" or left.endswith("\n\n")) and (right == "" or right.startswith("\n")):
+                children[-1]["type"] = "math_block"
             continue
 
         break
-    children.append({'type': 'text', 'text': t})
+    children.append({"type": "text", "text": t})
     return children
 
 
 def asset_fn(text, suffix):
     textmd5 = hashlib.md5(to_bytes(text)).hexdigest()
-    escaped = re.sub(r'[^a-zA-Z0-9_\-=]+', '', text)
-    fn = escaped[:32] + '-' + textmd5[:16] + '.' + suffix
+    escaped = re.sub(r"[^a-zA-Z0-9_\-=]+", "", text)
+    fn = escaped[:32] + "-" + textmd5[:16] + "." + suffix
     return fn
 
 
@@ -645,30 +652,29 @@ def save_image_to_asset_dir(mdrender, rnode):
 
     n = rnode.node
 
-    src = n['src']
-    if re.match(r'https?://', src):
+    src = n["src"]
+    if re.match(r"https?://", src):
         if not mdrender.conf.download:
             return None
 
-        fn = src.split('/')[-1].split('#')[0].split('?')[0]
+        fn = src.split("/")[-1].split("#")[0].split("?")[0]
 
         content_md5 = hashlib.md5(to_bytes(src)).hexdigest()
         content_md5 = content_md5[:16]
-        fn = content_md5 + '-' + fn
+        fn = content_md5 + "-" + fn
 
         target = pjoin(mdrender.conf.asset_output_dir, fn)
 
         if not os.path.exists(target):
-
             http = urllib3.PoolManager()
-            r = http.request('GET', src)
+            r = http.request("GET", src)
             if r.status != 200:
                 raise Exception("Failure to download:", src)
 
-            with open(target, 'wb') as f:
+            with open(target, "wb") as f:
                 f.write(r.data)
 
-        n['src'] = mdrender.conf.img_url(fn)
+        n["src"] = mdrender.conf.img_url(fn)
 
         return None
 
@@ -676,17 +682,17 @@ def save_image_to_asset_dir(mdrender, rnode):
 
     fn = os.path.split(src)[1]
 
-    with open(src, 'rb') as f:
+    with open(src, "rb") as f:
         content = f.read()
 
     content_md5 = hashlib.md5(content).hexdigest()
     content_md5 = content_md5[:16]
-    fn = content_md5 + '-' + fn
+    fn = content_md5 + "-" + fn
 
     target = pjoin(mdrender.conf.asset_output_dir, fn)
     shutil.copyfile(src, target)
 
-    n['src'] = mdrender.conf.img_url(fn)
+    n["src"] = mdrender.conf.img_url(fn)
 
     # Transform ast node but does not render, leave the task to default image
     # renderer.
@@ -706,16 +712,15 @@ def replace_ref_with_def(nodes, refs, do_replace: bool):
     used_defs = {}
 
     for n in nodes:
-
-        if 'children' in n:
-            used = replace_ref_with_def(n['children'], refs, do_replace)
+        if "children" in n:
+            used = replace_ref_with_def(n["children"], refs, do_replace)
             used_defs.update(used)
 
-        if n['type'] != 'text':
+        if n["type"] != "text":
             continue
 
-        t = n['text']
-        link = re.match(r'^\[(.*?)\](\[([^\]]*?)\])?$', t)
+        t = n["text"]
+        link = re.match(r"^\[(.*?)\](\[([^\]]*?)\])?$", t)
         if not link:
             continue
 
@@ -724,20 +729,18 @@ def replace_ref_with_def(nodes, refs, do_replace: bool):
         if len(gs) >= 3:
             definition = gs[2]
 
-        if definition is None or definition == '':
+        if definition is None or definition == "":
             definition = txt
 
         if definition in refs:
-
             r = refs[definition]
             used_defs[definition] = r
 
             if do_replace:
-                n['type'] = 'link'
+                n["type"] = "link"
                 #  TODO title
-                n['link'] = r.split()[0]
-                n['children'] = [{'type': 'text', 'text': txt}]
-
+                n["link"] = r.split()[0]
+                n["children"] = [{"type": "text", "text": txt}]
 
     return used_defs
 
@@ -745,33 +748,32 @@ def replace_ref_with_def(nodes, refs, do_replace: bool):
 def new_parser():
     rdr = mistune.create_markdown(
         escape=False,
-        renderer='ast',
-        plugins=['strikethrough', 'footnotes', 'table'],
+        renderer="ast",
+        plugins=["strikethrough", "footnotes", "table"],
     )
 
     return rdr
 
 
 def extract_ref_definitions(cont):
-    lines = cont.split('\n')
+    lines = cont.split("\n")
     rst = []
     refs = {}
-    for l in lines:
-        r = re.match(r'\[(.*?)\]:(.*?)$', l, flags=re.UNICODE)
+    for line in lines:
+        r = re.match(r"\[(.*?)\]:(.*?)$", line, flags=re.UNICODE)
         if r:
             gs = r.groups()
             refs[gs[0]] = gs[1]
         else:
-            rst.append(l)
-    return '\n'.join(rst), refs
+            rst.append(line)
+    return "\n".join(rst), refs
 
 
 def extract_front_matter(cont):
     meta = None
-    m = re.match(r'^ *--- *\n(.*?)\n---\n', cont,
-                 flags=re.DOTALL | re.UNICODE)
+    m = re.match(r"^ *--- *\n(.*?)\n---\n", cont, flags=re.DOTALL | re.UNICODE)
     if m:
-        cont = cont[m.end():]
+        cont = cont[m.end() :]
         meta_text = m.groups()[0].strip()
         meta = FrontMatter(meta_text)
 
@@ -781,7 +783,6 @@ def extract_front_matter(cont):
 def render_ref_list(refs, platform):
     ref_lines = ["", "Reference:", ""]
     for ref_id in sorted(refs):
-
         #  url_and_alt is in form "<url> <alt>"
         url_alt = refs[ref_id].split()
         url = url_alt[0]
@@ -789,19 +790,15 @@ def render_ref_list(refs, platform):
         if len(url_alt) == 1:
             txt = ref_id
         else:
-            txt = ' '.join(url_alt[1:])
+            txt = " ".join(url_alt[1:])
             txt = txt.strip('"')
             txt = txt.strip("'")
 
-        ref_lines.append(
-            '- {id} : [{url}]({url})'.format(
-                id=txt, url=url
-            )
-        )
+        ref_lines.append("- {id} : [{url}]({url})".format(id=txt, url=url))
 
         #  disable paragraph list in weibo
-        if platform != 'weibo':
-            ref_lines.append('')
+        if platform != "weibo":
+            ref_lines.append("")
 
     return ref_lines
 
@@ -809,7 +806,7 @@ def render_ref_list(refs, platform):
 def fwrite(*p):
     cont = p[-1]
     p = p[:-1]
-    with open(os.path.join(*p), 'wb') as f:
+    with open(os.path.join(*p), "wb") as f:
         f.write(cont)
 
 
@@ -817,6 +814,7 @@ class RenderNode(object):
     """
     RenderNode is a container of current ast-node and parent
     """
+
     def __init__(self, n, parent=None):
         """
         :param n: ast node: a normal dictionary such as {'type': 'text' ... }
@@ -835,7 +833,7 @@ class RenderNode(object):
         return c
 
     def to_str(self):
-        t = "{}".format(self.node.get('type'))
+        t = "{}".format(self.node.get("type"))
         if self.parent is None:
             return t
 
@@ -850,10 +848,13 @@ class LocalRepo(object):
 
     def __init__(self, md_path, asset_dir_path):
         md_base = os.path.split(md_path)[0]
-        rel = os.path.relpath(asset_dir_path, start=md_base, )
-        if rel == '.':
-            rel = ''
-        self.path_pattern = pjoin(rel, '{path}')
+        rel = os.path.relpath(
+            asset_dir_path,
+            start=md_base,
+        )
+        if rel == ".":
+            rel = ""
+        self.path_pattern = pjoin(rel, "{path}")
 
 
 class AssetRepo(object):
@@ -869,29 +870,27 @@ class AssetRepo(object):
         gu = k3git.GitUrl.parse(repo_url)
         f = gu.fields
 
-        if (f['scheme'] == 'https'
-                and 'committer' in f
-                and 'token' in f):
-            url = gu.fmt(scheme='https')
+        if f["scheme"] == "https" and "committer" in f and "token" in f:
+            url = gu.fmt(scheme="https")
         else:
-            url = gu.fmt(scheme='ssh')
+            url = gu.fmt(scheme="ssh")
 
         host, user, repo, branch = (
-            f.get('host'),
-            f.get('user'),
-            f.get('repo'),
-            f.get('branch'),
+            f.get("host"),
+            f.get("user"),
+            f.get("repo"),
+            f.get("branch"),
         )
 
         self.url = url
 
         url_patterns = {
-            'github.com': 'https://raw.githubusercontent.com/{user}/{repo}/{branch}/{path}',
-            'gitee.com': 'https://gitee.com/{user}/{repo}/raw/{branch}/{path}',
+            "github.com": "https://raw.githubusercontent.com/{user}/{repo}/{branch}/{path}",
+            "gitee.com": "https://gitee.com/{user}/{repo}/raw/{branch}/{path}",
         }
 
         cdn_patterns = {
-            'github.com': 'https://cdn.jsdelivr.net/gh/{user}/{repo}@{branch}/{path}',
+            "github.com": "https://cdn.jsdelivr.net/gh/{user}/{repo}@{branch}/{path}",
         }
 
         if branch is None:
@@ -906,14 +905,10 @@ class AssetRepo(object):
         self.branch = branch
 
         ptn = url_patterns[host]
-        if self.cdn and host == 'github.com':
+        if self.cdn and host == "github.com":
             ptn = cdn_patterns[host]
 
-        self.path_pattern = ptn.format(
-            user=user,
-            repo=repo,
-            branch=branch,
-            path='{path}')
+        self.path_pattern = ptn.format(user=user, repo=repo, branch=branch, path="{path}")
 
     def parse_shortcut_repo_url(self, repo_url):
         """
@@ -926,59 +921,55 @@ class AssetRepo(object):
 
         """
 
-        elts = repo_url.split('@', 1)
+        elts = repo_url.split("@", 1)
         first = elts.pop(0)
-        g = k3git.Git(k3git.GitOpt(), cwd='.')
+        g = k3git.Git(k3git.GitOpt(), cwd=".")
 
         is_shortcut = False
 
         # ".": use cwd git
         # ".@foo_branch": use cwd git and specified branch
-        if first == '.':
+        if first == ".":
             msg("Using current git to store assets...")
 
             u = self.get_remote_url()
             is_shortcut = True
 
         elif g.remote_get(first) is not None:
-
             msg("Using current git remote: {} to store assets...".format(first))
             u = self.get_remote_url(first)
             is_shortcut = True
 
         if is_shortcut:
-
             if len(elts) > 0:
-                u += '@' + elts[0]
+                u += "@" + elts[0]
             msg("Parsed shortcut {} to {}".format(repo_url, u))
             repo_url = u
 
         return repo_url
 
     def get_remote_url(self, remote=None):
-
-        g = k3git.Git(k3git.GitOpt(), cwd='.')
+        g = k3git.Git(k3git.GitOpt(), cwd=".")
 
         if remote is None:
-            branch = g.head_branch(flag='x')
-            remote = g.branch_default_remote(branch, flag='n')
+            branch = g.head_branch(flag="x")
+            remote = g.branch_default_remote(branch, flag="n")
             if remote is None:
                 # `branch` has no remote configured.
                 remote = g.cmdf("remote", flag="xo")[0]
 
-        remote_url = g.remote_get(remote, flag='x')
+        remote_url = g.remote_get(remote, flag="x")
         return remote_url
 
     def make_default_branch(self):
-
         cwd = os.getcwd().split(os.path.sep)
         cwdmd5 = hashlib.md5(to_bytes(os.getcwd())).hexdigest()
-        branch = '_md2zhihu_{tail}_{md5}'.format(
+        branch = "_md2zhihu_{tail}_{md5}".format(
             tail=cwd[-1],
             md5=cwdmd5[:8],
         )
         # escape special chars
-        branch = re.sub(r'[^a-zA-Z0-9_\-=]+', '', branch)
+        branch = re.sub(r"[^a-zA-Z0-9_\-=]+", "", branch)
 
         return branch
 
@@ -1003,15 +994,14 @@ simple_features = dict(
     block_code=dict(
         mermaid=block_code_mermaid_to_jpg,
         graphviz=block_code_graphviz_to_jpg,
-        **{"": block_code_to_jpg,
-           "*": block_code_to_fixwidth_jpg,
-           },
-    )
+        **{
+            "": block_code_to_jpg,
+            "*": block_code_to_fixwidth_jpg,
+        },
+    ),
 )
 
-weibo_features = {
-    "*": weibo_specific
-}
+weibo_features = {"*": weibo_specific}
 
 
 wechat_features = dict(
@@ -1022,10 +1012,11 @@ wechat_features = dict(
     block_code=dict(
         mermaid=block_code_mermaid_to_jpg,
         graphviz=block_code_graphviz_to_jpg,
-        **{"": block_code_to_jpg,
-           "*": block_code_to_fixwidth_jpg,
-           },
-    )
+        **{
+            "": block_code_to_jpg,
+            "*": block_code_to_fixwidth_jpg,
+        },
+    ),
 )
 
 zhihu_features = dict(
@@ -1036,7 +1027,7 @@ zhihu_features = dict(
     block_code=dict(
         mermaid=block_code_mermaid_to_jpg,
         graphviz=block_code_graphviz_to_jpg,
-    )
+    ),
 )
 
 #  Display markdown in github.com
@@ -1050,7 +1041,7 @@ github_features = dict(
     math_inline=math_inline_single_dolar,
     block_code=dict(
         graphviz=block_code_graphviz_to_jpg,
-    )
+    ),
 )
 
 #  jekyll theme: minimal mistake
@@ -1059,13 +1050,15 @@ minimal_mistake_features = dict(
     block_code=dict(
         mermaid=block_code_mermaid_to_jpg,
         graphviz=block_code_graphviz_to_jpg,
-    )
+    ),
 )
 
 # type, subtype... action
 #
 all_features = dict(
-    image=dict(local_to_remote=save_image_to_asset_dir, ),
+    image=dict(
+        local_to_remote=save_image_to_asset_dir,
+    ),
     math_block=dict(
         to_imgtag=math_block_to_imgtag,
         to_jpg=math_block_to_jpg,
@@ -1087,20 +1080,21 @@ all_features = dict(
         mermaid=dict(
             to_jpg=block_code_mermaid_to_jpg,
         ),
-        **{"": dict(to_jpg=block_code_to_jpg),
-           "*": dict(to_jpg=block_code_to_fixwidth_jpg),
-           },
-    )
+        **{
+            "": dict(to_jpg=block_code_to_jpg),
+            "*": dict(to_jpg=block_code_to_fixwidth_jpg),
+        },
+    ),
 )
 
 platform_feature_dict = {
-    'zhihu': zhihu_features,
-    'github': github_features,
-    'wechat': wechat_features,
-    'weibo': weibo_features,
-    'minimal_mistake': minimal_mistake_features,
-    'simple': simple_features,
-    'transparent': transparent_features,
+    "zhihu": zhihu_features,
+    "github": github_features,
+    "wechat": wechat_features,
+    "weibo": weibo_features,
+    "minimal_mistake": minimal_mistake_features,
+    "simple": simple_features,
+    "transparent": transparent_features,
 }
 
 
@@ -1129,14 +1123,14 @@ def rules_to_features(rules):
 def render_with_features(mdrender, rnode: RenderNode, features=None) -> Optional[List[str]]:
     if features is None:
         features = {}
-    
+
     n = rnode.node
 
-    node_type = n['type']
+    node_type = n["type"]
 
     if node_type not in features:
-        if '*' in features:
-            return features['*'](mdrender, rnode)
+        if "*" in features:
+            return features["*"](mdrender, rnode)
         else:
             return None
 
@@ -1145,13 +1139,13 @@ def render_with_features(mdrender, rnode: RenderNode, features=None) -> Optional
         return type_handler(mdrender, rnode)
 
     #  subtype is info, the type after "```"
-    lang = n['info'] or ''
+    lang = n["info"] or ""
 
     if lang in type_handler:
         return type_handler[lang](mdrender, rnode)
 
-    if '*' in type_handler:
-        return type_handler['*'](mdrender, rnode)
+    if "*" in type_handler:
+        return type_handler["*"](mdrender, rnode)
 
     return None
 
@@ -1164,28 +1158,29 @@ class ParserConfig(object):
 
     `embed_patterns`: the url regex patterns to replace the content of url in ![](url).
     """
+
     def __init__(self, populate_reference: bool, embed_patterns: List[str]):
         self.populate_reference = populate_reference
         self.embed_patterns = embed_patterns
 
 
 class Config(object):
-
     #  TODO refactor var names
-    def __init__(self,
-                 src_path,
-                 platform,
-                 output_dir,
-                 asset_output_dir,
-                 asset_repo_url=None,
-                 md_output_path=None,
-                 code_width=1000,
-                 keep_meta=None,
-                 ref_files=None,
-                 jekyll=False,
-                 rewrite=None,
-                 download=False,
-                 ):
+    def __init__(
+        self,
+        src_path,
+        platform,
+        output_dir,
+        asset_output_dir,
+        asset_repo_url=None,
+        md_output_path=None,
+        code_width=1000,
+        keep_meta=None,
+        ref_files=None,
+        jekyll=False,
+        rewrite=None,
+        download=False,
+    ):
         """
         Config of markdown rendering
 
@@ -1232,7 +1227,7 @@ class Config(object):
 
         fn = os.path.split(self.src_path)[-1]
 
-        trim_fn = re.match(r'\d\d\d\d-\d\d-\d\d-(.*)', fn)
+        trim_fn = re.match(r"\d\d\d\d-\d\d-\d\d-(.*)", fn)
         if trim_fn:
             trim_fn = trim_fn.groups()[0]
         else:
@@ -1241,19 +1236,18 @@ class Config(object):
         if not self.jekyll:
             fn = trim_fn
 
-        self.article_name = trim_fn.rsplit('.', 1)[0]
+        self.article_name = trim_fn.rsplit(".", 1)[0]
 
         self.asset_output_dir = pjoin(asset_output_dir, self.article_name)
         self.rel_dir = os.path.relpath(self.asset_output_dir, self.output_dir)
 
-        assert (self.md_output_path is not None)
+        assert self.md_output_path is not None
 
-        if self.md_output_path.endswith('/'):
+        if self.md_output_path.endswith("/"):
             self.md_output_base = self.md_output_path
             self.md_output_path = pjoin(self.md_output_path, fn)
         else:
-            self.md_output_base = os.path.split(
-                os.path.abspath(self.md_output_path))[0]
+            self.md_output_base = os.path.split(os.path.abspath(self.md_output_path))[0]
 
         if asset_repo_url is None:
             self.asset_repo = LocalRepo(self.md_output_path, self.output_dir)
@@ -1261,20 +1255,19 @@ class Config(object):
             self.asset_repo = AssetRepo(asset_repo_url)
 
         for k in (
-                "src_path",
-                "platform",
-                "output_dir",
-                "asset_output_dir",
-                "md_output_base",
-                "md_output_path",
+            "src_path",
+            "platform",
+            "output_dir",
+            "asset_output_dir",
+            "md_output_base",
+            "md_output_path",
         ):
             msg(darkyellow(k), ": ", getattr(self, k))
 
     def img_url(self, fn):
-        url = self.asset_repo.path_pattern.format(
-            path=pjoin(self.rel_dir, fn))
+        url = self.asset_repo.path_pattern.format(path=pjoin(self.rel_dir, fn))
 
-        for (pattern, repl) in self.rewrite:
+        for pattern, repl in self.rewrite:
             url = re.sub(pattern, repl, url)
 
         return url
@@ -1287,7 +1280,7 @@ class Config(object):
         :return the path that can be used to read or write.
         """
 
-        if p.startswith('/'):
+        if p.startswith("/"):
             # absolute path from CWD.
             p = p[1:]
         else:
@@ -1301,36 +1294,52 @@ class Config(object):
     def push(self, args, src_dst_fns):
         x = dict(cwd=self.output_dir)
 
-        git_path = pjoin(self.output_dir, '.git')
+        git_path = pjoin(self.output_dir, ".git")
         has_git = os.path.exists(git_path)
 
-        args_str = '\n'.join([k + ': ' + str(v) for (k, v) in args.__dict__.items()])
-        conf_str = '\n'.join([k + ': ' + str(v) for (k, v) in self.__dict__.items()])
-        fns_str = '\n'.join([src for (src, dst) in src_dst_fns])
+        args_str = "\n".join([k + ": " + str(v) for (k, v) in args.__dict__.items()])
+        conf_str = "\n".join([k + ": " + str(v) for (k, v) in self.__dict__.items()])
+        fns_str = "\n".join([src for (src, dst) in src_dst_fns])
 
-        cmdpass('git', 'init', **x)
-        cmdpass('git', 'add', '.', **x)
-        cmdpass('git',
-                '-c', "user.name='drmingdrmer'",
-                '-c', "user.email='drdr.xp@gmail.com'",
-                'commit', '--allow-empty',
-                '-m', '\n'.join(['Built pages by md2zhihu by drdr.xp@gmail.com',
-                                 '',
-                                 'CLI args:',
-                                 args_str,
-                                 '',
-                                 'Config:',
-                                 conf_str,
-                                 '',
-                                 'Converted:',
-                                 fns_str, ]),
-                **x)
-        cmdpass('git', 'push', '-f', self.asset_repo.url,
-                'HEAD:refs/heads/' + self.asset_repo.branch, **x)
+        cmdpass("git", "init", **x)
+        cmdpass("git", "add", ".", **x)
+        cmdpass(
+            "git",
+            "-c",
+            "user.name='drmingdrmer'",
+            "-c",
+            "user.email='drdr.xp@gmail.com'",
+            "commit",
+            "--allow-empty",
+            "-m",
+            "\n".join(
+                [
+                    "Built pages by md2zhihu by drdr.xp@gmail.com",
+                    "",
+                    "CLI args:",
+                    args_str,
+                    "",
+                    "Config:",
+                    conf_str,
+                    "",
+                    "Converted:",
+                    fns_str,
+                ]
+            ),
+            **x,
+        )
+        cmdpass(
+            "git",
+            "push",
+            "-f",
+            self.asset_repo.url,
+            "HEAD:refs/heads/" + self.asset_repo.branch,
+            **x,
+        )
 
         if not has_git:
-            msg("Removing tmp git dir: ", self.output_dir + '/.git')
-            shutil.rmtree(self.output_dir + '/.git')
+            msg("Removing tmp git dir: ", self.output_dir + "/.git")
+            shutil.rmtree(self.output_dir + "/.git")
 
 
 class Article(object):
@@ -1398,17 +1407,16 @@ class Article(object):
         children = []
 
         for n in nodes:
+            if "children" in n:
+                n["children"] = self.embed(n["children"], used_refs)
 
-            if 'children' in n:
-                n['children'] = self.embed(n['children'], used_refs)
-
-            if n['type'] != 'paragraph' or len(n.get('children', [])) != 1:
+            if n["type"] != "paragraph" or len(n.get("children", [])) != 1:
                 children.append(n)
                 continue
 
-            child = n['children'][0]
+            child = n["children"][0]
 
-            if child['type'] != 'image':
+            if child["type"] != "image":
                 children.append(n)
                 continue
 
@@ -1417,11 +1425,11 @@ class Article(object):
             #   'title': None,
             #   'type': 'image'},
 
-            if not regex_search_any(self.parser_config.embed_patterns, child['src']):
+            if not regex_search_any(self.parser_config.embed_patterns, child["src"]):
                 children.append(n)
                 continue
 
-            article_path = self.conf.relpath_from_cwd(child['src'])
+            article_path = self.conf.relpath_from_cwd(child["src"])
             md_text = fread(article_path)
 
             # save and restore parent src_path
@@ -1446,9 +1454,9 @@ class Article(object):
             # update used_refs
 
             used = {}
-            for k,v in article.used_refs.items():
+            for k, v in article.used_refs.items():
                 v = v.strip()
-                used[k] = rebase_url(child_base, parent_base,v)
+                used[k] = rebase_url(child_base, parent_base, v)
 
             used_refs.update(used)
 
@@ -1459,62 +1467,54 @@ class Article(object):
         yield str chunks of the markdown file.
         """
         if self.front_matter is not None:
-            yield "front_matter", "", '---\n' + self.front_matter.text + '\n---'
+            yield "front_matter", "", "---\n" + self.front_matter.text + "\n---"
 
         mdr = MDRender(self.conf, features=self.conf.features)
 
         for node in self.ast:
-
             # render list items separately
-            if node['type'] == 'list':
+            if node["type"] == "list":
                 root_node = RenderNode(node)
-                for n in node['children']:
+                for n in node["children"]:
                     child = root_node.new_child(n)
                     output_lines = mdr.render_node(child)
                     output_lines = add_paragraph_end(output_lines)
-                    yield "content", n['type'], "\n".join(output_lines)
+                    yield "content", n["type"], "\n".join(output_lines)
                 yield "content", "new_line", ""
             else:
-                root_node = RenderNode({
-                    'type': 'ROOT',
-                    'children': [node],
-                })
+                root_node = RenderNode(
+                    {
+                        "type": "ROOT",
+                        "children": [node],
+                    }
+                )
                 output_lines = mdr.render(root_node)
-                yield "content", node['type'], "\n".join(output_lines)
+                yield "content", node["type"], "\n".join(output_lines)
 
+        ref_lines = ["[{id}]: {d}".format(id=ref_id, d=self.used_refs[ref_id]) for ref_id in sorted(self.used_refs)]
 
-        ref_lines = [
-            '[{id}]: {d}'.format(
-                id=ref_id, d=self.used_refs[ref_id]
-            ) for ref_id in sorted(self.used_refs)
-        ]
-
-        yield "ref_def", "", '\n'.join(ref_lines)
+        yield "ref_def", "", "\n".join(ref_lines)
 
     def render(self):
         mdr = MDRender(self.conf, features=self.conf.features)
 
         root_node = {
-            'type': 'ROOT',
-            'children': self.ast,
+            "type": "ROOT",
+            "children": self.ast,
         }
         output_lines = mdr.render(RenderNode(root_node))
 
         if self.conf.keep_meta and self.front_matter is not None:
-            output_lines = ['---', self.front_matter.text, '---'] + output_lines
+            output_lines = ["---", self.front_matter.text, "---"] + output_lines
 
-        output_lines.append('')
+        output_lines.append("")
 
         ref_list = render_ref_list(self.used_refs, self.conf.platform)
         output_lines.extend(ref_list)
 
-        output_lines.append('')
+        output_lines.append("")
 
-        ref_lines = [
-            '[{id}]: {d}'.format(
-                id=ref_id, d=self.used_refs[ref_id]
-            ) for ref_id in sorted(self.used_refs)
-        ]
+        ref_lines = ["[{id}]: {d}".format(id=ref_id, d=self.used_refs[ref_id]) for ref_id in sorted(self.used_refs)]
         output_lines.extend(ref_lines)
 
         return output_lines
@@ -1525,7 +1525,7 @@ def load_external_refs(conf: Config) -> dict:
     for ref_path in conf.ref_files:
         fcont = fread(ref_path)
         y = yaml.safe_load(fcont)
-        for r in y.get('universal', []):
+        for r in y.get("universal", []):
             refs.update(r)
         for r in y.get(conf.platform, []):
             refs.update(r)
@@ -1544,19 +1544,18 @@ def convert_md(parser_config, conf):
 
     output_lines = article.render()
 
-    with open(conf.md_output_path, 'w') as f:
-        f.write(str('\n'.join(output_lines)))
+    with open(conf.md_output_path, "w") as f:
+        f.write(str("\n".join(output_lines)))
 
     return conf.md_output_path
 
 
 class SmartFormatter(argparse.HelpFormatter):
-
     def _split_lines(self, text, width):
-        if text.startswith('R|'):
-            return text[2:].splitlines() + ['']
+        if text.startswith("R|"):
+            return text[2:].splitlines() + [""]
         # this is the RawTextHelpFormatter._split_lines
-        return argparse.HelpFormatter._split_lines(self, text, width) + ['']
+        return argparse.HelpFormatter._split_lines(self, text, width) + [""]
 
 
 def main():
@@ -1570,122 +1569,185 @@ def main():
     # TODO then test drmingdrmer.github.io with action
 
     parser = argparse.ArgumentParser(
-        description='Convert markdown to zhihu compatible',
+        description="Convert markdown to zhihu compatible",
         formatter_class=SmartFormatter,
     )
 
-    parser.add_argument('src_path', type=str,
-                        nargs='+',
-                        help='path to the markdowns to convert')
+    parser.add_argument("src_path", type=str, nargs="+", help="path to the markdowns to convert")
 
-    parser.add_argument('-d', '--output-dir', action='store',
-                        default='_md2',
-                        help='R|Sepcify dir path to store the outputs.'
-                             '\n' 'It is the root dir of the git repo to store the assets referenced by output markdowns.'
-                             '\n' 'Deafult: "_md2"'
+    parser.add_argument(
+        "-d",
+        "--output-dir",
+        action="store",
+        default="_md2",
+        help="R|Sepcify dir path to store the outputs."
+        "\n"
+        "It is the root dir of the git repo to store the assets referenced by output markdowns."
+        "\n"
+        'Deafult: "_md2"',
     )
 
-    parser.add_argument('-o', '--md-output', action='store',
-                        help='R|Sepcify output path for converted mds.'
-                             '\n' 'If the path specified ends with "/", it is treated as output dir,'
-                             ' e.g., "--md-output foo/" output the converted md to foo/<fn>.md.'
-                             '\n' 'Default: <output-dir>/<fn>.md')
+    parser.add_argument(
+        "-o",
+        "--md-output",
+        action="store",
+        help="R|Sepcify output path for converted mds."
+        "\n"
+        'If the path specified ends with "/", it is treated as output dir,'
+        ' e.g., "--md-output foo/" output the converted md to foo/<fn>.md.'
+        "\n"
+        "Default: <output-dir>/<fn>.md",
+    )
 
-    parser.add_argument('--asset-output-dir', action='store',
-                        help='R|Sepcify dir to store assets'
-                             '\n' 'If <asset-output-dir> is outside <output-dir>, nothing will be uploaded.'
-                             '\n' 'Default: <output-dir>'
-                        )
+    parser.add_argument(
+        "--asset-output-dir",
+        action="store",
+        help="R|Sepcify dir to store assets"
+        "\n"
+        "If <asset-output-dir> is outside <output-dir>, nothing will be uploaded."
+        "\n"
+        "Default: <output-dir>",
+    )
 
-    parser.add_argument('-r', '--repo', action='store',
-                        required=False,
-                        help='R|Sepcify the git url to store assets.'
-                             '\n' 'The url should be in a SSH form such as:'
-                             '\n' '    "git@github.com:openacid/openacid.github.io.git[@branch_name]".'
-                             '\n'
-                             '\n' 'The repo has to be a public repo and you have the write access.'
-                             '\n'
-                             '\n' 'When absent, it works in local mode:'
-                             ' assets are referenced by relative path and will not be pushed to remote.'
-                             '\n'
-                             '\n' 'If no branch is specified, a branch "_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}" is used,'
-                             ' in which cwd_tail is the last segment of current working dir.'
-                             '\n'
-                             '\n' '"--repo ." to use the git that is found in CWD'
-                        )
+    parser.add_argument(
+        "-r",
+        "--repo",
+        action="store",
+        required=False,
+        help="R|Sepcify the git url to store assets."
+        "\n"
+        "The url should be in a SSH form such as:"
+        "\n"
+        '    "git@github.com:openacid/openacid.github.io.git[@branch_name]".'
+        "\n"
+        "\n"
+        "The repo has to be a public repo and you have the write access."
+        "\n"
+        "\n"
+        "When absent, it works in local mode:"
+        " assets are referenced by relative path and will not be pushed to remote."
+        "\n"
+        "\n"
+        'If no branch is specified, a branch "_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}" is used,'
+        " in which cwd_tail is the last segment of current working dir."
+        "\n"
+        "\n"
+        '"--repo ." to use the git that is found in CWD',
+    )
 
-    parser.add_argument('-p', '--platform', action='store',
-                        required=False,
-                        default='zhihu',
-                        choices=["zhihu", "github", "wechat", "weibo", "simple", "minimal_mistake", "transparent"],
-                        help='R|Convert to a platform compatible format.'
-                             '\n' '"simple" is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
-                             '\n' 'Default: "zhihu"'
-                        )
+    parser.add_argument(
+        "-p",
+        "--platform",
+        action="store",
+        required=False,
+        default="zhihu",
+        choices=[
+            "zhihu",
+            "github",
+            "wechat",
+            "weibo",
+            "simple",
+            "minimal_mistake",
+            "transparent",
+        ],
+        help="R|Convert to a platform compatible format."
+        "\n"
+        '"simple" is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
+        "\n"
+        'Default: "zhihu"',
+    )
 
-    parser.add_argument('--keep-meta', action='store_true',
-                        required=False,
-                        default=False,
-                        help='If to keep meta header or not, the header is wrapped with two "---" at file beginning.'
-                        )
+    parser.add_argument(
+        "--keep-meta",
+        action="store_true",
+        required=False,
+        default=False,
+        help='If to keep meta header or not, the header is wrapped with two "---" at file beginning.',
+    )
 
-    parser.add_argument('--jekyll', action='store_true',
-                        required=False,
-                        default=False,
-                        help='R|Respect jekyll syntax:'
-                             '\n' '1) It implies <keep-meta>: do not trim md header meta;'
-                             '\n' '2) It keep jekyll style file name with the date prefix: YYYY-MM-DD-TITLE.md.'
-                        )
+    parser.add_argument(
+        "--jekyll",
+        action="store_true",
+        required=False,
+        default=False,
+        help="R|Respect jekyll syntax:"
+        "\n"
+        "1) It implies <keep-meta>: do not trim md header meta;"
+        "\n"
+        "2) It keep jekyll style file name with the date prefix: YYYY-MM-DD-TITLE.md.",
+    )
 
-    parser.add_argument('--refs', action='append',
-                        required=False,
-                        help='R|Specify the external file that contains ref definitions.'
-                             '\n' 'A ref file is a yaml contains reference definitions in a dict of list.'
-                             '\n' 'A dict key is the platform name, only visible when it is enabeld by <platform> argument.'
-                             '\n' '"universal" is visible in any <platform>.'
-                             '\n'
-                             '\n' 'Example of ref file data:'
-                             '\n' '{ "universal": [{"grpc":"http:.."}, {"protobuf":"http:.."}],'
-                             '\n' '  "zhihu":     [{"grpc":"http:.."}, {"protobuf":"http:.."}]'
-                             '\n' '}.'
-                             '\n' 'With an external refs file being specified, in markdown one can just use the ref: e.g., "[grpc][]"'
-                        )
+    parser.add_argument(
+        "--refs",
+        action="append",
+        required=False,
+        help="R|Specify the external file that contains ref definitions."
+        "\n"
+        "A ref file is a yaml contains reference definitions in a dict of list."
+        "\n"
+        "A dict key is the platform name, only visible when it is enabeld by <platform> argument."
+        "\n"
+        '"universal" is visible in any <platform>.'
+        "\n"
+        "\n"
+        "Example of ref file data:"
+        "\n"
+        '{ "universal": [{"grpc":"http:.."}, {"protobuf":"http:.."}],'
+        "\n"
+        '  "zhihu":     [{"grpc":"http:.."}, {"protobuf":"http:.."}]'
+        "\n"
+        "}."
+        "\n"
+        'With an external refs file being specified, in markdown one can just use the ref: e.g., "[grpc][]"',
+    )
 
-    parser.add_argument('--rewrite', action='append',
-                        nargs=2,
-                        required=False,
-                        help='R|Rewrite generated image url.'
-                             '\n' 'E.g.: --rewrite "/asset/" "/resource/"'
-                             '\n' 'will transform "/asset/banner.jpg" to "/resource/banner.jpg"'
-                             '\n' 'Default: []'
-                        )
+    parser.add_argument(
+        "--rewrite",
+        action="append",
+        nargs=2,
+        required=False,
+        help="R|Rewrite generated image url."
+        "\n"
+        'E.g.: --rewrite "/asset/" "/resource/"'
+        "\n"
+        'will transform "/asset/banner.jpg" to "/resource/banner.jpg"'
+        "\n"
+        "Default: []",
+    )
 
-    parser.add_argument('--download', action='store_true',
-                        required=False,
-                        default=False,
-                        help='R|Download remote image url if a image url starts with http[s]://.'
-                        )
+    parser.add_argument(
+        "--download",
+        action="store_true",
+        required=False,
+        default=False,
+        help="R|Download remote image url if a image url starts with http[s]://.",
+    )
 
-    parser.add_argument('--embed', action='store',
-                        nargs="+",
-                        required=False,
-                        default=[r'[.]md$'],
-                        help='R|Specifies regex of url in `![](url)` to embed.'
-                             '\n' 'Example: --embed "[.]md$" will replace ![](x.md) with the content of x.md'
-                             '\n' 'Default: ["[.]md$"]'
-                        )
+    parser.add_argument(
+        "--embed",
+        action="store",
+        nargs="+",
+        required=False,
+        default=[r"[.]md$"],
+        help="R|Specifies regex of url in `![](url)` to embed."
+        "\n"
+        'Example: --embed "[.]md$" will replace ![](x.md) with the content of x.md'
+        "\n"
+        'Default: ["[.]md$"]',
+    )
 
-    parser.add_argument('--code-width', action='store',
-                        required=False,
-                        default=1000,
-                        help='R|specifies code image width.'
-                        '\n' 'Default: 1000'
-                        )
+    parser.add_argument(
+        "--code-width",
+        action="store",
+        required=False,
+        default=1000,
+        help="R|specifies code image width.\nDefault: 1000",
+    )
 
     args = parser.parse_args()
 
     if args.md_output is None:
-        args.md_output = args.output_dir + '/'
+        args.md_output = args.output_dir + "/"
 
     if args.asset_output_dir is None:
         args.asset_output_dir = args.output_dir
@@ -1693,15 +1755,18 @@ def main():
     if args.jekyll:
         args.keep_meta = True
 
-    msg("Build markdown: ", darkyellow(args.src_path),
-        " into ", darkyellow(args.md_output))
+    msg(
+        "Build markdown: ",
+        darkyellow(args.src_path),
+        " into ",
+        darkyellow(args.md_output),
+    )
     msg("Build assets to: ", darkyellow(args.asset_output_dir))
     msg("Git dir: ", darkyellow(args.output_dir))
     msg("Gid dir will be pushed to: ", darkyellow(args.repo))
 
     stat = []
     for path in args.src_path:
-
         #  TODO Config should accept only two arguments: the path and a args
         conf = Config(
             path,
@@ -1723,7 +1788,7 @@ def main():
         # Check if file exists
         try:
             fread(conf.src_path)
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             msg(darkred(sj("Warn: file not found: ", repr(conf.src_path))))
             continue
 
@@ -1736,8 +1801,14 @@ def main():
     if conf.asset_repo.is_local:
         msg("No git repo specified")
     else:
-        msg("Pushing ", darkyellow(conf.output_dir), " to ", darkyellow(
-            conf.asset_repo.url), " branch: ", darkyellow(conf.asset_repo.branch))
+        msg(
+            "Pushing ",
+            darkyellow(conf.output_dir),
+            " to ",
+            darkyellow(conf.asset_repo.url),
+            " branch: ",
+            darkyellow(conf.asset_repo.branch),
+        )
         conf.push(args, stat)
 
     msg(green(sj("Great job!!!")))

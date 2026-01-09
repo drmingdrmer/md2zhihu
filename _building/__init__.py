@@ -13,10 +13,10 @@ import sys
 # __url__ = 'https://requests.readthedocs.io'
 # __version__ = '2.23.0'
 
-__author__ = 'Zhang Yanpo'
-__author_email__ = 'drdr.xp@gmail.com'
-__license__ = 'MIT'
-__copyright__ = 'Copyright 2020 Zhang Yanpo'
+__author__ = "Zhang Yanpo"
+__author_email__ = "drdr.xp@gmail.com"
+__license__ = "MIT"
+__copyright__ = "Copyright 2020 Zhang Yanpo"
 
 
 # Configuration file for the Sphinx documentation builder.
@@ -31,14 +31,14 @@ __copyright__ = 'Copyright 2020 Zhang Yanpo'
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    'sphinx.ext.napoleon',
+    "sphinx.ext.napoleon",
     # "sphinx.ext.intersphinx",
     # "sphinx.ext.todo",
     # "sphinx.ext.viewcode",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -54,7 +54,7 @@ master_doc = "index"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = "alabaster"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -65,17 +65,17 @@ html_static_path = []
 
 def sphinx_confs():
     """
-        Load repo dir as a package
+    Load repo dir as a package
 
-        `readthedocs` use branch name as dir!
-        Thus the following does not work::
+    `readthedocs` use branch name as dir!
+    Thus the following does not work::
 
-            import pk3proc
+        import pk3proc
     """
 
     print("sys.path:", sys.path)
 
-    pkg = imp.load_source("foo", '../../__init__.py')
+    pkg = imp.load_source("foo", "../../__init__.py")
     return (
         pkg.__name__,
         pkg,
