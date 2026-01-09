@@ -3,8 +3,14 @@ package-name is utility to create sub process.
 
 """
 
-from .version import __version__
-from .version import __name__
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("md2zhihu")
+except PackageNotFoundError:
+    __version__ = "0.16"
+
+__name__ = "md2zhihu"
 
 from . import md2zhihu
 from . import mistune
