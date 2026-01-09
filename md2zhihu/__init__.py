@@ -97,9 +97,8 @@ def strip_paragraph_end(lines):
 
 def code_join(n):
     lang = n['info'] or ''
-    txt = '\n'.join(['```' + lang]
-                    + n['text'][:-1].split('\n')
-                    + ['```', ''])
+    lines = n['text'][:-1].split('\n')
+    txt = '\n'.join(['```' + lang] + lines + ['```', ''])
     return txt
 
 
@@ -453,6 +452,7 @@ def parse_in_list_tables(nodes) -> List[dict]:
 
     return rst
 
+
 def convert_paragraph_table(node: dict) -> List[dict]:
     """
     Parse table text in a paragraph and returns the ast of parsed table.
@@ -488,7 +488,6 @@ def convert_paragraph_table(node: dict) -> List[dict]:
         return new_children
     else:
         return [node]
-
 
 
 def join_math_block(nodes):
@@ -564,7 +563,6 @@ def rebase_url(frm, to, src):
     p = os.path.relpath(p, start=to)
 
     return p
-
 
 
 def regex_search_any(regex_list: List[str], s):
@@ -842,6 +840,7 @@ class RenderNode(object):
             return t
 
         return self.parent.to_str() + " -> " + t
+
 
 class LocalRepo(object):
     is_local = True
@@ -1127,7 +1126,10 @@ def rules_to_features(rules):
 
 
 #  features: {typ:action(), typ2:{subtyp:action()}}
-def render_with_features(mdrender, rnode: RenderNode, features=dict) -> Optional[List[str]]:
+def render_with_features(mdrender, rnode: RenderNode, features=None) -> Optional[List[str]]:
+    if features is None:
+        features = {}
+    
     n = rnode.node
 
     node_type = n['type']
