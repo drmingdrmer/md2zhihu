@@ -16,6 +16,7 @@ from k3handy import cmdpass
 from k3handy import pjoin
 from k3handy import to_bytes
 
+from .platform import platform_feature_dict
 from .utils import msg
 
 
@@ -190,8 +191,6 @@ class Config(object):
             keep_meta(bool): whether to keep the jekyll meta file header.
 
         """
-        #  Import here to avoid circular dependency
-        from . import platform_feature_dict
 
         self.output_dir = output_dir
         self.md_output_path = md_output_path
