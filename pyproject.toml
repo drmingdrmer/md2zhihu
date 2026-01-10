@@ -38,6 +38,14 @@ test = [
     "pytest",
     "scikit-image",
 ]
+dev = [
+    "pytest",
+    "scikit-image",
+    "pre-commit",
+    "mypy",
+    "types-PyYAML",
+    "ruff",
+]
 
 [project.urls]
 Homepage = "https://github.com/drmingdrmer/md2zhihu"
