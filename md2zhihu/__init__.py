@@ -14,6 +14,8 @@ from k3color import darkred
 from k3color import darkyellow
 from k3color import green
 from k3handy import cmdpass
+from k3handy import CmdFlag
+from k3handy import CMD_RAISE_STDOUT
 from k3handy import pjoin
 from k3handy import to_bytes
 from k3fs import fread
@@ -952,13 +954,13 @@ class AssetRepo(object):
         g = k3git.Git(k3git.GitOpt(), cwd=".")
 
         if remote is None:
-            branch = g.head_branch(flag=("raise",))
-            remote = g.branch_default_remote(branch, flag=("none",))
+            branch = g.head_branch(flag=[CmdFlag.RAISE])
+            remote = g.branch_default_remote(branch, flag=[CmdFlag.NONE])
             if remote is None:
                 # `branch` has no remote configured.
-                remote = g.cmdf("remote", flag=("raise", "stdout"))[0]
+                remote = g.cmdf("remote", flag=CMD_RAISE_STDOUT)[0]
 
-        remote_url = g.remote_get(remote, flag=("raise",))
+        remote_url = g.remote_get(remote, flag=[CmdFlag.RAISE])
         return remote_url
 
     def make_default_branch(self):
