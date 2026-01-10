@@ -4,9 +4,16 @@
 # Set line length to 127 (GitHub editor width)
 line-length = 127
 
+# Exclude vendored and build directories
+exclude = [
+    "mistune/",
+    "_building/",
+    "node_modules/",
+]
+
 [lint]
-# Enable pycodestyle (E), pyflakes (F)
-select = ["E", "F"]
+# Enable pycodestyle (E), pyflakes (F), isort (I)
+select = ["E", "F", "I"]
 ignore = [
     "E501",  # Line too long - let formatter handle it
 ]
@@ -14,6 +21,12 @@ ignore = [
 [lint.per-file-ignores]
 # Allow unused imports in __init__.py files (they are re-exports)
 "__init__.py" = ["F401"]
+
+[lint.isort]
+# Each import on its own line
+force-single-line = true
+# Blank line between different source modules
+force-sort-within-sections = false
 
 [format]
 # Use double quotes for strings

@@ -1,7 +1,8 @@
 """Parser classes for md2zhihu"""
 
 import os
-from typing import List, Optional
+from typing import List
+from typing import Optional
 
 import yaml
 from k3fs import fread
@@ -63,15 +64,13 @@ class ParserConfig(object):
 class Article(object):
     def __init__(self, parser_config: ParserConfig, conf: Config, md_text: str):
         # Import here to avoid circular dependency
-        from . import (
-            extract_front_matter,
-            extract_ref_definitions,
-            new_parser,
-            parse_in_list_tables,
-            replace_ref_with_def,
-            parse_math,
-            join_math_block,
-        )
+        from . import extract_front_matter
+        from . import extract_ref_definitions
+        from . import join_math_block
+        from . import new_parser
+        from . import parse_in_list_tables
+        from . import parse_math
+        from . import replace_ref_with_def
 
         self.parser_config = parser_config
 
@@ -135,7 +134,9 @@ class Article(object):
         Embed the content of url in ![](url) if url matches specified regex
         """
         # Import here to avoid circular dependency
-        from . import regex_search_any, rebase_url_in_ast, rebase_url
+        from . import rebase_url
+        from . import rebase_url_in_ast
+        from . import regex_search_any
 
         children = []
 
@@ -200,7 +201,8 @@ class Article(object):
         yield str chunks of the markdown file.
         """
         # Import here to avoid circular dependency
-        from . import MDRender, RenderNode
+        from . import MDRender
+        from . import RenderNode
 
         if self.front_matter is not None:
             yield "front_matter", "", "---\n" + self.front_matter.text + "\n---"
@@ -233,7 +235,9 @@ class Article(object):
 
     def render(self):
         # Import here to avoid circular dependency
-        from . import MDRender, RenderNode, render_ref_list
+        from . import MDRender
+        from . import RenderNode
+        from . import render_ref_list
 
         mdr = MDRender(self.conf, features=self.conf.features)
 

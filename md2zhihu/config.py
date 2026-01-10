@@ -8,8 +8,13 @@ import shutil
 from typing import List
 
 import k3git
-from k3color import darkred, darkyellow
-from k3handy import cmdpass, CmdFlag, CMD_RAISE_STDOUT, pjoin, to_bytes
+from k3color import darkred
+from k3color import darkyellow
+from k3handy import CMD_RAISE_STDOUT
+from k3handy import CmdFlag
+from k3handy import cmdpass
+from k3handy import pjoin
+from k3handy import to_bytes
 
 from .utils import msg
 
