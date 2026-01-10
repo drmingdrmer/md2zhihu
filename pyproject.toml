@@ -30,6 +30,7 @@ dependencies = [
     "k3fs>=0.1.5",
     "k3git>=0.1.6",
     "k3handy>=0.1.11",
+    "urllib3>=1.26.7",
 ]
 
 [project.optional-dependencies]
