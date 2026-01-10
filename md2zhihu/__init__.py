@@ -24,6 +24,15 @@ from k3fs import fread
 
 from .. import mistune
 
+from .utils import add_paragraph_end
+from .utils import asset_fn
+from .utils import escape
+from .utils import fwrite
+from .utils import indent
+from .utils import msg
+from .utils import sj
+from .utils import strip_paragraph_end
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,47 +70,6 @@ class FrontMatter(object):
                     dic.update(r)
 
         return dic
-
-
-def sj(*args) -> str:
-    return "".join([str(x) for x in args])
-
-
-def msg(*args) -> None:
-    """Log a message with backward-compatible output format"""
-    logger.info("".join([str(x) for x in args]))
-
-
-def indent(line: str) -> str:
-    if line == "":
-        return ""
-    return "    " + line
-
-
-def escape(s: str, quote: bool = True) -> str:
-    s = s.replace("&", "&amp;")
-    s = s.replace("<", "&lt;")
-    s = s.replace(">", "&gt;")
-    if quote:
-        s = s.replace('"', "&quot;")
-    return s
-
-
-def add_paragraph_end(lines: List[str]) -> List[str]:
-    #  add blank line to a paragraph block
-    if lines[-1] == "":
-        return lines
-
-    lines.append("")
-    return lines
-
-
-def strip_paragraph_end(lines: List[str]) -> List[str]:
-    #  remove last blank lines
-    if lines[-1] == "":
-        return strip_paragraph_end(lines[:-1])
-
-    return lines
 
 
 def code_join(n: dict) -> str:
@@ -644,13 +612,6 @@ def extract_math(n):
     return children
 
 
-def asset_fn(text: str, suffix: str) -> str:
-    textmd5 = hashlib.md5(to_bytes(text)).hexdigest()
-    escaped = re.sub(r"[^a-zA-Z0-9_\-=]+", "", text)
-    fn = escaped[:32] + "-" + textmd5[:16] + "." + suffix
-    return fn
-
-
 def save_image_to_asset_dir(mdrender, rnode):
     #  {'alt': 'openacid',
     #   'src': 'https://...',
@@ -808,13 +769,6 @@ def render_ref_list(refs, platform):
             ref_lines.append("")
 
     return ref_lines
-
-
-def fwrite(*p) -> None:
-    cont = p[-1]
-    p = p[:-1]
-    with open(os.path.join(*p), "wb") as f:
-        f.write(cont)
 
 
 class RenderNode(object):
