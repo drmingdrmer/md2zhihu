@@ -59,21 +59,21 @@ class FrontMatter(object):
         return dic
 
 
-def sj(*args):
+def sj(*args) -> str:
     return "".join([str(x) for x in args])
 
 
-def msg(*args):
+def msg(*args) -> None:
     print(">", "".join([str(x) for x in args]))
 
 
-def indent(line):
+def indent(line: str) -> str:
     if line == "":
         return ""
     return "    " + line
 
 
-def escape(s, quote=True):
+def escape(s: str, quote: bool = True) -> str:
     s = s.replace("&", "&amp;")
     s = s.replace("<", "&lt;")
     s = s.replace(">", "&gt;")
@@ -82,7 +82,7 @@ def escape(s, quote=True):
     return s
 
 
-def add_paragraph_end(lines):
+def add_paragraph_end(lines: List[str]) -> List[str]:
     #  add blank line to a paragraph block
     if lines[-1] == "":
         return lines
@@ -91,7 +91,7 @@ def add_paragraph_end(lines):
     return lines
 
 
-def strip_paragraph_end(lines):
+def strip_paragraph_end(lines: List[str]) -> List[str]:
     #  remove last blank lines
     if lines[-1] == "":
         return strip_paragraph_end(lines[:-1])
@@ -99,14 +99,14 @@ def strip_paragraph_end(lines):
     return lines
 
 
-def code_join(n):
+def code_join(n: dict) -> str:
     lang = n["info"] or ""
     lines = n["text"][:-1].split("\n")
     txt = "\n".join(["```" + lang] + lines + ["```", ""])
     return txt
 
 
-def block_code_to_jpg(mdrender, rnode, width=None):
+def block_code_to_jpg(mdrender: "MDRender", rnode: "RenderNode", width: Optional[int] = None) -> List[str]:
     n = rnode.node
 
     txt = code_join(n)
@@ -118,21 +118,21 @@ def block_code_to_jpg(mdrender, rnode, width=None):
     return typ_text_to_jpg(mdrender, "code", txt, opt={"html": {"width": w}})
 
 
-def block_code_to_fixwidth_jpg(mdrender, rnode):
+def block_code_to_fixwidth_jpg(mdrender: "MDRender", rnode: "RenderNode") -> List[str]:
     return block_code_to_jpg(mdrender, rnode, width=600)
 
 
-def block_code_mermaid_to_jpg(mdrender, rnode):
+def block_code_mermaid_to_jpg(mdrender: "MDRender", rnode: "RenderNode") -> List[str]:
     n = rnode.node
     return typ_text_to_jpg(mdrender, "mermaid", n["text"])
 
 
-def block_code_graphviz_to_jpg(mdrender, rnode):
+def block_code_graphviz_to_jpg(mdrender: "MDRender", rnode: "RenderNode") -> List[str]:
     n = rnode.node
     return typ_text_to_jpg(mdrender, "graphviz", n["text"])
 
 
-def typ_text_to_jpg(mdrender, typ, txt, opt=None):
+def typ_text_to_jpg(mdrender: "MDRender", typ: str, txt: str, opt: Optional[dict] = None) -> List[str]:
     d = k3down2.convert(typ, txt, "jpg", opt=opt)
     fn = asset_fn(txt, "jpg")
     fwrite(mdrender.conf.asset_output_dir, fn, d)
@@ -140,12 +140,12 @@ def typ_text_to_jpg(mdrender, typ, txt, opt=None):
     return [r"![]({})".format(mdrender.conf.img_url(fn)), ""]
 
 
-def math_block_to_imgtag(mdrender, rnode):
+def math_block_to_imgtag(mdrender: "MDRender", rnode: "RenderNode") -> List[str]:
     n = rnode.node
     return [k3down2.convert("tex_block", n["text"], "imgtag")]
 
 
-def math_inline_to_imgtag(mdrender, rnode):
+def math_inline_to_imgtag(mdrender: "MDRender", rnode: "RenderNode") -> List[str]:
     n = rnode.node
     return [k3down2.convert("tex_inline", n["text"], "imgtag")]
 
@@ -639,7 +639,7 @@ def extract_math(n):
     return children
 
 
-def asset_fn(text, suffix):
+def asset_fn(text: str, suffix: str) -> str:
     textmd5 = hashlib.md5(to_bytes(text)).hexdigest()
     escaped = re.sub(r"[^a-zA-Z0-9_\-=]+", "", text)
     fn = escaped[:32] + "-" + textmd5[:16] + "." + suffix
@@ -805,7 +805,7 @@ def render_ref_list(refs, platform):
     return ref_lines
 
 
-def fwrite(*p):
+def fwrite(*p) -> None:
     cont = p[-1]
     p = p[:-1]
     with open(os.path.join(*p), "wb") as f:
@@ -1293,7 +1293,7 @@ class Config(object):
 
         return p
 
-    def push(self, args, src_dst_fns):
+    def push(self, args: argparse.Namespace, src_dst_fns: List[List[str]]) -> None:
         x = dict(cwd=self.output_dir)
 
         git_path = pjoin(self.output_dir, ".git")
