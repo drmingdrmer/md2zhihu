@@ -1,9 +1,11 @@
 import argparse
 import hashlib
+import logging
 import os
 import pprint
 import re
 import shutil
+import sys
 from typing import Optional, List
 
 import k3down2
@@ -21,6 +23,8 @@ from k3handy import to_bytes
 from k3fs import fread
 
 from .. import mistune
+
+logger = logging.getLogger(__name__)
 
 
 class FrontMatter(object):
@@ -64,7 +68,8 @@ def sj(*args) -> str:
 
 
 def msg(*args) -> None:
-    print(">", "".join([str(x) for x in args]))
+    """Log a message with backward-compatible output format"""
+    logger.info("".join([str(x) for x in args]))
 
 
 def indent(line: str) -> str:
@@ -1572,6 +1577,12 @@ class SmartFormatter(argparse.HelpFormatter):
 
 
 def main():
+    # Configure logging to output to stdout (same as original print())
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter("> %(message)s"))
+    logging.root.addHandler(handler)
+    logging.root.setLevel(logging.INFO)
+
     # TODO refine arg names
     # md2zhihu a.md --output-dir res/ --platform xxx --md-output foo/
     # res/fn.md
