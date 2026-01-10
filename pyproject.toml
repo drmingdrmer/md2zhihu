@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "md2zhihu"
 version = "0.16"
 description = "convert markdown to zhihu compatible format. https://github.com/drmingdrmer/md2zhihu"
-readme = {text = "See: https://github.com/drmingdrmer/md2zhihu", content-type = "text/markdown"}
+readme = "README.md"
 license = {text = "MIT"}
 authors = [
     {name = "Zhang Yanpo", email = "drdr.xp@gmail.com"}
@@ -17,6 +17,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -24,27 +25,31 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "PyYAML>=5.3.1",
-    "k3color>=0.1.2",
-    "k3down2>=0.1.15",
-    "k3fs>=0.1.5",
-    "k3git>=0.1.18",
-    "k3handy>=0.1.12",
-    "urllib3>=1.26.7",
+    "PyYAML>=5.3.1,<7",
+    "k3color>=0.1.2,<0.2",
+    "k3down2>=0.1.15,<0.2",
+    "k3fs>=0.1.5,<0.2",
+    "k3git>=0.1.18,<0.2",
+    "k3handy>=0.1.12,<0.2",
+    "urllib3>=1.26.7,<3",
 ]
 
 [project.optional-dependencies]
 test = [
-    "pytest",
+    "pytest>=7.0",
     "scikit-image",
 ]
 dev = [
-    "pytest",
+    "pytest>=7.0",
     "scikit-image",
     "pre-commit",
     "mypy",
     "types-PyYAML",
     "ruff",
+]
+publish = [
+    "build",
+    "twine",
 ]
 
 [project.urls]
