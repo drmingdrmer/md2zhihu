@@ -6,7 +6,7 @@ line-length = 127
 
 # Exclude vendored and build directories
 exclude = [
-    "mistune/",
+    "md2zhihu/_vendor/",
     "_building/",
     "node_modules/",
 ]

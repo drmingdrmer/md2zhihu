@@ -8,7 +8,7 @@ from typing import Optional
 import yaml
 from k3fs import fread
 
-from .. import mistune
+from ._vendor import mistune
 from .config import Config
 from .renderer import MDRender
 from .renderer import RenderNode

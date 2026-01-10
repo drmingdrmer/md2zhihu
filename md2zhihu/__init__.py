@@ -1,5 +1,6 @@
 import logging
 
+from . import platform
 from .asset import save_image_to_asset_dir
 from .cli import main
 from .config import AssetRepo

@@ -60,14 +60,7 @@ jobs:
         MD2TEST_USERNAME: ${{ github.repository_owner }}
         MD2TEST_TOKEN: ${{ secrets.MD2TEST_TOKEN }}
       run: |
-        pip install build
-        cp pyproject.toml ..
-        (
-        cd ..
-        python -m build
-        pip install dist/*.tar.gz
-        )
-        PATH="$PATH:$(npm bin)" PYTHONPATH="$(cd ..; pwd)" pytest -xv
+        pytest -xv
 
     - uses: actions/upload-artifact@v4
       if: failure()

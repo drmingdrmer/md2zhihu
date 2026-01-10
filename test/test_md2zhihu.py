@@ -556,12 +556,12 @@ class TestMd2zhihu(unittest.TestCase):
             "block_code/*:to_jpg",
         ]
 
-        got = md2zhihu.md2zhihu.platform.rules_to_features(rules)
+        got = md2zhihu.platform.rules_to_features(rules)
         want = {
-            "image": md2zhihu.md2zhihu.save_image_to_asset_dir,
+            "image": md2zhihu.save_image_to_asset_dir,
             "block_code": {
-                "": md2zhihu.md2zhihu.block_code_to_jpg,
-                "*": md2zhihu.md2zhihu.block_code_to_fixwidth_jpg,
+                "": md2zhihu.block_code_to_jpg,
+                "*": md2zhihu.block_code_to_fixwidth_jpg,
             },
         }
         self.assertEqual(want, got)
@@ -573,7 +573,7 @@ class TestMd2zhihu(unittest.TestCase):
         ]
 
         with self.assertRaisesRegex(KeyError, "unknown_typ"):
-            md2zhihu.md2zhihu.platform.rules_to_features(rules)
+            md2zhihu.platform.rules_to_features(rules)
 
         #  unknown info
 
@@ -582,7 +582,7 @@ class TestMd2zhihu(unittest.TestCase):
         ]
 
         with self.assertRaisesRegex(KeyError, "unknown_info"):
-            md2zhihu.md2zhihu.platform.rules_to_features(rules)
+            md2zhihu.platform.rules_to_features(rules)
 
         #  unknown action
 
@@ -591,7 +591,7 @@ class TestMd2zhihu(unittest.TestCase):
         ]
 
         with self.assertRaisesRegex(KeyError, "to_foo"):
-            md2zhihu.md2zhihu.platform.rules_to_features(rules)
+            md2zhihu.platform.rules_to_features(rules)
 
     def test_zhihu_meta(self):
         self._test_platform("zhihu-meta", ["--keep-meta"])

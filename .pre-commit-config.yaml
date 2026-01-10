@@ -4,9 +4,9 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
-        exclude: ^mistune/
+        exclude: ^md2zhihu/_vendor/
       - id: ruff-format
-        exclude: ^mistune/
+        exclude: ^md2zhihu/_vendor/
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.11.2
@@ -15,3 +15,4 @@ repos:
         args: [--follow-imports=silent, --ignore-missing-imports]
         additional_dependencies: [types-PyYAML]
         files: ^md2zhihu/
+        exclude: ^md2zhihu/_vendor/
