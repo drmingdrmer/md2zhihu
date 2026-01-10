@@ -952,13 +952,13 @@ class AssetRepo(object):
         g = k3git.Git(k3git.GitOpt(), cwd=".")
 
         if remote is None:
-            branch = g.head_branch(flag="x")
-            remote = g.branch_default_remote(branch, flag="n")
+            branch = g.head_branch(flag="raise")
+            remote = g.branch_default_remote(branch, flag="none")
             if remote is None:
                 # `branch` has no remote configured.
-                remote = g.cmdf("remote", flag="xo")[0]
+                remote = g.cmdf("remote", flag=("raise", "stdout"))[0]
 
-        remote_url = g.remote_get(remote, flag="x")
+        remote_url = g.remote_get(remote, flag="raise")
         return remote_url
 
     def make_default_branch(self):

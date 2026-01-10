@@ -30,7 +30,13 @@ dependencies = [
     "k3down2>=0.1.15",
     "k3fs>=0.1.5",
     "k3git>=0.1.6",
-    "k3handy>=0.1.5",
+    "k3handy>=0.1.11",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "scikit-image",
 ]
 
 [project.urls]

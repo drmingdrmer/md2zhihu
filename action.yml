@@ -101,11 +101,11 @@ runs:
         sudo apt-get install graphviz
         dot -V
 
-    - name: Install python dep in requirements.txt
+    - name: Install python dependencies
       shell: bash
       run: |
         pip3 install setuptools wheel
-        pip3 install -r ${{ github.action_path }}/requirements.txt
+        pip3 install -e ${{ github.action_path }}
 
     - name: convert
       id: convert
