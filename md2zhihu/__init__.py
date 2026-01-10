@@ -1330,14 +1330,25 @@ class Config(object):
             ),
             **x,
         )
-        cmdpass(
-            "git",
-            "push",
-            "-f",
-            self.asset_repo.url,
-            "HEAD:refs/heads/" + self.asset_repo.branch,
-            **x,
-        )
+        # Validate branch before force push
+        branch = self.asset_repo.branch
+        protected_branches = ["main", "master"]
+        if branch in protected_branches:
+            raise ValueError(f"Cannot force push to protected branch: {branch}. Use a different branch name.")
+
+        # Push with error handling
+        try:
+            cmdpass(
+                "git",
+                "push",
+                "-f",
+                self.asset_repo.url,
+                "HEAD:refs/heads/" + self.asset_repo.branch,
+                **x,
+            )
+        except Exception as e:
+            msg(darkred(f"Failed to push to {self.asset_repo.url}: {e}"))
+            raise
 
         if not has_git:
             msg("Removing tmp git dir: ", self.output_dir + "/.git")
