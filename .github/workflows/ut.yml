@@ -12,8 +12,8 @@ jobs:
       # parallel running result in conflict when git-push to a same branch
       max-parallel: 1
       matrix:
-        # Test minimum supported (3.8), middle (3.10), and latest (3.12)
-        python-version: [3.8, "3.10", 3.12]
+        # Test minimum supported (3.9), middle (3.11), and latest (3.12)
+        python-version: [3.9, 3.11, 3.12]
 
     steps:
     - uses: actions/checkout@v2
