@@ -48,6 +48,11 @@ jobs:
         # Lint code with ruff (fast Python linter)
         ruff check .
 
+    - name: Type check with mypy
+      run: |
+        pip install mypy types-PyYAML
+        mypy md2zhihu/__init__.py --follow-imports=silent --ignore-missing-imports
+
     - name: Test with pytest
       env:
         # pass in committer and token to access a test repo:

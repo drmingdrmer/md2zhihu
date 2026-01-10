@@ -496,8 +496,8 @@ def convert_paragraph_table(node: dict) -> List[dict]:
     match = re.match(table_reg, txt)
     if match:
         mdr = MDRender(None, features={})
-        partialmd = mdr.render(RenderNode(node))
-        partialmd = "".join(partialmd)
+        partialmd_lines = mdr.render(RenderNode(node))
+        partialmd = "".join(partialmd_lines)
 
         parser = new_parser()
         new_children = parser(partialmd)
