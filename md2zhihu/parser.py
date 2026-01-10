@@ -1,13 +1,17 @@
 """Parser classes for md2zhihu"""
 
 import os
+import re
 from typing import List
 from typing import Optional
 
 import yaml
 from k3fs import fread
 
+from .. import mistune
 from .config import Config
+from .renderer import MDRender
+from .renderer import RenderNode
 from .utils import add_paragraph_end
 
 
@@ -63,15 +67,6 @@ class ParserConfig(object):
 
 class Article(object):
     def __init__(self, parser_config: ParserConfig, conf: Config, md_text: str):
-        # Import here to avoid circular dependency
-        from . import extract_front_matter
-        from . import extract_ref_definitions
-        from . import join_math_block
-        from . import new_parser
-        from . import parse_in_list_tables
-        from . import parse_math
-        from . import replace_ref_with_def
-
         self.parser_config = parser_config
 
         self.conf = conf
@@ -133,10 +128,6 @@ class Article(object):
         """
         Embed the content of url in ![](url) if url matches specified regex
         """
-        # Import here to avoid circular dependency
-        from . import rebase_url
-        from . import rebase_url_in_ast
-        from . import regex_search_any
 
         children = []
 
@@ -234,11 +225,6 @@ class Article(object):
         yield "ref_def", "", "\n".join(ref_lines)
 
     def render(self):
-        # Import here to avoid circular dependency
-        from . import MDRender
-        from . import RenderNode
-        from . import render_ref_list
-
         mdr = MDRender(self.conf, features=self.conf.features)
 
         root_node = {
@@ -274,3 +260,298 @@ def load_external_refs(conf: Config) -> dict:
             refs.update(r)
 
     return refs
+
+
+def parse_in_list_tables(nodes) -> List[dict]:
+    """
+    mistune does not parse table in list item.
+    We need to recursively fix it.
+    """
+
+    rst = []
+    for n in nodes:
+        if "children" in n:
+            n["children"] = parse_in_list_tables(n["children"])
+
+        nodes = convert_paragraph_table(n)
+        rst.extend(nodes)
+
+    return rst
+
+
+def convert_paragraph_table(node: dict) -> List[dict]:
+    """
+    Parse table text in a paragraph and returns the ast of parsed table.
+
+    :return List[dict]: a list of ast nodes.
+    """
+
+    if node["type"] != "paragraph":
+        return [node]
+
+    children = node["children"]
+
+    if len(children) == 0:
+        return [node]
+
+    c0 = children[0]
+    if c0["type"] != "text":
+        return [node]
+
+    txt = c0["text"]
+
+    table_reg = r" {0,3}\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*"
+
+    match = re.match(table_reg, txt)
+    if match:
+        mdr = MDRender(None, features={})
+        partialmd_lines = mdr.render(RenderNode(node))
+        partialmd = "".join(partialmd_lines)
+
+        parser = new_parser()
+        new_children = parser(partialmd)
+
+        return new_children
+    else:
+        return [node]
+
+
+def join_math_block(nodes):
+    """
+    A tex segment may spans several paragraph:
+
+        $$        // paragraph 1
+        x = 5     //
+
+        y = 3     // paragraph 2
+        $$        //
+
+    This function finds out all such paragraph and merge them into a single one.
+    """
+
+    for n in nodes:
+        if "children" in n:
+            join_math_block(n["children"])
+
+    join_math_text(nodes)
+
+
+def parse_math(nodes):
+    """
+    Extract all math segment such as ``$$ ... $$`` from a text and build a
+    math_block or math_inline node.
+    """
+
+    children = []
+
+    for n in nodes:
+        if "children" in n:
+            n["children"] = parse_math(n["children"])
+
+        if n["type"] == "text":
+            new_children = extract_math(n)
+            children.extend(new_children)
+        else:
+            children.append(n)
+
+    return children
+
+
+def rebase_url_in_ast(frm, to, nodes):
+    for n in nodes:
+        if "children" in n:
+            rebase_url_in_ast(frm, to, n["children"])
+
+        if n["type"] == "image":
+            n["src"] = rebase_url(frm, to, n["src"])
+            continue
+
+        if n["type"] == "link":
+            n["link"] = rebase_url(frm, to, n["link"])
+            continue
+
+
+def rebase_url(frm, to, src):
+    """
+    Change relative path based from ``frm`` to from ``to``.
+    """
+    if re.match(r"http[s]?://", src):
+        return src
+
+    if src.startswith("/"):
+        return src
+
+    p = os.path.join(frm, src)
+    p = os.path.relpath(p, start=to)
+
+    return p
+
+
+def regex_search_any(regex_list: List[str], s):
+    for regex in regex_list:
+        m = re.search(regex, s)
+        if m:
+            return True
+
+    return False
+
+
+def join_math_text(nodes):
+    i = 0
+    while i < len(nodes) - 1:
+        n1 = nodes[i]
+        n2 = nodes[i + 1]
+        if (
+            "children" in n1
+            and "children" in n2
+            and len(n1["children"]) > 0
+            and len(n2["children"]) > 0
+            and n1["children"][-1]["type"] == "text"
+            and n2["children"][0]["type"] == "text"
+            and "$$" in n1["children"][-1]["text"]
+        ):
+            has_dd = "$$" in n2["children"][0]["text"]
+            n1["children"][-1]["text"] += "\n\n" + n2["children"][0]["text"]
+            n1["children"].extend(n2["children"][1:])
+
+            nodes.pop(i + 1)
+
+            if has_dd:
+                i += 1
+        else:
+            i += 1
+
+
+def extract_math(n):
+    """
+    Extract ``$$ ... $$`` or ``$ .. $` from a text node and build a new node.
+    The original text node is split into multiple segments.
+
+    The math is a block if it is a paragraph.
+    Otherwise, it is an inline math.
+    """
+    children = []
+
+    math_regex = r"([$]|[$][$])([^$].*?)\1"
+
+    t = n["text"]
+    while True:
+        match = re.search(math_regex, t, flags=re.DOTALL)
+        if match:
+            children.append({"type": "text", "text": t[: match.start()]})
+            children.append({"type": "math_inline", "text": match.groups()[1]})
+            t = t[match.end() :]
+
+            left = children[-2]["text"]
+            right = t
+            if (left == "" or left.endswith("\n\n")) and (right == "" or right.startswith("\n")):
+                children[-1]["type"] = "math_block"
+            continue
+
+        break
+    children.append({"type": "text", "text": t})
+    return children
+
+
+def replace_ref_with_def(nodes, refs, do_replace: bool):
+    """
+    Convert ``[text][link-def]`` to ``[text](link-url)``
+    Convert ``[link-def][]``     to ``[link-def](link-url)``
+    Convert ``[link-def]``       to ``[link-def](link-url)``
+
+    If `do_replace` is True, replace the ref with def.
+    Otherwise, just extract the used refs.
+    """
+
+    used_defs = {}
+
+    for n in nodes:
+        if "children" in n:
+            used = replace_ref_with_def(n["children"], refs, do_replace)
+            used_defs.update(used)
+
+        if n["type"] != "text":
+            continue
+
+        t = n["text"]
+        link = re.match(r"^\[(.*?)\](\[([^\]]*?)\])?$", t)
+        if not link:
+            continue
+
+        gs = link.groups()
+        txt = gs[0]
+        if len(gs) >= 3:
+            definition = gs[2]
+
+        if definition is None or definition == "":
+            definition = txt
+
+        if definition in refs:
+            r = refs[definition]
+            used_defs[definition] = r
+
+            if do_replace:
+                n["type"] = "link"
+                #  TODO title
+                n["link"] = r.split()[0]
+                n["children"] = [{"type": "text", "text": txt}]
+
+    return used_defs
+
+
+def new_parser():
+    rdr = mistune.create_markdown(
+        escape=False,
+        renderer="ast",
+        plugins=["strikethrough", "footnotes", "table"],
+    )
+
+    return rdr
+
+
+def extract_ref_definitions(cont):
+    lines = cont.split("\n")
+    rst = []
+    refs = {}
+    for line in lines:
+        r = re.match(r"\[(.*?)\]:(.*?)$", line, flags=re.UNICODE)
+        if r:
+            gs = r.groups()
+            refs[gs[0]] = gs[1]
+        else:
+            rst.append(line)
+    return "\n".join(rst), refs
+
+
+def extract_front_matter(cont):
+    meta = None
+    m = re.match(r"^ *--- *\n(.*?)\n---\n", cont, flags=re.DOTALL | re.UNICODE)
+    if m:
+        cont = cont[m.end() :]
+        meta_text = m.groups()[0].strip()
+        meta = FrontMatter(meta_text)
+
+    return cont, meta
+
+
+def render_ref_list(refs, platform):
+    ref_lines = ["", "Reference:", ""]
+    for ref_id in sorted(refs):
+        #  url_and_alt is in form "<url> <alt>"
+        url_alt = refs[ref_id].split()
+        url = url_alt[0]
+
+        if len(url_alt) == 1:
+            txt = ref_id
+        else:
+            txt = " ".join(url_alt[1:])
+            txt = txt.strip('"')
+            txt = txt.strip("'")
+
+        ref_lines.append("- {id} : [{url}]({url})".format(id=txt, url=url))
+
+        #  disable paragraph list in weibo
+        if platform != "weibo":
+            ref_lines.append("")
+
+    return ref_lines
