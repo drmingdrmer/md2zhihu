@@ -24,8 +24,8 @@ from .parser import Article
 from .parser import FrontMatter
 from .parser import ParserConfig
 from .parser import load_external_refs
-from .renderer import MDRender
 from .renderer import RenderNode
+from .renderer.md_render import MDRender
 from .utils import add_paragraph_end
 from .utils import asset_fn
 from .utils import escape
