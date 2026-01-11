@@ -13,42 +13,10 @@ from ..config import Config
 from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..utils import add_paragraph_end
-
-
-class FrontMatter(object):
-    """
-    The font matter is the yaml enclosed between `---` at the top of a markdown.
-    """
-
-    def __init__(self, front_matter_text: str):
-        self.text = front_matter_text
-        self.data = yaml.safe_load(front_matter_text)
-
-    def get_refs(self, platform: str) -> dict:
-        """
-        Get refs from front matter.
-        """
-        dic = {}
-
-        meta = self.data
-
-        # Collect universal refs
-        if "refs" in meta:
-            refs = meta["refs"]
-
-            for r in refs:
-                dic.update(r)
-
-        # Collect platform specific refs
-        if "platform_refs" in meta:
-            refs = meta["platform_refs"]
-            if platform in refs:
-                refs = refs[platform]
-
-                for r in refs:
-                    dic.update(r)
-
-        return dic
+from .extract.front_matter import FrontMatter
+from .extract.front_matter import extract_front_matter
+from .extract.refs import extract_ref_definitions
+from .extract.refs import load_external_refs
 
 
 class ParserConfig(object):
@@ -247,19 +215,6 @@ class Article(object):
         output_lines.extend(ref_lines)
 
         return output_lines
-
-
-def load_external_refs(conf: Config) -> dict:
-    refs = {}
-    for ref_path in conf.ref_files:
-        fcont = fread(ref_path)
-        y = yaml.safe_load(fcont)
-        for r in y.get("universal", []):
-            refs.update(r)
-        for r in y.get(conf.platform, []):
-            refs.update(r)
-
-    return refs
 
 
 def parse_in_list_tables(nodes) -> List[dict]:
@@ -507,31 +462,6 @@ def new_parser():
     )
 
     return rdr
-
-
-def extract_ref_definitions(cont):
-    lines = cont.split("\n")
-    rst = []
-    refs = {}
-    for line in lines:
-        r = re.match(r"\[(.*?)\]:(.*?)$", line, flags=re.UNICODE)
-        if r:
-            gs = r.groups()
-            refs[gs[0]] = gs[1]
-        else:
-            rst.append(line)
-    return "\n".join(rst), refs
-
-
-def extract_front_matter(cont):
-    meta = None
-    m = re.match(r"^ *--- *\n(.*?)\n---\n", cont, flags=re.DOTALL | re.UNICODE)
-    if m:
-        cont = cont[m.end() :]
-        meta_text = m.groups()[0].strip()
-        meta = FrontMatter(meta_text)
-
-    return cont, meta
 
 
 def render_ref_list(refs, platform):
