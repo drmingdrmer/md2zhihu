@@ -1,4 +1,4 @@
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/eb411953aee67d24-md.png)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/490b0ac21fd1d39f-png)
 
 
 
