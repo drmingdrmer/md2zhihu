@@ -19,6 +19,7 @@ from .extract.refs import load_external_refs
 from .transform.math import join_math_block
 from .transform.math import parse_math
 from .transform.refs import replace_ref_with_def
+from .transform.table import parse_in_list_tables
 
 
 class ParserConfig(object):
@@ -214,60 +215,6 @@ class Article(object):
         output_lines.extend(ref_lines)
 
         return output_lines
-
-
-def parse_in_list_tables(nodes) -> List[dict]:
-    """
-    mistune does not parse table in list item.
-    We need to recursively fix it.
-    """
-
-    rst = []
-    for n in nodes:
-        if "children" in n:
-            n["children"] = parse_in_list_tables(n["children"])
-
-        nodes = convert_paragraph_table(n)
-        rst.extend(nodes)
-
-    return rst
-
-
-def convert_paragraph_table(node: dict) -> List[dict]:
-    """
-    Parse table text in a paragraph and returns the ast of parsed table.
-
-    :return List[dict]: a list of ast nodes.
-    """
-
-    if node["type"] != "paragraph":
-        return [node]
-
-    children = node["children"]
-
-    if len(children) == 0:
-        return [node]
-
-    c0 = children[0]
-    if c0["type"] != "text":
-        return [node]
-
-    txt = c0["text"]
-
-    table_reg = r" {0,3}\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*"
-
-    match = re.match(table_reg, txt)
-    if match:
-        mdr = MDRender(None, features={})
-        partialmd_lines = mdr.render(RenderNode(node))
-        partialmd = "".join(partialmd_lines)
-
-        parser = new_parser()
-        new_children = parser(partialmd)
-
-        return new_children
-    else:
-        return [node]
 
 
 def rebase_url_in_ast(frm, to, nodes):
