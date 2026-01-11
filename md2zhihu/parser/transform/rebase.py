@@ -1,8 +1,10 @@
 import os
 import re
 
+from ...types import ASTNodes
 
-def rebase_url_in_ast(frm, to, nodes):
+
+def rebase_url_in_ast(frm: str, to: str, nodes: ASTNodes) -> None:
     for n in nodes:
         if "children" in n:
             rebase_url_in_ast(frm, to, n["children"])
@@ -16,7 +18,7 @@ def rebase_url_in_ast(frm, to, nodes):
             continue
 
 
-def rebase_url(frm, to, src):
+def rebase_url(frm: str, to: str, src: str) -> str:
     """
     Change relative path based from ``frm`` to from ``to``.
     """
