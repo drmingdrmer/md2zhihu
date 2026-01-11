@@ -15,6 +15,8 @@ from k3handy import pjoin
 from skimage.metrics import structural_similarity
 
 import md2zhihu
+import md2zhihu.config.asset_reop
+import md2zhihu.config.local_repo
 
 dd = k3ut.dd
 
@@ -38,7 +40,7 @@ class TestMd2zhihu(unittest.TestCase):
             "ssh://git@github.com/drmingdrmer/home",
             "https://github.com/drmingdrmer/home.git",
         ):
-            a = md2zhihu.AssetRepo(url, cdn=False)
+            a = md2zhihu.config.asset_reop.AssetRepo(url, cdn=False)
             self.assertEqual(False, a.cdn)
             self.assertRegex(a.branch, "_md2zhihu_md2zhihu_[a-z0-9]{8}")
             b = a.branch
@@ -53,7 +55,7 @@ class TestMd2zhihu(unittest.TestCase):
         # specify branch
 
         url = "git@github.com:drmingdrmer/home.git@abc"
-        a = md2zhihu.AssetRepo(url, cdn=False)
+        a = md2zhihu.config.asset_reop.AssetRepo(url, cdn=False)
         self.assertEqual(False, a.cdn)
         self.assertEqual("abc", a.branch)
         self.assertEqual("github.com", a.host)
@@ -66,7 +68,7 @@ class TestMd2zhihu(unittest.TestCase):
 
         #  with cdn
 
-        a = md2zhihu.AssetRepo("git@github.com:drmingdrmer/home.git")
+        a = md2zhihu.config.asset_reop.AssetRepo("git@github.com:drmingdrmer/home.git")
         self.assertEqual(True, a.cdn)
         self.assertRegex(a.branch, "_md2zhihu_md2zhihu_[a-z0-9]{8}")
         b = a.branch
@@ -80,7 +82,7 @@ class TestMd2zhihu(unittest.TestCase):
 
         # https url with token
 
-        a = md2zhihu.AssetRepo("https://aa:bb@github.com/drmingdrmer/home.git")
+        a = md2zhihu.config.asset_reop.AssetRepo("https://aa:bb@github.com/drmingdrmer/home.git")
         self.assertEqual(True, a.cdn)
         self.assertEqual("https://aa:bb@github.com/drmingdrmer/home.git", a.url)
         self.assertRegex(a.branch, "_md2zhihu_md2zhihu_[a-z0-9]{8}")
@@ -103,7 +105,7 @@ class TestMd2zhihu(unittest.TestCase):
         for c in cases:
             md_path, asset_path, want = c
             dd(c)
-            local = md2zhihu.LocalRepo(md_path, asset_path)
+            local = md2zhihu.config.local_repo.LocalRepo(md_path, asset_path)
             self.assertEqual(want, local.path_pattern)
 
     def test_chunks(self):
