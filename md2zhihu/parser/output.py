@@ -1,6 +1,11 @@
+from typing import List
+
+from ..types import RefDict
+
+
 # TODO: move to renderer module?
-def render_ref_list(refs, platform):
-    ref_lines = ["", "Reference:", ""]
+def render_ref_list(refs: RefDict, platform: str) -> List[str]:
+    ref_lines: List[str] = ["", "Reference:", ""]
     for ref_id in sorted(refs):
         #  url_and_alt is in form "<url> <alt>"
         url_alt = refs[ref_id].split()
