@@ -1,9 +1,9 @@
 import re
 from typing import List
 
-from ...parser import new_parser
 from ...renderer import MDRender
 from ...renderer import RenderNode
+from ..new_parser import new_parser
 
 
 def parse_in_list_tables(nodes) -> List[dict]:

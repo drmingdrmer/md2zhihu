@@ -7,7 +7,6 @@ from typing import Optional
 
 from k3fs import fread
 
-from .._vendor import mistune
 from ..config import Config
 from ..renderer import MDRender
 from ..renderer import RenderNode
@@ -16,8 +15,11 @@ from .extract.front_matter import FrontMatter
 from .extract.front_matter import extract_front_matter
 from .extract.refs import extract_ref_definitions
 from .extract.refs import load_external_refs
+from .new_parser import new_parser
 from .transform.math import join_math_block
 from .transform.math import parse_math
+from .transform.rebase import rebase_url
+from .transform.rebase import rebase_url_in_ast
 from .transform.refs import replace_ref_with_def
 from .transform.table import parse_in_list_tables
 
@@ -217,36 +219,6 @@ class Article(object):
         return output_lines
 
 
-def rebase_url_in_ast(frm, to, nodes):
-    for n in nodes:
-        if "children" in n:
-            rebase_url_in_ast(frm, to, n["children"])
-
-        if n["type"] == "image":
-            n["src"] = rebase_url(frm, to, n["src"])
-            continue
-
-        if n["type"] == "link":
-            n["link"] = rebase_url(frm, to, n["link"])
-            continue
-
-
-def rebase_url(frm, to, src):
-    """
-    Change relative path based from ``frm`` to from ``to``.
-    """
-    if re.match(r"http[s]?://", src):
-        return src
-
-    if src.startswith("/"):
-        return src
-
-    p = os.path.join(frm, src)
-    p = os.path.relpath(p, start=to)
-
-    return p
-
-
 def regex_search_any(regex_list: List[str], s):
     for regex in regex_list:
         m = re.search(regex, s)
@@ -254,16 +226,6 @@ def regex_search_any(regex_list: List[str], s):
             return True
 
     return False
-
-
-def new_parser():
-    rdr = mistune.create_markdown(
-        escape=False,
-        renderer="ast",
-        plugins=["strikethrough", "footnotes", "table"],
-    )
-
-    return rdr
 
 
 def render_ref_list(refs, platform):
