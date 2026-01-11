@@ -16,8 +16,8 @@ from k3handy import cmdpass
 from k3handy import pjoin
 from k3handy import to_bytes
 
-from .platform import platform_feature_dict
-from .utils import msg
+from ..platform import platform_feature_dict
+from ..utils import msg
 
 
 class LocalRepo(object):

@@ -4,10 +4,10 @@ import pprint
 from typing import List
 from typing import Optional
 
-from .utils import add_paragraph_end
-from .utils import indent
-from .utils import msg
-from .utils import strip_paragraph_end
+from ..utils import add_paragraph_end
+from ..utils import indent
+from ..utils import msg
+from ..utils import strip_paragraph_end
 
 
 class MDRender(object):

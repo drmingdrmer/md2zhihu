@@ -4,12 +4,12 @@ from typing import Optional
 
 import k3down2
 
-from .asset import save_image_to_asset_dir
-from .renderer import MDRender
-from .renderer import RenderNode
-from .utils import asset_fn
-from .utils import escape
-from .utils import fwrite
+from ..asset import save_image_to_asset_dir
+from ..renderer import MDRender
+from ..renderer import RenderNode
+from ..utils import asset_fn
+from ..utils import escape
+from ..utils import fwrite
 
 
 def code_join(n: dict) -> str:

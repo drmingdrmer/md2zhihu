@@ -8,11 +8,11 @@ from typing import Optional
 import yaml
 from k3fs import fread
 
-from ._vendor import mistune
-from .config import Config
-from .renderer import MDRender
-from .renderer import RenderNode
-from .utils import add_paragraph_end
+from .._vendor import mistune
+from ..config import Config
+from ..renderer import MDRender
+from ..renderer import RenderNode
+from ..utils import add_paragraph_end
 
 
 class FrontMatter(object):

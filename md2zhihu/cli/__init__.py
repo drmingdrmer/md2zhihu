@@ -8,11 +8,11 @@ from k3color import darkyellow
 from k3color import green
 from k3fs import fread
 
-from .config import Config
-from .parser import Article
-from .parser import ParserConfig
-from .utils import msg
-from .utils import sj
+from ..config import Config
+from ..parser import Article
+from ..parser import ParserConfig
+from ..utils import msg
+from ..utils import sj
 
 
 def convert_md(parser_config, conf):
