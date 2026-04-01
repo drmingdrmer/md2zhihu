@@ -227,6 +227,7 @@ def main():
     parser.add_argument(
         "--code-width",
         action="store",
+        type=int,
         required=False,
         default=1000,
         help="R|specifies code image width.\nDefault: 1000",
