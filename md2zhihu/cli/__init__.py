@@ -84,6 +84,9 @@ def main():
         'If the path specified ends with "/", it is treated as output dir,'
         ' e.g., "--md-output foo/" output the converted md to foo/<fn>.md.'
         "\n"
+        '"{title}" in the path is replaced with the md file name without date prefix and extension,'
+        ' e.g., "--md-output foo/{title}/index.md".'
+        "\n"
         "Default: <output-dir>/<fn>.md",
     )
 

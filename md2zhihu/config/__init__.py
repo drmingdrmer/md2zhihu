@@ -48,6 +48,7 @@ class Config(object):
                     result markdown, moved image or generated images.
 
             md_output_path(str): when present, specifies the path of the result markdown or result dir.
+                    ``{title}`` in it is replaced with the article name.
 
             code_width(int): the result image width of code block.
 
@@ -96,6 +97,8 @@ class Config(object):
         self.rel_dir = os.path.relpath(self.asset_output_dir, self.output_dir)
 
         assert self.md_output_path is not None
+
+        self.md_output_path = self.md_output_path.format(title=self.article_name)
 
         if self.md_output_path.endswith("/"):
             self.md_output_base = self.md_output_path

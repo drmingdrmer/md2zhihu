@@ -108,6 +108,26 @@ class TestMd2zhihu(unittest.TestCase):
             local = md2zhihu.config.local_repo.LocalRepo(md_path, asset_path)
             self.assertEqual(want, local.path_pattern)
 
+    def test_md_output_title(self):
+        cases = [
+            ("out/{title}.md", "out/simple.md", "{path}"),
+            ("out/{title}/index.md", "out/simple/index.md", "../{path}"),
+            ("out/{title}/", "out/simple/simple.md", "../{path}"),
+        ]
+
+        for c in cases:
+            md_output, want_path, want_pattern = c
+            dd(c)
+            conf = md2zhihu.Config(
+                "src/2021-06-11-simple.md",
+                "zhihu",
+                "out",
+                "out",
+                md_output_path=md_output,
+            )
+            self.assertEqual(want_path, conf.md_output_path)
+            self.assertEqual(want_pattern, conf.asset_repo.path_pattern)
+
     def test_chunks(self):
         parser_config = md2zhihu.ParserConfig(False, [])
         conf = md2zhihu.Config(
