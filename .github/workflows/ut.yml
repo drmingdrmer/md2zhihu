@@ -12,8 +12,8 @@ jobs:
       # parallel running result in conflict when git-push to a same branch
       max-parallel: 1
       matrix:
-        # Test minimum supported (3.9), middle (3.11), and latest (3.12)
-        python-version: [3.9, 3.11, 3.12]
+        # Test minimum supported (3.10), middle (3.11), and latest (3.14)
+        python-version: ["3.10", "3.11", "3.14"]
 
     steps:
     - uses: actions/checkout@v2
@@ -43,10 +43,8 @@ jobs:
 
     - name: Install playwright browser
       run: |
-        # k3down2>=0.1.23 (python>=3.10) renders images with playwright chromium
-        if python -c "import playwright" 2>/dev/null; then
-          python -m playwright install --with-deps chromium
-        fi
+        # k3down2 renders images with playwright chromium
+        python -m playwright install --with-deps chromium
 
     - name: Lint and format with ruff
       run: |
