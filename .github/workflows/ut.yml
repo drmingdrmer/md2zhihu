@@ -41,6 +41,13 @@ jobs:
       run: |
         if [ -f packages.txt ]; then cat packages.txt | xargs sudo apt-get install; fi
 
+    - name: Install playwright browser
+      run: |
+        # k3down2>=0.1.23 (python>=3.10) renders images with playwright chromium
+        if python -c "import playwright" 2>/dev/null; then
+          python -m playwright install --with-deps chromium
+        fi
+
     - name: Lint and format with ruff
       run: |
         # Format code with ruff (fast Python formatter)
