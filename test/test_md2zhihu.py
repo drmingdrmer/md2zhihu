@@ -159,7 +159,7 @@ class TestMd2zhihu(unittest.TestCase):
             (
                 "content",
                 "paragraph",
-                "inline math $$ ||X{\\vec {\\beta }}-Y||^{2} $$ foo\n",
+                "inline math $$||X{\\vec {\\beta }}-Y||^{2}$$ foo\n",
             ),
             (
                 "content",
@@ -276,7 +276,7 @@ class TestMd2zhihu(unittest.TestCase):
             (
                 "content",
                 "list_item",
-                "-   对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,\n    我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,\n\n    以本文的场景为例,\n\n    -   可以设置 Q' = M(abcd) ∪ {ab, bc, ca}, Q'中任意2个元素都有交集;\n    -   也可以是 Q' = M(abcd) ∪ {bc, cd, bd};\n\n    要找到一个更好的偶节点的 quorum 集合, 一个方法是可以把偶数节点的集群看做是一个奇数节点集群加上一个节点x:\n    $$ D = C \\cup \\{x\\} $$\n\n    于是偶数节点的 quorum 集合就可以是 M(D) 的一个扩张:\n\n    $$\n    Q_{even}(D)_x = M(D) \\cup M(D \\setminus \\{x\\})\n    $$\n\n    当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么\n    Q' = M(abcd) ∪ {ab, bc, ca};\n",
+                "-   对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,\n    我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,\n\n    以本文的场景为例,\n\n    -   可以设置 Q' = M(abcd) ∪ {ab, bc, ca}, Q'中任意2个元素都有交集;\n    -   也可以是 Q' = M(abcd) ∪ {bc, cd, bd};\n\n    要找到一个更好的偶节点的 quorum 集合, 一个方法是可以把偶数节点的集群看做是一个奇数节点集群加上一个节点x:\n    $$D = C \\cup \\{x\\}$$\n\n    于是偶数节点的 quorum 集合就可以是 M(D) 的一个扩张:\n\n    $$\n    Q_{even}(D)_x = M(D) \\cup M(D \\setminus \\{x\\})\n    $$\n\n    当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么\n    Q' = M(abcd) ∪ {ab, bc, ca};\n",
             ),
             ("content", "new_line", ""),
             ("content", "paragraph", "table in list:\n"),

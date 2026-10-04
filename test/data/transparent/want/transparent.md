@@ -19,7 +19,7 @@ digraph G {
 }
 ```
 
-Inline math $$ x = y $$ should pass through.
+Inline math $$x = y$$ should pass through.
 
 Block math:
 

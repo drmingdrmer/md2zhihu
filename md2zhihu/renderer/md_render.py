@@ -57,7 +57,7 @@ class MDRender(object):
             return ["$$", n["text"], "$$"]
 
         if typ == "math_inline":
-            return ["$$ " + n["text"].strip() + " $$"]
+            return ["$$" + n["text"].strip() + "$$"]
 
         if typ == "table":
             return self.render(rnode) + [""]
