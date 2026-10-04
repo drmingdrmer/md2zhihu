@@ -128,6 +128,37 @@ class TestMd2zhihu(unittest.TestCase):
             self.assertEqual(want_path, conf.md_output_path)
             self.assertEqual(want_pattern, conf.asset_repo.path_pattern)
 
+    def test_replace_ref_with_def_undefined(self):
+        nodes = [
+            {"type": "paragraph", "children": [{"type": "text", "text": "[foo][bar]"}]},
+            {"type": "text", "text": "[baz][]"},
+            {"type": "text", "text": "[todo]"},
+            {"type": "text", "text": "[ok][]"},
+        ]
+
+        got = md2zhihu.parser.replace_ref_with_def(nodes, {"ok": "http://ok"}, True)
+        self.assertEqual(({"ok": "http://ok"}, ["[foo][bar]", "[baz][]"]), got)
+
+    def test_broken_link(self):
+        d = "test/data/broken-link"
+
+        cases = [
+            ("src/image.md", "image not found: 'src/nope.png', used in 'src/image.md'"),
+            ("src/embed.md", "embedded markdown not found: 'src/nope.md', used in 'src/embed.md'"),
+        ]
+
+        for fn, want in cases:
+            dd(fn)
+            code, out, err = k3proc.command("md2zhihu", fn, "--output-dir", "dst", cwd=d)
+            self.assertEqual(1, code)
+            self.assertIn(want, err)
+
+        code, out, err = k3proc.command("md2zhihu", "src/ref.md", "--output-dir", "dst", cwd=d)
+        self.assertEqual(0, code)
+        self.assertIn("Warn: undefined reference [foo][bar] in 'src/ref.md'", out)
+
+        rm(d, "dst")
+
     def test_chunks(self):
         parser_config = md2zhihu.ParserConfig(False, [])
         conf = md2zhihu.Config(

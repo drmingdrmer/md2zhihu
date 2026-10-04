@@ -3,12 +3,15 @@ import re
 from typing import List
 from typing import Optional
 
+from k3color import darkred
 from k3fs import fread
 
 from ..config import Config
 from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..utils import add_paragraph_end
+from ..utils import msg
+from ..utils import sj
 from .extract.front_matter import FrontMatter
 from .extract.front_matter import extract_front_matter
 from .extract.refs import extract_ref_definitions
@@ -78,7 +81,9 @@ class Article(object):
 
         self.ast = parse_in_list_tables(self.ast)
 
-        self.used_refs = replace_ref_with_def(self.ast, self.refs, self.parser_config.populate_reference)
+        self.used_refs, undefined_refs = replace_ref_with_def(self.ast, self.refs, self.parser_config.populate_reference)
+        for ref in undefined_refs:
+            msg(darkred(sj("Warn: undefined reference ", ref, " in ", repr(self.conf.src_path))))
 
         # extract already inlined math
         self.ast = parse_math(self.ast)
@@ -127,6 +132,8 @@ class Article(object):
                 continue
 
             article_path = self.conf.relpath_from_cwd(child["src"])
+            if not os.path.exists(article_path):
+                raise FileNotFoundError(f"embedded markdown not found: {article_path!r}, used in {self.conf.src_path!r}")
             md_text = fread(article_path)
 
             # save and restore parent src_path

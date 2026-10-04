@@ -50,6 +50,8 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
         return None
 
     src = mdrender.conf.relpath_from_cwd(src)
+    if not os.path.exists(src):
+        raise FileNotFoundError(f"image not found: {src!r}, used in {mdrender.conf.src_path!r}")
 
     fn = os.path.split(src)[1]
 
