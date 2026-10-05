@@ -135,6 +135,8 @@ MaxOS
 brew install pandoc imagemagick node
 npm install -g @mermaid-js/mermaid-cli
 pip install md2zhihu
+# 用于将 mermaid、代码块、表格和公式渲染为图片
+playwright install chromium
 ```
 
 **基本用法**：

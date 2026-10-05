@@ -162,6 +162,8 @@ MaxOS
 brew install pandoc imagemagick node
 npm install -g @mermaid-js/mermaid-cli
 pip install md2zhihu
+# For rendering mermaid, code blocks, tables and math to images
+playwright install chromium
 ```
 
 **Basic usage**:

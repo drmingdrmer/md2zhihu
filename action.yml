@@ -107,6 +107,12 @@ runs:
         pip3 install setuptools wheel
         pip3 install -e ${{ github.action_path }}
 
+    - name: Install playwright browser
+      shell: bash
+      run: |
+        # k3down2 renders images with playwright chromium
+        python3 -m playwright install --with-deps chromium
+
     - name: convert
       id: convert
       run: |
