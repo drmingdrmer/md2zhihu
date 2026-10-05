@@ -12,6 +12,7 @@ from k3handy import cmdpass
 from k3handy import pjoin
 
 from ..platform import platform_feature_dict
+from ..utils import mask_url_credential
 from ..utils import msg
 from .asset_reop import AssetRepo
 from .local_repo import LocalRepo
@@ -155,6 +156,7 @@ class Config(object):
         has_git = os.path.exists(git_path)
 
         args_str = "\n".join([k + ": " + str(v) for (k, v) in args.__dict__.items()])
+        args_str = mask_url_credential(args_str)
         conf_str = "\n".join([k + ": " + str(v) for (k, v) in self.__dict__.items()])
         fns_str = "\n".join([src for (src, dst) in src_dst_fns])
 
@@ -202,8 +204,10 @@ class Config(object):
                 **x,
             )
         except Exception as e:
-            msg(darkred(f"Failed to push to {self.asset_repo.url}: {e}"))
-            raise
+            err = mask_url_credential(f"Failed to push to {self.asset_repo.url}: {e}")
+            msg(darkred(err))
+            # `e` shows the push URL with the token, so it is not chained.
+            raise RuntimeError(err) from None
 
         if not has_git:
             msg("Removing tmp git dir: ", self.output_dir + "/.git")

@@ -17,6 +17,7 @@ from skimage.metrics import structural_similarity
 import md2zhihu
 import md2zhihu.config.asset_reop
 import md2zhihu.config.local_repo
+import md2zhihu.utils
 
 dd = k3ut.dd
 
@@ -158,6 +159,45 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertIn("Warn: undefined reference [foo][bar] in 'src/ref.md'", out)
 
         rm(d, "dst")
+
+    def test_mask_url_credential(self):
+        cases = [
+            ("https://someone:TOKEN@github.com/a/b.git@br", "https://***@github.com/a/b.git@br"),
+            ("https://TOKEN@gitee.com/a/b.git", "https://***@gitee.com/a/b.git"),
+            ("repo: http://u:t@gitee.com/a/b.git\nbranch: br", "repo: http://***@gitee.com/a/b.git\nbranch: br"),
+            ("https://github.com/a/b.git@br", "https://github.com/a/b.git@br"),
+            ("git@github.com:a/b.git@br", "git@github.com:a/b.git@br"),
+        ]
+
+        for s, want in cases:
+            dd(s)
+            got = md2zhihu.utils.mask_url_credential(s)
+            self.assertEqual(want, got)
+
+    def test_push_masks_token(self):
+        d = "test/data/push-token"
+        token = "FAKETOKEN"
+        url_prefix = "https://someone:" + token + "@github.com/"
+
+        # Make the push fail at once without network: git rewrites the URL to a missing local path.
+        env = dict(
+            os.environ,
+            GIT_CONFIG_COUNT="1",
+            GIT_CONFIG_KEY_0="url./nonexistent/.insteadOf",
+            GIT_CONFIG_VALUE_0=url_prefix,
+        )
+        code, out, err = k3proc.command("md2zhihu", "a.md", "--repo", url_prefix + "nobody/nothing.git@b", cwd=d, env=env)
+        self.assertEqual(1, code)
+        self.assertNotIn(token, out)
+        self.assertNotIn(token, err)
+        self.assertIn("https://***@github.com/nobody/nothing.git", out)
+        self.assertIn("RuntimeError: Failed to push to https://***@github.com/nobody/nothing.git", err)
+
+        _, commit_msg, _ = k3proc.command("git", "log", "-1", "--format=%B", cwd=pjoin(d, "_md2"), check=True)
+        self.assertNotIn(token, commit_msg)
+        self.assertIn("\nrepo: https://***@github.com/nobody/nothing.git@b\n", commit_msg)
+
+        rm(d, "_md2")
 
     def test_chunks(self):
         parser_config = md2zhihu.ParserConfig(False, [])

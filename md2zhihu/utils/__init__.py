@@ -16,8 +16,18 @@ def sj(*args) -> str:
 
 
 def msg(*args) -> None:
-    """Log a message with backward-compatible output format"""
-    logger.info("".join([str(x) for x in args]))
+    """Log a message with backward-compatible output format.
+
+    The token in a git push URL such as ``https://user:token@github.com/...`` is masked.
+    """
+    line = "".join([str(x) for x in args])
+    line = mask_url_credential(line)
+    logger.info(line)
+
+
+def mask_url_credential(s: str) -> str:
+    """Replace the ``user:token@`` part of each http(s) URL in ``s`` with ``***@``."""
+    return re.sub(r"(https?://)[^/@\s]+@", r"\1***@", s)
 
 
 def indent(line: str) -> str:
