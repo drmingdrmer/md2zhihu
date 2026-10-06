@@ -71,3 +71,28 @@ jobs:
       if: failure()
       with:
         path: test/
+
+  action_test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Convert a markdown with the action in this commit
+      uses: ./
+      env:
+        GITHUB_USERNAME: ${{ github.repository_owner }}
+        GITHUB_TOKEN: ${{ secrets.MD2TEST_TOKEN }}
+      with:
+        pattern: test/data/transparent/src/transparent.md
+        asset_repo: https://github.com/drmingdrmer/md2test.git
+        asset_branch: action_test
+        output_branch: ''
+
+    - name: Check the output
+      run: |
+        # The images in the converted markdown load from the asset repo.
+        grep -F 'https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@action_test/transparent/' _md2zhihu/transparent.md
+        # The runner user owns the output, so later steps can change it.
+        test -O _md2zhihu/transparent.md

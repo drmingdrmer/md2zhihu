@@ -72,66 +72,26 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Add npm bin into PATH
-      shell: bash
-      run: |
-        echo "add node module path: $GITHUB_WORKSPACE/node_modules/.bin/"
-        echo "$GITHUB_WORKSPACE/node_modules/.bin/" >> $GITHUB_PATH
-
-
-    - name: Install mermaid
-      shell: bash
-      run: |
-        npm install --verbose @mermaid-js/mermaid-cli@10.2.2
-        echo "locate npm, mmdc and mmdc --version"
-        which npm
-        which mmdc
-        mmdc --version
-
-
-    - name: Install pandoc
-      shell: bash
-      run: |
-        sudo apt-get install pandoc
-        pandoc --version
-
-    - name: Install graphviz
-      shell: bash
-      run: |
-        sudo apt-get install graphviz
-        dot -V
-
-    - name: Install python dependencies
-      shell: bash
-      run: |
-        pip3 install setuptools wheel
-        pip3 install -e ${{ github.action_path }}
-
-    - name: Install playwright browser
-      shell: bash
-      run: |
-        # k3down2 renders images with playwright chromium
-        python3 -m playwright install --with-deps chromium
-
     - name: convert
       id: convert
       run: |
-        cp -R ${{ github.action_path }} md2zhihu
-
         echo 'asset_repo: ${{ inputs.asset_repo }}'
 
-        echo "which mmdc"
-        which mmdc
-        mmdc --version
-
-        python3 -m md2zhihu \
+        # The image holds md2zhihu and every tool it runs.
+        # --pull always: a self-hosted runner keeps images, and would run an old `latest`.
+        # --user: later steps can change the files that md2zhihu writes.
+        # -v and -w keep the workspace path, so a path in the inputs is valid in the container.
+        docker run --rm --pull always \
+          --user "$(id -u):$(id -g)" \
+          -v "$PWD:$PWD" -w "$PWD" \
+          -e GITHUB_USERNAME -e GITHUB_TOKEN \
+          ghcr.io/drmingdrmer/md2zhihu:latest \
+          md2zhihu \
           --repo '${{ inputs.asset_repo }}@${{ inputs.asset_branch }}' \
           --code-width 600 \
           --platform ${{ inputs.target_platform }} \
           --md-output ${{ inputs.output_dir }}/ \
           ${{ inputs.pattern }}
-
-        rm -rf ./md2zhihu
 
         if [ ".${{ inputs.output_branch }}" == "." ]; then
           echo "output branch is empty, skip push"
