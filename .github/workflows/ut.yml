@@ -64,6 +64,9 @@ jobs:
         # https://github.com/drmingdrmer/md2test
         MD2TEST_USERNAME: ${{ github.repository_owner }}
         MD2TEST_TOKEN: ${{ secrets.MD2TEST_TOKEN }}
+        # Some tests push to git@gitee.com. The push fails on CI, which has no ssh key,
+        # but a stalled network can hang it for hours. These two timeouts end it in seconds.
+        GIT_SSH_COMMAND: ssh -o ConnectTimeout=10 -o ServerAliveInterval=10
       run: |
         pytest -xv
 
