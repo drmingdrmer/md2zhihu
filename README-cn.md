@@ -194,6 +194,15 @@ md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git@test
 在 Markdown 文件所在目录中运行：
 
 ```sh
+docker run --rm -v "${PWD}:/work" ghcr.io/drmingdrmer/md2zhihu md2zhihu your_great_work.md
+```
+
+此命令将 `your_great_work.md` 转换为 `_md2/your_great_work.md`，
+图片保存在 `_md2/your_great_work/` 中，不会上传。
+
+要把图片上传到 git 仓库：
+
+```sh
 docker run --rm -v "${PWD}:/work" \
     -e GITHUB_USERNAME=<user> -e GITHUB_TOKEN=<token> \
     ghcr.io/drmingdrmer/md2zhihu \

@@ -222,6 +222,15 @@ The image `ghcr.io/drmingdrmer/md2zhihu` contains md2zhihu and all the tools it 
 Run it in the dir that contains the markdown:
 
 ```sh
+docker run --rm -v "${PWD}:/work" ghcr.io/drmingdrmer/md2zhihu md2zhihu your_great_work.md
+```
+
+This command converts `your_great_work.md` to `_md2/your_great_work.md`,
+and saves the images in `_md2/your_great_work/` without uploading them.
+
+To upload the images to a git repo:
+
+```sh
 docker run --rm -v "${PWD}:/work" \
     -e GITHUB_USERNAME=<user> -e GITHUB_TOKEN=<token> \
     ghcr.io/drmingdrmer/md2zhihu \
