@@ -14,7 +14,7 @@ from k3handy import pjoin
 from ..platform import platform_feature_dict
 from ..utils import mask_url_credential
 from ..utils import msg
-from .asset_reop import AssetRepo
+from .asset_repo import AssetRepo
 from .local_repo import LocalRepo
 
 
