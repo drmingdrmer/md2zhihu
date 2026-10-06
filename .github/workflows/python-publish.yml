@@ -28,9 +28,8 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        cp pyproject.toml ..
-        cd ..
         python -m build
         pip install dist/*.tar.gz
-        python -c 'import '${GITHUB_REPOSITORY#*/}
+        # Run outside the source tree, where ./md2zhihu would hide a broken install.
+        (cd /tmp && md2zhihu --help)
         twine upload dist/*
