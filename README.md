@@ -216,6 +216,21 @@ uploaded.
   - Click "Read and write permissions"
   - Scroll down and save.
 
+## 3. Use it with Docker
+
+The image `ghcr.io/drmingdrmer/md2zhihu` contains md2zhihu and all the tools it needs.
+Run it in the dir that contains the markdown:
+
+```sh
+docker run --rm -v "${PWD}:/work" \
+    -e GITHUB_USERNAME=<user> -e GITHUB_TOKEN=<token> \
+    ghcr.io/drmingdrmer/md2zhihu \
+    md2zhihu your_great_work.md -r https://github.com/<owner>/<repo>.git@<branch>
+```
+
+`<token>` is a [personal access token](https://github.com/settings/tokens) that can write to `<owner>/<repo>`.
+The container has no SSH key, so `-r` must be an `https://` URL.
+For gitee.com, put the token in the URL instead: `-r https://<user>:<token>@gitee.com/<owner>/<repo>.git@<branch>`.
 
 # Features
 

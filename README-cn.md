@@ -188,6 +188,22 @@ md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git@test
   - 点击 "Read and write permissions"
   - 向下滚动并保存。
 
+## 3. 通过 Docker 使用
+
+镜像 `ghcr.io/drmingdrmer/md2zhihu` 包含 md2zhihu 及其需要的全部工具。
+在 Markdown 文件所在目录中运行：
+
+```sh
+docker run --rm -v "${PWD}:/work" \
+    -e GITHUB_USERNAME=<user> -e GITHUB_TOKEN=<token> \
+    ghcr.io/drmingdrmer/md2zhihu \
+    md2zhihu your_great_work.md -r https://github.com/<owner>/<repo>.git@<branch>
+```
+
+`<token>` 是对 `<owner>/<repo>` 有写权限的 [personal access token](https://github.com/settings/tokens)。
+容器里没有 SSH 密钥，所以 `-r` 必须是 `https://` 地址。
+使用 gitee.com 时，把 token 写在地址里：`-r https://<user>:<token>@gitee.com/<owner>/<repo>.git@<branch>`。
+
 # Features
 
 - 将 LaTeX 转换为图片：
