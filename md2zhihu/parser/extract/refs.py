@@ -26,8 +26,9 @@ def extract_ref_definitions(cont: str) -> Tuple[str, RefDict]:
     rst = []
     refs: RefDict = {}
     for line in lines:
+        # As in CommonMark, a definition may be indented by up to 3 spaces.
         # A definition whose URL is on the next line stays in the text, for the parser to read.
-        r = re.match(r"\[(.*?)\]:(\s*\S.*?)$", line, flags=re.UNICODE)
+        r = re.match(r" {0,3}\[(.*?)\]:(\s*\S.*?)$", line, flags=re.UNICODE)
         if r:
             gs = r.groups()
             refs[gs[0]] = gs[1]

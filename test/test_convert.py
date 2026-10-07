@@ -112,7 +112,6 @@ expected_fail = {
     "math-escape": {"v2": "an escape inside `$...$` splits the text, so the math is not found"},
     "math-table-cell": {"v2": r"`\|` in math in a table cell loses its backslash, which splits the cell"},
     "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved"},
-    "refs-footnote-indented": {"v2": "a definition indented by 1 space is not extracted and renders as `***:footnotes`"},
     "refs-image": {"v2": "an image reference is not resolved, and its definition is removed"},
     "refs-label-case": {"v2": "a reference label in another case is not resolved"},
     "tables-escaped-pipe": {"v2": r"`\|` in a table cell loses its backslash, which splits the cell"},
