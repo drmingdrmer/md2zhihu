@@ -8,7 +8,6 @@ tilde fence
 
 ```
 indented code
-
 ```
 
 ![](code-blocks/graphLRA--B-c162703d18e75e78.jpg)

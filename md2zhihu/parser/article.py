@@ -36,7 +36,7 @@ class ParserConfig(object):
     `embed_patterns`: the url regex patterns to replace the content of url in ![](url).
 
     `engine`: the markdown parser, "v2" for the vendored mistune 2.0.0a6 or "v3" for mistune 3.
-    It defaults to the environment variable MD2ZHIHU_PARSER, or to "v2" when the variable is unset.
+    It defaults to the environment variable MD2ZHIHU_PARSER, or to "v3" when the variable is unset.
     """
 
     def __init__(self, populate_reference: bool, embed_patterns: List[str], engine: Optional[str] = None):
@@ -44,7 +44,7 @@ class ParserConfig(object):
         self.embed_patterns = embed_patterns
 
         if engine is None:
-            engine = os.environ.get("MD2ZHIHU_PARSER", "v2")
+            engine = os.environ.get("MD2ZHIHU_PARSER", "v3")
         if engine not in ("v2", "v3"):
             raise ValueError(f"unknown markdown parser {engine!r}, expected 'v2' or 'v3'")
         self.engine = engine

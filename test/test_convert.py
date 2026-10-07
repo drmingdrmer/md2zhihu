@@ -96,32 +96,31 @@ warn_cases = {
     "warn-emphasis-text": ("[*foo*][bar]", ["[*foo*][bar]"]),
 }
 
-# The parsers under test: "v2" is the vendored mistune 2.0.0a6, and "v3" is mistune 3.
+# The parsers under test: "v3" is mistune 3, and "v2" is the vendored mistune 2.0.0a6.
 # MD2ZHIHU_UPDATE_GOLDEN=1 writes the golden files from the output of the first one.
-engines = ["v2", "v3"]
+engines = ["v3", "v2"]
 
 # Known bugs and differences, as case name: {parser: reason}. An end-to-end conversion is named "e2e/<name>".
-# A case with a v2 entry expects the correct result, written by hand.
-# A v3 entry that is not a bug above is an intended change of the output.
+# A v2 entry names a mistune 2 bug or an output that mistune 3 changed on purpose. The golden file holds mistune 3's output.
 # The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
 expected_fail = {
-    "code-blocks": {"v3": "an indented code block loses the empty line that mistune 2 keeps at its end"},
+    "code-blocks": {"v2": "an indented code block keeps an empty line at its end"},
     "escapes-backslash": {"v2": "a backslash escape loses its backslash"},
     "inline-autolink": {"v2": "an autolink crashes parse_in_list_tables"},
     "inline-cjk-underscore": {"v2": "`_` between Chinese characters becomes emphasis"},
-    "inline-hard-break-backslash": {"v3": "a backslash hard break is written as two trailing spaces"},
-    "inline-image-cjk-url": {"v3": "a remote image URL is percent-encoded"},
+    "inline-hard-break-backslash": {"v2": "a backslash hard break stays a backslash instead of two trailing spaces"},
+    "inline-image-cjk-url": {"v2": "a remote image URL is not percent-encoded"},
     "inline-link-ampersand": {"v2": "`&` in a link URL becomes `&amp;`"},
     "math-dollar-amounts": {"v2": "`$5 and $` becomes inline math"},
     "math-emphasis": {"v2": "emphasis inside `$...$` splits the text, so the math is not found"},
     "math-escape": {"v2": "an escape inside `$...$` splits the text, so the math is not found"},
-    "math-placement": {"v3": "the math that MDRender splits out of a heading is followed by one empty line fewer"},
+    "math-placement": {"v2": "the math that MDRender splits out of a heading is followed by one more empty line"},
     "math-table-cell": {"v2": r"`\|` in math in a table cell loses its backslash, which splits the cell"},
     "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved"},
     "refs-image": {"v2": "an image reference is not resolved, and its definition is removed"},
     "refs-label-case": {"v2": "a reference label in another case is not resolved"},
     "tables-escaped-pipe": {"v2": r"`\|` in a table cell loses its backslash, which splits the cell"},
-    "tables-syntax": {"v3": "a table row with fewer cells than the header gets empty cells, as GFM requires"},
+    "tables-syntax": {"v2": "a table row with fewer cells than the header gets no empty cells"},
     "warn-emphasis-text": {"v2": "an undefined reference whose text has emphasis gets no warning"},
 }
 

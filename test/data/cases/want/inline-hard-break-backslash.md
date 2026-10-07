@@ -1,4 +1,4 @@
-A backslash makes a hard break:\
+A backslash makes a hard break:  
 next line
 
 
