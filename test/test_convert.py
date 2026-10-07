@@ -7,6 +7,7 @@ Run them with MD2ZHIHU_UPDATE_GOLDEN=1 to rewrite the golden files from the curr
 
 import logging
 import os
+import re
 import shutil
 import sys
 
@@ -83,11 +84,22 @@ case_config = {
 # The small cases that keep references as written, as Article.chunks() does.
 no_populate_cases = {"refs-no-populate"}
 
+# Inputs with undefined references, as name: (markdown, the references that Article warns about).
+# A lone `[x]` is usually plain text, so it gets no warning.
+warn_cases = {
+    "warn-full": ("[foo][bar]", ["[foo][bar]"]),
+    "warn-collapsed": ("[baz][]", ["[baz][]"]),
+    "warn-in-text": ("see [foo][bar] now", ["[foo][bar]"]),
+    "warn-two-on-one-line": ("[a][b] and [c][]", ["[a][b]", "[c][]"]),
+    "warn-shortcut": ("[x]", []),
+    "warn-emphasis-text": ("[*foo*][bar]", ["[*foo*][bar]"]),
+}
+
 # The parser under test: "v2" is the vendored mistune 2.0.0a6.
 engine = "v2"
 
-# Known bugs of the small cases, as case name: {parser: reason}.
-# The golden file of a listed case holds the correct output, written by hand.
+# Known bugs, as case name: {parser: reason}.
+# A listed case expects the correct result, written by hand.
 # The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
 expected_fail = {
     "blocks-empty-heading": {"v2": "a heading with no text crashes MDRender"},
@@ -106,6 +118,7 @@ expected_fail = {
     "refs-image": {"v2": "an image reference is not resolved, and its definition is removed"},
     "refs-label-case": {"v2": "a reference label in another case is not resolved"},
     "tables-escaped-pipe": {"v2": r"`\|` in a table cell loses its backslash, which splits the cell"},
+    "warn-emphasis-text": {"v2": "an undefined reference whose text has emphasis gets no warning"},
 }
 
 
@@ -192,3 +205,21 @@ def test_case(name, tmp_path, monkeypatch):
 
     got = "\n".join(article.render())
     check_golden(os.path.join(golden_base, name + ".md"), got)
+
+
+@pytest.mark.parametrize("name", [case_param(name) for name in warn_cases])
+def test_undefined_reference_warning(name, tmp_path, caplog):
+    md_text, want = warn_cases[name]
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("warn.md", "zhihu", out_dir, out_dir, md_output_path=out_dir + "/")
+    parser_config = md2zhihu.ParserConfig(True, [])
+
+    caplog.set_level(logging.INFO)
+    md2zhihu.Article(parser_config, conf, md_text)
+
+    got = []
+    for record in caplog.records:
+        warning = re.search(r"Warn: undefined reference (.*) in 'warn\.md'", record.getMessage())
+        if warning:
+            got.append(warning.group(1))
+    assert got == want
