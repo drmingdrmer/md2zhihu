@@ -96,15 +96,15 @@ class Article(object):
             self.ast = parse_in_list_tables(self.ast)
             self.used_refs, undefined_refs = replace_ref_with_def(self.ast, self.refs, self.parser_config.populate_reference)
 
+            # extract already inlined math
+            self.ast = parse_math(self.ast)
+
+            # join cross paragraph math
+            join_math_block(self.ast)
+            self.ast = parse_math(self.ast)
+
         for ref in undefined_refs:
             msg(darkred(sj("Warn: undefined reference ", ref, " in ", repr(self.conf.src_path))))
-
-        # extract already inlined math
-        self.ast = parse_math(self.ast)
-
-        # join cross paragraph math
-        join_math_block(self.ast)
-        self.ast = parse_math(self.ast)
 
         self.parse_embed()
 

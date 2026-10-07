@@ -100,45 +100,23 @@ warn_cases = {
 # MD2ZHIHU_UPDATE_GOLDEN=1 writes the golden files from the output of the first one.
 engines = ["v2", "v3"]
 
-# The v3 difference that comes from md2zhihu's math post-processing, which the v3 pipeline still runs
-# on mistune 3's text, in which an escape such as `\{` has lost its backslash.
-v3_math = "an escape in math loses its backslash"
-
 # Known bugs and differences, as case name: {parser: reason}. An end-to-end conversion is named "e2e/<name>".
 # A case with a v2 entry expects the correct result, written by hand.
 # A v3 entry that is not a bug above is an intended change of the output.
 # The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
 expected_fail = {
     "code-blocks": {"v3": "an indented code block loses the empty line that mistune 2 keeps at its end"},
-    "e2e/github": {"v3": v3_math},
-    "e2e/minimal_mistake": {"v3": v3_math},
-    "e2e/simple": {"v3": v3_math},
-    "e2e/wechat": {"v3": v3_math},
-    "e2e/weibo": {"v3": v3_math},
-    "e2e/zhihu": {"v3": v3_math},
-    "e2e/zhihu-deep-asset-dir": {"v3": v3_math},
-    "e2e/zhihu-localrepo": {"v3": v3_math},
-    "e2e/zhihu-pushall": {"v3": v3_math},
     "escapes-backslash": {"v2": "a backslash escape loses its backslash", "v3": "a backslash escape loses its backslash"},
     "inline-autolink": {"v2": "an autolink crashes parse_in_list_tables"},
     "inline-cjk-underscore": {"v2": "`_` between Chinese characters becomes emphasis"},
     "inline-hard-break-backslash": {"v3": "a backslash hard break is written as two trailing spaces"},
     "inline-image-cjk-url": {"v3": "a remote image URL is percent-encoded"},
     "inline-link-ampersand": {"v2": "`&` in a link URL becomes `&amp;`"},
-    "math-dollar-amounts": {"v2": "`$5 and $` becomes inline math", "v3": "`$5 and $` becomes inline math"},
-    "math-emphasis": {
-        "v2": "emphasis inside `$...$` splits the text, so the math is not found",
-        "v3": "emphasis inside `$...$` splits the text, so the math is not found",
-    },
-    "math-escape": {
-        "v2": "an escape inside `$...$` splits the text, so the math is not found",
-        "v3": "an escape inside `$...$` loses its backslash",
-    },
-    "math-latex": {"v3": r"an escape such as `\{` in math loses its backslash"},
-    "math-table-cell": {
-        "v2": r"`\|` in math in a table cell loses its backslash, which splits the cell",
-        "v3": r"`\|` in math in a table cell loses its backslash, which splits the cell",
-    },
+    "math-dollar-amounts": {"v2": "`$5 and $` becomes inline math"},
+    "math-emphasis": {"v2": "emphasis inside `$...$` splits the text, so the math is not found"},
+    "math-escape": {"v2": "an escape inside `$...$` splits the text, so the math is not found"},
+    "math-placement": {"v3": "the math that MDRender splits out of a heading is followed by one empty line fewer"},
+    "math-table-cell": {"v2": r"`\|` in math in a table cell loses its backslash, which splits the cell"},
     "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved"},
     "refs-image": {"v2": "an image reference is not resolved, and its definition is removed"},
     "refs-label-case": {"v2": "a reference label in another case is not resolved"},

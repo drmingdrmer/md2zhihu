@@ -38,6 +38,13 @@ attr_fields = {
 # A lone "[label]" is usually plain text, so it gets no warning.
 undefined_ref_forms = re.compile(r"\[[^\[\]]*\]\[[^\[\]]*\]")
 
+# md2zhihu's math, "$$...$$" or "$...$", which may span lines and have spaces inside, such as "$ x $".
+# A "$" followed by a digit does not close math, so "costs $5 and $6" has no math.
+math_pattern = re.compile(r"\$\$([^$][\s\S]*?)\$\$|\$([^$][\s\S]*?)\$(?!\d)")
+
+# A code span, whose "$$", such as in `$$`, is not math.
+code_span = re.compile(r"(`+)[\s\S]*?\1")
+
 
 def new_markdown() -> mistune.Markdown:
     """
@@ -50,6 +57,8 @@ def new_markdown() -> mistune.Markdown:
         plugins=["strikethrough", "table", table_in_list, table_in_quote],
     )
     md.inline.register("link", None, parse_link)
+    md.inline.register("math", r"\$", parse_math)
+    md.before_render_hooks.append(lambda md, state: join_math_paragraphs(state.tokens))
     return md
 
 
@@ -151,6 +160,64 @@ def closing_bracket(src: str, pos: int) -> int:
         if c == "]":
             depth -= 1
         pos += 1
+
+
+def parse_math(inline: InlineParser, m: re.Match[str], state: InlineState) -> Optional[int]:
+    """
+    Read md2zhihu's math at a "$". It is a block if it starts its paragraph and ends a line.
+    The math text stays as written, because the escape and emphasis rules never see it.
+    """
+
+    math = math_pattern.match(state.src, m.start())
+    if math is None:
+        return None
+
+    text = math.group(1)
+    if text is None:
+        text = math.group(2)
+
+    starts_paragraph = math.start() == 0
+    ends_line = math.end() == len(state.src) or state.src.startswith("\n", math.end())
+    if starts_paragraph and ends_line:
+        state.append_token({"type": "math_block", "raw": text})
+    else:
+        state.append_token({"type": "math_inline", "raw": text})
+    return math.end()
+
+
+def join_math_paragraphs(tokens: List[Token]) -> None:
+    """
+    Join each paragraph that opens "$$" math with the paragraphs after it, up to the one that closes the math.
+    mistune's block parser splits such math at a blank line, and this runs before mistune parses the inline text.
+    """
+
+    i = 0
+    while i < len(tokens):
+        tok = tokens[i]
+        if "children" in tok:
+            join_math_paragraphs(tok["children"])
+
+        following = i + 1
+        while following < len(tokens) and tokens[following]["type"] == "blank_line":
+            following += 1
+
+        joinable = tok["type"] == "paragraph" and following < len(tokens) and tokens[following]["type"] == "paragraph"
+        if not joinable or not opens_math(tok["text"]):
+            i += 1
+            continue
+
+        tok["text"] = tok["text"].rstrip("\n") + "\n\n" + tokens[following]["text"]
+        del tokens[i + 1 : following + 1]
+
+
+def opens_math(text: str) -> bool:
+    """
+    Tell whether the text has a "$$" that no math in the text closes.
+    """
+
+    plain = code_span.sub("", text)
+    rest = math_pattern.sub("", plain)
+    return "$$" in rest
 
 
 def adapt(tokens: List[Token]) -> ASTNodes:
