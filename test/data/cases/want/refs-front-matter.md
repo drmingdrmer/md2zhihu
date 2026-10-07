@@ -1,4 +1,3 @@
-
 A reference defined in front matter: [slim](https://github.com/openacid/slim).
 
 

@@ -8,7 +8,6 @@
 
     > quote
 
-
 -   image in an item: ![alt](https://a.com/x.png)
 
 

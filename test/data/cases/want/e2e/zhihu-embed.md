@@ -5,7 +5,6 @@ before bar:
 
 bar embed a start
 
-
 ![](simple/18b61671112f3aeb-slim.jpg)
 
 ![](simple/18b61671112f3aeb-bar.jpg)

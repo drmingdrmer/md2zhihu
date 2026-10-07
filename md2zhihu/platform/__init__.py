@@ -57,7 +57,7 @@ def weibo_specific(mdrender, rnode) -> Optional[List[str]]:
     if typ == "block_quote":
         lines = mdrender.render(rnode)
         lines = strip_paragraph_end(lines)
-        return lines
+        return lines + [""]
 
     if typ == "block_code":
         lang = n["info"] or ""

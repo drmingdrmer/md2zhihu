@@ -8,7 +8,6 @@ platform_refs:
     zhihu:
         - "meta-ref-zhihu": meta-ref-zhihu-http
 ---
-
 ![](simple/18b61671112f3aeb-slim.jpg)
 
 [p][protobuf]

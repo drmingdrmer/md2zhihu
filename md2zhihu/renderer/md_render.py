@@ -127,9 +127,6 @@ class MDRender(object):
             lines = ["> " + x for x in lines]
             return lines + [""]
 
-        if typ == "newline":
-            return [""]
-
         if typ == "block_html":
             return add_paragraph_end([n["text"]])
 

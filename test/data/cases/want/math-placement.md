@@ -12,7 +12,6 @@
 
 > quote with {tex_inline:imgtag}z^2{/tex_inline}
 
-
 Two on one line: {tex_inline:imgtag}a{/tex_inline} and {tex_inline:imgtag}b{/tex_inline}.
 
 

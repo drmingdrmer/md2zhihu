@@ -228,7 +228,6 @@ class TestMd2zhihu(unittest.TestCase):
                 "",
                 '---\nrefs:\n    - "slim":      https://github.com/openacid/slim "slim"\n    - "slimarray": https://github.com/openacid/slimarray "slimarray"\n    - "vlink": https://vlink "vlink"\n\nplatform_refs:\n    zhihu:\n        - "vlink": https://vlink.zhihu "vlink"\n---',
             ),
-            ("content", "newline", ""),
             ("content", "heading", "# 场景和问题\n"),
             (
                 "content",
@@ -298,7 +297,6 @@ class TestMd2zhihu(unittest.TestCase):
                 "block_quote",
                 "> 在达到gzip同等压缩率的前提下, 构建 slimarray 和 访问的性能也非常高:\n> \n> -   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n> -   读取一个数组元素平均花费 7 ns/op.\n>     -   构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;\n>     -   读取一个数组元素平均花费 `7 ns/op`.\n",
             ),
-            ("content", "newline", ""),
             (
                 "content",
                 "paragraph",

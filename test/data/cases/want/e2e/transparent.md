@@ -1,4 +1,3 @@
-
 # Transparent Test
 
 Table should pass through:

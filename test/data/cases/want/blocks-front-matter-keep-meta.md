@@ -1,7 +1,6 @@
 ---
 title: front matter
 ---
-
 Body.
 
 
