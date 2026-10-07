@@ -68,7 +68,7 @@ def parse(text: str, refs: RefDict, populate_reference: bool) -> Tuple[ASTNodes,
     Parse markdown with mistune 3 into the AST that md2zhihu renders.
 
     `refs` maps md2zhihu's name of each reference to its value, such as `https://a.com "title"`.
-    With `populate_reference` False, a link to one of them stays as written, such as `[text][name]`.
+    With `populate_reference` False, a link to one of them keeps its form, such as `[text][name]`.
 
     Return the AST, the references in `refs` that it uses, and the undefined references in it.
     """
@@ -128,15 +128,16 @@ def parse_link(inline: InlineParser, m: re.Match[str], state: InlineState) -> Op
         new_tokens[0]["alt"] = state.src[m.end() : alt_end]
 
     if len(new_tokens) == 1 and new_tokens[0]["type"] == "link" and "ref" in new_tokens[0]:
-        use_ref(state, count, state.src[m.start() : end])
+        text_end = closing_bracket(state.src, m.end())
+        use_ref(state, count, state.src[text_end:end])
 
     return end
 
 
-def use_ref(state: InlineState, index: int, source: str) -> None:
+def use_ref(state: InlineState, index: int, tail: str) -> None:
     """
     Record the reference that the link `state.tokens[index]` uses, if md2zhihu defines it.
-    With populate_reference False, replace the link with its source text.
+    With populate_reference False, write the link as its source: "[", its text, and `tail`, such as "][name]".
     """
 
     ref = state.env["ref_links"][state.tokens[index]["ref"]]
@@ -146,8 +147,15 @@ def use_ref(state: InlineState, index: int, source: str) -> None:
 
     state.env["used_refs"][ref["name"]] = ref["value"]
     if not state.env["populate_reference"]:
-        # With "_emphasis" False, mistune finds no emphasis in the text, such as in "[*foo*][bar]".
-        state.tokens[index] = {"type": "text", "raw": source, "_emphasis": False}
+        # The text keeps its tokens, so that md2zhihu converts the math in it, such as in "[$x$][name]".
+        opening = {"type": "text", "raw": "["}
+        closing = {"type": "text", "raw": tail}
+        source = [opening] + state.tokens[index]["children"] + [closing]
+        for tok in source:
+            if tok["type"] == "text":
+                # With "_emphasis" False, no emphasis crosses the brackets, as with a link.
+                tok["_emphasis"] = False
+        state.tokens[index : index + 1] = source
 
 
 def closing_bracket(src: str, pos: int) -> int:

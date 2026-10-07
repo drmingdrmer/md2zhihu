@@ -1,5 +1,7 @@
 Shortcut [slim], collapsed [slim][] and full [the text][slim].
 
+Math in the text: [{tex_inline:imgtag}x^2{/tex_inline}][slim].
+
 
 
 Reference:
