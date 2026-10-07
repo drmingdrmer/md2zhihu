@@ -143,6 +143,9 @@ class MDRender(object):
 
         if typ == "heading":
             lines = self.render(rnode)
+            if not lines:
+                # A heading with no text, such as "##", has no children.
+                lines = [""]
             lines[0] = "#" * n["level"] + " " + lines[0]
             return lines + [""]
 

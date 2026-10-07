@@ -103,7 +103,6 @@ engine = "v2"
 # A listed case expects the correct result, written by hand.
 # The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
 expected_fail = {
-    "blocks-empty-heading": {"v2": "a heading with no text crashes MDRender"},
     "blocks-empty-quote": {"v2": "a block quote with no text crashes strip_paragraph_end"},
     "escapes-backslash": {"v2": "a backslash escape loses its backslash"},
     "inline-autolink": {"v2": "an autolink crashes parse_in_list_tables"},
@@ -125,8 +124,6 @@ expected_fail = {
 # The inputs in test/data/robust/examples.json that md2zhihu fails to convert, as example id: {parser: error}.
 # The error is the exception type, or "***:" when MDRender meets a node type it does not know.
 robust_failures = {
-    # A heading with no text crashes MDRender.
-    "commonmark-49": {"v2": "IndexError"},
     # A definition with no URL on its line crashes replace_ref_with_def.
     "commonmark-162": {"v2": "IndexError"},
     "commonmark-165": {"v2": "IndexError"},
