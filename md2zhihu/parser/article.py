@@ -17,14 +17,9 @@ from .extract.front_matter import FrontMatter
 from .extract.front_matter import extract_front_matter
 from .extract.refs import extract_ref_definitions
 from .extract.refs import load_external_refs
-from .mistune_parser import new_parser
 from .output import render_ref_list
-from .transform.math import join_math_block
-from .transform.math import parse_math
 from .transform.rebase import rebase_url
 from .transform.rebase import rebase_url_in_ast
-from .transform.refs import replace_ref_with_def
-from .transform.table import parse_in_list_tables
 
 
 class ParserConfig(object):
@@ -34,20 +29,11 @@ class ParserConfig(object):
     `populate_reference`: whether to replace reference with definition.
 
     `embed_patterns`: the url regex patterns to replace the content of url in ![](url).
-
-    `engine`: the markdown parser, "v2" for the vendored mistune 2.0.0a6 or "v3" for mistune 3.
-    It defaults to the environment variable MD2ZHIHU_PARSER, or to "v3" when the variable is unset.
     """
 
-    def __init__(self, populate_reference: bool, embed_patterns: List[str], engine: Optional[str] = None):
+    def __init__(self, populate_reference: bool, embed_patterns: List[str]):
         self.populate_reference = populate_reference
         self.embed_patterns = embed_patterns
-
-        if engine is None:
-            engine = os.environ.get("MD2ZHIHU_PARSER", "v3")
-        if engine not in ("v2", "v3"):
-            raise ValueError(f"unknown markdown parser {engine!r}, expected 'v2' or 'v3'")
-        self.engine = engine
 
 
 class Article(object):
@@ -86,22 +72,9 @@ class Article(object):
 
         # parse to ast and clean up
 
-        if self.parser_config.engine == "v3":
-            self.ast, self.used_refs, undefined_refs = mistune3.parse(
-                self.md_text, self.refs, self.parser_config.populate_reference
-            )
-        else:
-            parse_to_ast = new_parser()
-            self.ast = parse_to_ast(self.md_text)
-            self.ast = parse_in_list_tables(self.ast)
-            self.used_refs, undefined_refs = replace_ref_with_def(self.ast, self.refs, self.parser_config.populate_reference)
-
-            # extract already inlined math
-            self.ast = parse_math(self.ast)
-
-            # join cross paragraph math
-            join_math_block(self.ast)
-            self.ast = parse_math(self.ast)
+        self.ast, self.used_refs, undefined_refs = mistune3.parse(
+            self.md_text, self.refs, self.parser_config.populate_reference
+        )
 
         for ref in undefined_refs:
             msg(darkred(sj("Warn: undefined reference ", ref, " in ", repr(self.conf.src_path))))

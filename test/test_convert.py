@@ -85,7 +85,7 @@ case_config = {
 # The small cases that keep references as written, as Article.chunks() does.
 no_populate_cases = {"refs-no-populate"}
 
-# Inputs with undefined references, as name: (markdown, the references that Article warns about).
+# Inputs with references, as name: (markdown, the undefined references that Article warns about).
 # A lone `[x]` is usually plain text, so it gets no warning.
 warn_cases = {
     "warn-full": ("[foo][bar]", ["[foo][bar]"]),
@@ -93,55 +93,8 @@ warn_cases = {
     "warn-in-text": ("see [foo][bar] now", ["[foo][bar]"]),
     "warn-two-on-one-line": ("[a][b] and [c][]", ["[a][b]", "[c][]"]),
     "warn-shortcut": ("[x]", []),
+    "warn-defined": ("[ok][]\n\n[ok]: http://ok", []),
     "warn-emphasis-text": ("[*foo*][bar]", ["[*foo*][bar]"]),
-}
-
-# The parsers under test: "v3" is mistune 3, and "v2" is the vendored mistune 2.0.0a6.
-# MD2ZHIHU_UPDATE_GOLDEN=1 writes the golden files from the output of the first one.
-engines = ["v3", "v2"]
-
-# Known bugs and differences, as case name: {parser: reason}. An end-to-end conversion is named "e2e/<name>".
-# A v2 entry names a mistune 2 bug or an output that mistune 3 changed on purpose. The golden file holds mistune 3's output.
-# The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
-expected_fail = {
-    "code-blocks": {"v2": "an indented code block keeps an empty line at its end"},
-    "escapes-backslash": {"v2": "a backslash escape loses its backslash"},
-    "inline-autolink": {"v2": "an autolink crashes parse_in_list_tables"},
-    "inline-cjk-underscore": {"v2": "`_` between Chinese characters becomes emphasis"},
-    "inline-hard-break-backslash": {"v2": "a backslash hard break stays a backslash instead of two trailing spaces"},
-    "inline-image-cjk-url": {"v2": "a remote image URL is not percent-encoded"},
-    "inline-link-ampersand": {"v2": "`&` in a link URL becomes `&amp;`"},
-    "math-dollar-amounts": {"v2": "`$5 and $` becomes inline math"},
-    "math-emphasis": {"v2": "emphasis inside `$...$` splits the text, so the math is not found"},
-    "math-escape": {"v2": "an escape inside `$...$` splits the text, so the math is not found"},
-    "math-placement": {"v2": "the math that MDRender splits out of a heading is followed by one more empty line"},
-    "math-table-cell": {"v2": r"`\|` in math in a table cell loses its backslash, which splits the cell"},
-    "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved"},
-    "refs-image": {"v2": "an image reference is not resolved, and its definition is removed"},
-    "refs-label-case": {"v2": "a reference label in another case is not resolved"},
-    "tables-escaped-pipe": {"v2": r"`\|` in a table cell loses its backslash, which splits the cell"},
-    "tables-syntax": {"v2": "a table row with fewer cells than the header gets no empty cells"},
-    "warn-emphasis-text": {"v2": "an undefined reference whose text has emphasis gets no warning"},
-}
-
-# The inputs in test/data/robust/examples.json that md2zhihu fails to convert, as example id: {parser: error}.
-# The error is the exception type, or "***:" when MDRender meets a node type it does not know.
-robust_failures = {
-    # An autolink crashes parse_in_list_tables.
-    "commonmark-297": {"v2": "TypeError"},
-    "commonmark-327": {"v2": "TypeError"},
-    "commonmark-565": {"v2": "TypeError"},
-    "commonmark-566": {"v2": "TypeError"},
-    "commonmark-567": {"v2": "TypeError"},
-    "commonmark-568": {"v2": "TypeError"},
-    "commonmark-569": {"v2": "TypeError"},
-    "commonmark-570": {"v2": "TypeError"},
-    "commonmark-571": {"v2": "TypeError"},
-    "commonmark-572": {"v2": "TypeError"},
-    "commonmark-574": {"v2": "TypeError"},
-    "commonmark-575": {"v2": "TypeError"},
-    "commonmark-576": {"v2": "TypeError"},
-    "non-commonmark-18": {"v2": "TypeError"},
 }
 
 
@@ -180,30 +133,8 @@ def restore_root_logger():
     logging.root.setLevel(level)
 
 
-def case_params(names, prefix=""):
-    """
-    Pair each case with each engine. The name of a case in expected_fail is prefix + name.
-    """
-    params = []
-    for engine in engines:
-        for name in names:
-            params.append(case_param(engine, name, prefix))
-    return params
-
-
-def case_param(engine, name, prefix):
-    if update_golden and engine != engines[0]:
-        return pytest.param(engine, name, marks=pytest.mark.skip(reason="the golden files are written from " + engines[0]))
-    reason = expected_fail.get(prefix + name, {}).get(engine)
-    if reason is None:
-        return pytest.param(engine, name)
-    if update_golden:
-        return pytest.param(engine, name, marks=pytest.mark.skip(reason=reason))
-    return pytest.param(engine, name, marks=pytest.mark.xfail(strict=True, reason=reason))
-
-
-@pytest.mark.parametrize("engine,name", case_params(sorted(e2e_conversions), "e2e/"))
-def test_e2e_conversion(engine, name, tmp_path, monkeypatch, restore_root_logger):
+@pytest.mark.parametrize("name", sorted(e2e_conversions))
+def test_e2e_conversion(name, tmp_path, monkeypatch, restore_root_logger):
     work_dir, args, result_path = e2e_conversions[name]
 
     # Convert a copy, so that no output lands in the source tree.
@@ -213,7 +144,6 @@ def test_e2e_conversion(engine, name, tmp_path, monkeypatch, restore_root_logger
     monkeypatch.chdir(tmp_path / work_dir)
     monkeypatch.setattr(sys, "argv", ["md2zhihu"] + args)
     monkeypatch.setattr(k3down2, "convert", fake_convert)
-    monkeypatch.setenv("MD2ZHIHU_PARSER", engine)
     md2zhihu.main()
 
     with open(result_path, encoding="utf-8") as f:
@@ -221,8 +151,8 @@ def test_e2e_conversion(engine, name, tmp_path, monkeypatch, restore_root_logger
     check_golden(os.path.join(golden_base, "e2e", name + ".md"), got)
 
 
-@pytest.mark.parametrize("engine,name", case_params(case_names))
-def test_case(engine, name, tmp_path, monkeypatch):
+@pytest.mark.parametrize("name", case_names)
+def test_case(name, tmp_path, monkeypatch):
     # The zhihu converters wrap tables and math in fake_convert's markers,
     # so the output shows which nodes the parser built and the text they hold.
     monkeypatch.chdir(cases_dir)
@@ -234,7 +164,7 @@ def test_case(engine, name, tmp_path, monkeypatch):
     os.makedirs(conf.asset_output_dir)
 
     populate_reference = name not in no_populate_cases
-    parser_config = md2zhihu.ParserConfig(populate_reference, [], engine)
+    parser_config = md2zhihu.ParserConfig(populate_reference, [])
 
     with open(src_path, encoding="utf-8") as f:
         md_text = f.read()
@@ -244,12 +174,12 @@ def test_case(engine, name, tmp_path, monkeypatch):
     check_golden(os.path.join(golden_base, name + ".md"), got)
 
 
-@pytest.mark.parametrize("engine,name", case_params(warn_cases))
-def test_undefined_reference_warning(engine, name, tmp_path, caplog):
+@pytest.mark.parametrize("name", sorted(warn_cases))
+def test_undefined_reference_warning(name, tmp_path, caplog):
     md_text, want = warn_cases[name]
     out_dir = str(tmp_path)
     conf = md2zhihu.Config("warn.md", "zhihu", out_dir, out_dir, md_output_path=out_dir + "/")
-    parser_config = md2zhihu.ParserConfig(True, [], engine)
+    parser_config = md2zhihu.ParserConfig(True, [])
 
     caplog.set_level(logging.INFO)
     md2zhihu.Article(parser_config, conf, md_text)
@@ -262,14 +192,13 @@ def test_undefined_reference_warning(engine, name, tmp_path, caplog):
     assert got == want
 
 
-@pytest.mark.parametrize("engine", engines)
-def test_examples_convert(engine, tmp_path):
+def test_examples_convert(tmp_path):
     # Platform "null" has no features, so only the parser and MDRender run.
     with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") as f:
         examples = json.load(f)
     out_dir = str(tmp_path)
     conf = md2zhihu.Config("example.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
-    parser_config = md2zhihu.ParserConfig(True, [], engine)
+    parser_config = md2zhihu.ParserConfig(True, [])
 
     got = {}
     for example_id, md_text in examples.items():
@@ -279,11 +208,8 @@ def test_examples_convert(engine, tmp_path):
         except Exception as e:
             got[example_id] = type(e).__name__
             continue
+        # MDRender writes "***:" and the type of a node that it does not know.
         if "***:" in output:
             got[example_id] = "***:"
 
-    want = {}
-    for example_id, errors in robust_failures.items():
-        if engine in errors:
-            want[example_id] = errors[engine]
-    assert got == want
+    assert got == {}

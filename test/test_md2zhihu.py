@@ -129,17 +129,6 @@ class TestMd2zhihu(unittest.TestCase):
             self.assertEqual(want_path, conf.md_output_path)
             self.assertEqual(want_pattern, conf.asset_repo.path_pattern)
 
-    def test_replace_ref_with_def_undefined(self):
-        nodes = [
-            {"type": "paragraph", "children": [{"type": "text", "text": "[foo][bar]"}]},
-            {"type": "text", "text": "[baz][]"},
-            {"type": "text", "text": "[todo]"},
-            {"type": "text", "text": "[ok][]"},
-        ]
-
-        got = md2zhihu.parser.replace_ref_with_def(nodes, {"ok": "http://ok"}, True)
-        self.assertEqual(({"ok": "http://ok"}, ["[foo][bar]", "[baz][]"]), got)
-
     def test_broken_link(self):
         d = "test/data/broken-link"
 
@@ -200,13 +189,7 @@ class TestMd2zhihu(unittest.TestCase):
         rm(d, "_md2")
 
     def test_chunks(self):
-        self.check_chunks("v2")
-
-    def test_chunks_v3(self):
-        self.check_chunks("v3")
-
-    def check_chunks(self, engine):
-        parser_config = md2zhihu.ParserConfig(False, [], engine)
+        parser_config = md2zhihu.ParserConfig(False, [])
         conf = md2zhihu.Config(
             "foo.md",
             "null",
@@ -391,13 +374,7 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertEqual(want, got)
 
     def test_chunks_list(self):
-        self.check_chunks_list("v2")
-
-    def test_chunks_list_v3(self):
-        self.check_chunks_list("v3")
-
-    def check_chunks_list(self, engine):
-        parser_config = md2zhihu.ParserConfig(False, [], engine)
+        parser_config = md2zhihu.ParserConfig(False, [])
         conf = md2zhihu.Config(
             "foo.md",
             "null",
