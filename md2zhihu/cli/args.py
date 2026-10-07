@@ -1,13 +1,40 @@
 import argparse
 import importlib.metadata
 
+epilog = """\
+platforms:
+  zhihu            math to zhihu equation images, tables to HTML, mermaid and
+                   graphviz to images
+  wechat           as zhihu, and code blocks to images too
+  weibo            math blocks to equation images, inline math to text, tables
+                   and code blocks to images
+  github           math stays math, which GitHub shows; graphviz to images
+  minimal_mistake  mermaid and graphviz to images, for the Jekyll theme
+                   Minimal Mistakes
+  simple           math, tables and code blocks to images, and inline code to
+                   plain text
+  transparent      copy local images and change nothing else
 
-class SmartFormatter(argparse.HelpFormatter):
+examples:
+  md2zhihu a.md                     convert to _md2/a.md, with images in _md2/a/
+  md2zhihu a.md -r .                also push _md2 to the remote of the git repo
+                                    in the working directory
+  md2zhihu _drafts/*.md --jekyll -o _posts/
+                                    keep the front matter and the date prefix
+
+output layout, with the defaults:
+  _md2/        -d, --output-dir: the folder that --repo pushes
+    a.md       -o, --md-output: <output-dir>/<name>.md
+    a/         --asset-output-dir: <asset-output-dir>/<name>/ holds the images
+"""
+
+
+class SmartFormatter(argparse.RawDescriptionHelpFormatter):
     def _split_lines(self, text, width):
         if text.startswith("R|"):
-            return text[2:].splitlines() + [""]
+            return text[2:].splitlines()
         # this is the RawTextHelpFormatter._split_lines
-        return argparse.HelpFormatter._split_lines(self, text, width) + [""]
+        return argparse.HelpFormatter._split_lines(self, text, width)
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -15,11 +42,13 @@ def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         # Python 3.14 derives the default name from a "python -m" run, such as "python -m pytest".
         prog="md2zhihu",
-        description="Convert markdown to zhihu compatible",
+        description="Convert markdown into one file that zhihu.com and other platforms can import,\n"
+        "and store its images in a git repo.",
+        epilog=epilog,
         formatter_class=SmartFormatter,
     )
 
-    parser.add_argument("src_path", type=str, nargs="+", metavar="MARKDOWN", help="path to the markdowns to convert")
+    parser.add_argument("src_path", type=str, nargs="+", metavar="MARKDOWN", help="the markdown files to convert")
 
     parser.add_argument(
         "-d",
@@ -27,11 +56,7 @@ def create_parser() -> argparse.ArgumentParser:
         action="store",
         default="_md2",
         metavar="DIR",
-        help="R|Sepcify dir path to store the outputs."
-        "\n"
-        "It is the root dir of the git repo to store the assets referenced by output markdowns."
-        "\n"
-        'Deafult: "_md2"',
+        help="The folder of the output, which --repo pushes. Default: %(default)s",
     )
 
     parser.add_argument(
@@ -39,26 +64,20 @@ def create_parser() -> argparse.ArgumentParser:
         "--md-output",
         action="store",
         metavar="PATH",
-        help="R|Sepcify output path for converted mds."
-        "\n"
-        'If the path specified ends with "/", it is treated as output dir,'
-        ' e.g., "--md-output foo/" output the converted md to foo/<fn>.md.'
-        "\n"
-        '"{title}" in the path is replaced with the md file name without date prefix and extension,'
-        ' e.g., "--md-output foo/{title}/index.md".'
-        "\n"
-        "Default: <output-dir>/<fn>.md",
+        help='Where to write each converted markdown. A PATH that ends with "/" is a folder,'
+        " and the markdown gets the name of its input file."
+        ' "{title}" in PATH is replaced with the name of the input file, without the date prefix and the extension,'
+        ' such as -o "posts/{title}/index.md".'
+        " Default: <output-dir>/",
     )
 
     parser.add_argument(
         "--asset-output-dir",
         action="store",
         metavar="DIR",
-        help="R|Sepcify dir to store assets"
-        "\n"
-        "If <asset-output-dir> is outside <output-dir>, nothing will be uploaded."
-        "\n"
-        "Default: <output-dir>",
+        help="The folder of the images. The images of a.md go into its subfolder a/."
+        " --repo pushes only the images inside <output-dir>."
+        " Default: <output-dir>",
     )
 
     parser.add_argument(
@@ -67,25 +86,16 @@ def create_parser() -> argparse.ArgumentParser:
         action="store",
         required=False,
         metavar="URL",
-        help="R|Sepcify the git url to store assets."
-        "\n"
-        "The url should be in a SSH form such as:"
-        "\n"
-        '    "git@github.com:openacid/openacid.github.io.git[@branch_name]".'
-        "\n"
-        "\n"
-        "The repo has to be a public repo and you have the write access."
-        "\n"
-        "\n"
-        "When absent, it works in local mode:"
-        " assets are referenced by relative path and will not be pushed to remote."
-        "\n"
-        "\n"
-        'If no branch is specified, a branch "_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}" is used,'
-        " in which cwd_tail is the last segment of current working dir."
-        "\n"
-        "\n"
-        '"--repo ." to use the git that is found in CWD',
+        help="Push <output-dir> to this public git repo on github.com or gitee.com,"
+        " and refer to each image by its URL in the repo, such as"
+        ' "git@github.com:me/assets.git@branch".'
+        " Each run force-pushes <output-dir> as a new commit, which replaces everything on the branch,"
+        ' so use a branch for md2zhihu only. "main" and "master" are refused.'
+        ' Without "@branch", the branch is "_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}",'
+        " in which cwd_tail is the last part of the working directory."
+        ' "." stands for the remote of the git repo in the working directory,'
+        ' and a remote name, such as "origin@branch", for that remote.'
+        " Without --repo, the markdown refers to its images by relative path.",
     )
 
     parser.add_argument(
@@ -103,11 +113,8 @@ def create_parser() -> argparse.ArgumentParser:
             "minimal_mistake",
             "transparent",
         ],
-        help="R|Convert to a platform compatible format."
-        "\n"
-        '"simple" is a special type that it produce simplest output, only plain text and images, there wont be table, code block, math etc.'
-        "\n"
-        'Default: "zhihu"',
+        metavar="PLATFORM",
+        help='The platform to convert for, one of the "platforms" below. Default: %(default)s',
     )
 
     parser.add_argument(
@@ -115,7 +122,7 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         required=False,
         default=False,
-        help='If to keep meta header or not, the header is wrapped with two "---" at file beginning.',
+        help='Keep the front matter, the meta block between two "---" lines at the start of the markdown.',
     )
 
     parser.add_argument(
@@ -123,11 +130,7 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         required=False,
         default=False,
-        help="R|Respect jekyll syntax:"
-        "\n"
-        "1) It implies <keep-meta>: do not trim md header meta;"
-        "\n"
-        "2) It keep jekyll style file name with the date prefix: YYYY-MM-DD-TITLE.md.",
+        help="Keep the front matter, and the date prefix of the file name, such as 2021-06-11-title.md, as Jekyll needs.",
     )
 
     parser.add_argument(
@@ -135,24 +138,23 @@ def create_parser() -> argparse.ArgumentParser:
         action="append",
         required=False,
         metavar="YAML",
-        help="R|Specify the external file that contains ref definitions."
+        help="R|A YAML file of reference definitions, which the"
         "\n"
-        "A ref file is a yaml contains reference definitions in a dict of list."
+        'markdown can use, such as "[grpc][]". Its "universal"'
         "\n"
-        "A dict key is the platform name, only visible when it is enabeld by <platform> argument."
+        "list applies to every platform, and a list named"
         "\n"
-        '"universal" is visible in any <platform>.'
+        "after a platform applies to that platform only."
         "\n"
+        "Repeat it to give more than one file. Such as:"
         "\n"
-        "Example of ref file data:"
+        "  universal:"
         "\n"
-        '{ "universal": [{"grpc":"http:.."}, {"protobuf":"http:.."}],'
+        "    - grpc: https://grpc.io"
         "\n"
-        '  "zhihu":     [{"grpc":"http:.."}, {"protobuf":"http:.."}]'
+        "  zhihu:"
         "\n"
-        "}."
-        "\n"
-        'With an external refs file being specified, in markdown one can just use the ref: e.g., "[grpc][]"',
+        "    - grpc: https://zhuanlan.zhihu.com/p/123",
     )
 
     parser.add_argument(
@@ -161,13 +163,8 @@ def create_parser() -> argparse.ArgumentParser:
         nargs=2,
         required=False,
         metavar=("REGEX", "REPLACEMENT"),
-        help="R|Rewrite generated image url."
-        "\n"
-        'E.g.: --rewrite "/asset/" "/resource/"'
-        "\n"
-        'will transform "/asset/banner.jpg" to "/resource/banner.jpg"'
-        "\n"
-        "Default: []",
+        help="Change the URL of each image that md2zhihu stores with re.sub(REGEX, REPLACEMENT, url),"
+        ' such as --rewrite "^/asset/" "/resource/". Repeat it to give more than one rule.',
     )
 
     parser.add_argument(
@@ -175,7 +172,7 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         required=False,
         default=False,
-        help="R|Download remote image url if a image url starts with http[s]://.",
+        help="Also download each remote image, whose URL starts with http:// or https://, and store it as a local image.",
     )
 
     parser.add_argument(
@@ -183,13 +180,8 @@ def create_parser() -> argparse.ArgumentParser:
         action="append",
         required=False,
         metavar="REGEX",
-        help="R|Specifies regex of url in `![](url)` to embed."
-        "\n"
-        'Example: --embed "[.]md$" will replace ![](x.md) with the content of x.md'
-        "\n"
-        "Repeat it to give more than one regex."
-        "\n"
-        'Default: ["[.]md$"]',
+        help='Replace an image "![](url)" whose url matches REGEX with the content of the markdown at url.'
+        ' Repeat it to give more than one regex. Default: "[.]md$"',
     )
 
     parser.add_argument(
@@ -199,7 +191,7 @@ def create_parser() -> argparse.ArgumentParser:
         required=False,
         default=1000,
         metavar="PIXELS",
-        help="R|specifies code image width.\nDefault: 1000",
+        help="The width of a code block image. Default: %(default)s",
     )
 
     parser.add_argument(

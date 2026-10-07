@@ -177,10 +177,9 @@ def test_usage(monkeypatch):
 
     got = create_parser().format_usage()
     assert got == (
-        "usage: md2zhihu [-h] [-d DIR] [-o PATH] [--asset-output-dir DIR] [-r URL]"
-        " [-p {zhihu,github,wechat,weibo,simple,minimal_mistake,transparent}] [--keep-meta] [--jekyll]"
-        " [--refs YAML] [--rewrite REGEX REPLACEMENT] [--download] [--embed REGEX] [--code-width PIXELS]"
-        " [-v] [--version] MARKDOWN [MARKDOWN ...]\n"
+        "usage: md2zhihu [-h] [-d DIR] [-o PATH] [--asset-output-dir DIR] [-r URL] [-p PLATFORM]"
+        " [--keep-meta] [--jekyll] [--refs YAML] [--rewrite REGEX REPLACEMENT] [--download] [--embed REGEX]"
+        " [--code-width PIXELS] [-v] [--version] MARKDOWN [MARKDOWN ...]\n"
     )
 
 
