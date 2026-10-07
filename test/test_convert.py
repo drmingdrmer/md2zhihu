@@ -5,6 +5,7 @@ They run md2zhihu in the test process, and need no browser, LaTeX tool, network 
 Run them with MD2ZHIHU_UPDATE_GOLDEN=1 to rewrite the golden files from the current output.
 """
 
+import json
 import logging
 import os
 import re
@@ -121,6 +122,36 @@ expected_fail = {
     "warn-emphasis-text": {"v2": "an undefined reference whose text has emphasis gets no warning"},
 }
 
+# The inputs in test/data/robust/examples.json that md2zhihu fails to convert, as example id: {parser: error}.
+# The error is the exception type, or "***:" when MDRender meets a node type it does not know.
+robust_failures = {
+    # A heading with no text crashes MDRender.
+    "commonmark-49": {"v2": "IndexError"},
+    # A definition with no URL on its line crashes replace_ref_with_def.
+    "commonmark-162": {"v2": "IndexError"},
+    "commonmark-165": {"v2": "IndexError"},
+    "commonmark-166": {"v2": "IndexError"},
+    # A block quote with no text crashes strip_paragraph_end.
+    "commonmark-181": {"v2": "IndexError"},
+    "commonmark-202": {"v2": "IndexError"},
+    "commonmark-203": {"v2": "IndexError"},
+    # An autolink crashes parse_in_list_tables.
+    "commonmark-297": {"v2": "TypeError"},
+    "commonmark-327": {"v2": "TypeError"},
+    "commonmark-565": {"v2": "TypeError"},
+    "commonmark-566": {"v2": "TypeError"},
+    "commonmark-567": {"v2": "TypeError"},
+    "commonmark-568": {"v2": "TypeError"},
+    "commonmark-569": {"v2": "TypeError"},
+    "commonmark-570": {"v2": "TypeError"},
+    "commonmark-571": {"v2": "TypeError"},
+    "commonmark-572": {"v2": "TypeError"},
+    "commonmark-574": {"v2": "TypeError"},
+    "commonmark-575": {"v2": "TypeError"},
+    "commonmark-576": {"v2": "TypeError"},
+    "non-commonmark-18": {"v2": "TypeError"},
+}
+
 
 def fake_convert(input_typ, content, output_typ, opt=None):
     """
@@ -222,4 +253,30 @@ def test_undefined_reference_warning(name, tmp_path, caplog):
         warning = re.search(r"Warn: undefined reference (.*) in 'warn\.md'", record.getMessage())
         if warning:
             got.append(warning.group(1))
+    assert got == want
+
+
+def test_examples_convert(tmp_path):
+    # Platform "null" has no features, so only the parser and MDRender run.
+    with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") as f:
+        examples = json.load(f)
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("example.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
+    parser_config = md2zhihu.ParserConfig(True, [])
+
+    got = {}
+    for example_id, md_text in examples.items():
+        try:
+            article = md2zhihu.Article(parser_config, conf, md_text)
+            output = "\n".join(article.render())
+        except Exception as e:
+            got[example_id] = type(e).__name__
+            continue
+        if "***:" in output:
+            got[example_id] = "***:"
+
+    want = {}
+    for example_id, errors in robust_failures.items():
+        if engine in errors:
+            want[example_id] = errors[engine]
     assert got == want
