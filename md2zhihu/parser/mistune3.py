@@ -56,6 +56,7 @@ def new_markdown() -> mistune.Markdown:
         renderer="ast",
         plugins=["strikethrough", "table", table_in_list, table_in_quote],
     )
+    md.inline.register("escape", None, parse_escape)
     md.inline.register("link", None, parse_link)
     md.inline.register("math", r"\$", parse_math)
     md.before_render_hooks.append(lambda md, state: join_math_paragraphs(state.tokens))
@@ -94,6 +95,16 @@ def new_ref_links(refs: RefDict) -> Dict[str, Dict[str, str]]:
         # mistune upper-cases its key, so the entry also keeps md2zhihu's name and value, which the output lists.
         ref_links[unikey(name)] = {"url": value.split()[0], "name": name, "value": value}
     return ref_links
+
+
+def parse_escape(inline: InlineParser, m: re.Match[str], state: InlineState) -> int:
+    r"""
+    Keep a backslash escape such as "\*" as written, because md2zhihu writes text as it is.
+    As with mistune's rule, the escaped character starts no emphasis.
+    """
+
+    inline.process_text(m.group(0), state, parse_emphasis=False)
+    return m.end()
 
 
 def parse_link(inline: InlineParser, m: re.Match[str], state: InlineState) -> Optional[int]:

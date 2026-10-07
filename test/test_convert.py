@@ -106,7 +106,7 @@ engines = ["v2", "v3"]
 # The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
 expected_fail = {
     "code-blocks": {"v3": "an indented code block loses the empty line that mistune 2 keeps at its end"},
-    "escapes-backslash": {"v2": "a backslash escape loses its backslash", "v3": "a backslash escape loses its backslash"},
+    "escapes-backslash": {"v2": "a backslash escape loses its backslash"},
     "inline-autolink": {"v2": "an autolink crashes parse_in_list_tables"},
     "inline-cjk-underscore": {"v2": "`_` between Chinese characters becomes emphasis"},
     "inline-hard-break-backslash": {"v3": "a backslash hard break is written as two trailing spaces"},
@@ -120,10 +120,7 @@ expected_fail = {
     "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved"},
     "refs-image": {"v2": "an image reference is not resolved, and its definition is removed"},
     "refs-label-case": {"v2": "a reference label in another case is not resolved"},
-    "tables-escaped-pipe": {
-        "v2": r"`\|` in a table cell loses its backslash, which splits the cell",
-        "v3": r"`\|` in a table cell loses its backslash, which splits the cell",
-    },
+    "tables-escaped-pipe": {"v2": r"`\|` in a table cell loses its backslash, which splits the cell"},
     "tables-syntax": {"v3": "a table row with fewer cells than the header gets empty cells, as GFM requires"},
     "warn-emphasis-text": {"v2": "an undefined reference whose text has emphasis gets no warning"},
 }
