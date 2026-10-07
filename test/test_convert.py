@@ -90,7 +90,21 @@ engine = "v2"
 # The golden file of a listed case holds the correct output, written by hand.
 # The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
 expected_fail = {
+    "blocks-empty-heading": {"v2": "a heading with no text crashes MDRender"},
+    "blocks-empty-quote": {"v2": "a block quote with no text crashes strip_paragraph_end"},
+    "escapes-backslash": {"v2": "a backslash escape loses its backslash"},
+    "inline-autolink": {"v2": "an autolink crashes parse_in_list_tables"},
+    "inline-cjk-underscore": {"v2": "`_` between Chinese characters becomes emphasis"},
+    "inline-link-ampersand": {"v2": "`&` in a link URL becomes `&amp;`"},
+    "math-dollar-amounts": {"v2": "`$5 and $` becomes inline math"},
+    "math-emphasis": {"v2": "emphasis inside `$...$` splits the text, so the math is not found"},
+    "math-escape": {"v2": "an escape inside `$...$` splits the text, so the math is not found"},
     "math-table-cell": {"v2": r"`\|` in math in a table cell loses its backslash, which splits the cell"},
+    "refs-def-url-next-line": {"v2": "a definition with its URL on the next line crashes replace_ref_with_def"},
+    "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved"},
+    "refs-footnote-indented": {"v2": "a definition indented by 1 space is not extracted and renders as `***:footnotes`"},
+    "refs-image": {"v2": "an image reference is not resolved, and its definition is removed"},
+    "refs-label-case": {"v2": "a reference label in another case is not resolved"},
     "tables-escaped-pipe": {"v2": r"`\|` in a table cell loses its backslash, which splits the cell"},
 }
 
