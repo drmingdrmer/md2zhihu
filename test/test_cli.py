@@ -4,6 +4,7 @@ Tests of the md2zhihu command: its exit status and what it prints.
 They run md2zhihu.main() in the test process.
 """
 
+import importlib.metadata
 import io
 import logging
 import os
@@ -41,6 +42,14 @@ bad_args = {
         "--repo .: fatal: not a git repository (or any of the parent directories): .git",
     ),
 }
+
+# --embed flags before an input, as (md2zhihu arguments, the parsed regexes).
+# Each flag takes one regex, so "a.md" stays the input.
+embed_args = [
+    (["a.md"], None),
+    (["--embed", "x", "a.md"], ["x"]),
+    (["--embed", "x", "--embed", "y", "a.md"], ["x", "y"]),
+]
 
 # The lines that md2zhihu prints for the message "x", as (log level, color, line).
 formatted_messages = [
@@ -160,3 +169,34 @@ def test_use_color(tty, no_color, want, monkeypatch):
 
     got = use_color(stream)
     assert got == want
+
+
+def test_usage(monkeypatch):
+    # A wide terminal keeps the usage in one line.
+    monkeypatch.setenv("COLUMNS", "1000")
+
+    got = create_parser().format_usage()
+    assert got == (
+        "usage: md2zhihu [-h] [-d DIR] [-o PATH] [--asset-output-dir DIR] [-r URL]"
+        " [-p {zhihu,github,wechat,weibo,simple,minimal_mistake,transparent}] [--keep-meta] [--jekyll]"
+        " [--refs YAML] [--rewrite REGEX REPLACEMENT] [--download] [--embed REGEX] [--code-width PIXELS]"
+        " [-v] [--version] MARKDOWN [MARKDOWN ...]\n"
+    )
+
+
+def test_version(monkeypatch, capsys, restore_logger):
+    monkeypatch.setattr(sys, "argv", ["md2zhihu", "--version"])
+
+    with pytest.raises(SystemExit) as exit_info:
+        md2zhihu.main()
+
+    out = capsys.readouterr().out
+    assert exit_info.value.code == 0
+    assert out == "md2zhihu " + importlib.metadata.version("md2zhihu") + "\n"
+
+
+@pytest.mark.parametrize("args, want", embed_args)
+def test_embed_args(args, want):
+    parsed = create_parser().parse_args(args)
+    assert parsed.src_path == ["a.md"]
+    assert parsed.embed == want

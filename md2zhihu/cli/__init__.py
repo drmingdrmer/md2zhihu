@@ -147,6 +147,10 @@ def run():
     if args.asset_output_dir is None:
         args.asset_output_dir = args.output_dir
 
+    # With action="append", a default list would be extended, not replaced, by the --embed flags.
+    if args.embed is None:
+        args.embed = [r"[.]md$"]
+
     if args.jekyll:
         args.keep_meta = True
 

@@ -1,4 +1,5 @@
 import argparse
+import importlib.metadata
 
 
 class SmartFormatter(argparse.HelpFormatter):
@@ -18,13 +19,14 @@ def create_parser() -> argparse.ArgumentParser:
         formatter_class=SmartFormatter,
     )
 
-    parser.add_argument("src_path", type=str, nargs="+", help="path to the markdowns to convert")
+    parser.add_argument("src_path", type=str, nargs="+", metavar="MARKDOWN", help="path to the markdowns to convert")
 
     parser.add_argument(
         "-d",
         "--output-dir",
         action="store",
         default="_md2",
+        metavar="DIR",
         help="R|Sepcify dir path to store the outputs."
         "\n"
         "It is the root dir of the git repo to store the assets referenced by output markdowns."
@@ -36,6 +38,7 @@ def create_parser() -> argparse.ArgumentParser:
         "-o",
         "--md-output",
         action="store",
+        metavar="PATH",
         help="R|Sepcify output path for converted mds."
         "\n"
         'If the path specified ends with "/", it is treated as output dir,'
@@ -50,6 +53,7 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--asset-output-dir",
         action="store",
+        metavar="DIR",
         help="R|Sepcify dir to store assets"
         "\n"
         "If <asset-output-dir> is outside <output-dir>, nothing will be uploaded."
@@ -62,6 +66,7 @@ def create_parser() -> argparse.ArgumentParser:
         "--repo",
         action="store",
         required=False,
+        metavar="URL",
         help="R|Sepcify the git url to store assets."
         "\n"
         "The url should be in a SSH form such as:"
@@ -129,6 +134,7 @@ def create_parser() -> argparse.ArgumentParser:
         "--refs",
         action="append",
         required=False,
+        metavar="YAML",
         help="R|Specify the external file that contains ref definitions."
         "\n"
         "A ref file is a yaml contains reference definitions in a dict of list."
@@ -154,6 +160,7 @@ def create_parser() -> argparse.ArgumentParser:
         action="append",
         nargs=2,
         required=False,
+        metavar=("REGEX", "REPLACEMENT"),
         help="R|Rewrite generated image url."
         "\n"
         'E.g.: --rewrite "/asset/" "/resource/"'
@@ -173,13 +180,14 @@ def create_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--embed",
-        action="store",
-        nargs="+",
+        action="append",
         required=False,
-        default=[r"[.]md$"],
+        metavar="REGEX",
         help="R|Specifies regex of url in `![](url)` to embed."
         "\n"
         'Example: --embed "[.]md$" will replace ![](x.md) with the content of x.md'
+        "\n"
+        "Repeat it to give more than one regex."
         "\n"
         'Default: ["[.]md$"]',
     )
@@ -190,6 +198,7 @@ def create_parser() -> argparse.ArgumentParser:
         type=int,
         required=False,
         default=1000,
+        metavar="PIXELS",
         help="R|specifies code image width.\nDefault: 1000",
     )
 
@@ -198,6 +207,12 @@ def create_parser() -> argparse.ArgumentParser:
         "--verbose",
         action="store_true",
         help="Also print the settings in effect, such as the branch that --repo pushes to.",
+    )
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s " + importlib.metadata.version("md2zhihu"),
     )
 
     return parser
