@@ -193,4 +193,11 @@ def create_parser() -> argparse.ArgumentParser:
         help="R|specifies code image width.\nDefault: 1000",
     )
 
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Also print the settings in effect, such as the branch that --repo pushes to.",
+    )
+
     return parser

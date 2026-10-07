@@ -27,7 +27,6 @@ classifiers = [
 ]
 dependencies = [
     "PyYAML>=5.3.1,<7",
-    "k3color>=0.1.2,<0.2",
     "k3down2>=0.1.24,<0.2",
     "k3fs>=0.1.5,<0.2",
     "k3git>=0.1.18,<0.2",

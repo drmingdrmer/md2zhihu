@@ -8,7 +8,7 @@ from k3handy import CMD_RAISE_STDOUT
 from k3handy import CmdFlag
 from k3str import to_bytes
 
-from ..utils import msg
+from ..utils import debug
 
 
 class AssetRepo(object):
@@ -92,20 +92,20 @@ class AssetRepo(object):
         # ".": use cwd git
         # ".@foo_branch": use cwd git and specified branch
         if first == ".":
-            msg("Using current git to store assets...")
+            debug("Using current git to store assets...")
 
             u = self.get_remote_url()
             is_shortcut = True
 
         elif g.remote_get(first) is not None:
-            msg("Using current git remote: {} to store assets...".format(first))
+            debug("Using current git remote: {} to store assets...".format(first))
             u = self.get_remote_url(first)
             is_shortcut = True
 
         if is_shortcut:
             if len(elts) > 0:
                 u += "@" + elts[0]
-            msg("Parsed shortcut {} to {}".format(repo_url, u))
+            debug("Parsed shortcut {} to {}".format(repo_url, u))
             repo_url = u
 
         return repo_url

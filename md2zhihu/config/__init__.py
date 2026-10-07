@@ -7,14 +7,13 @@ import shutil
 import subprocess
 from typing import List
 
-from k3color import darkyellow
 from k3handy import cmdpass
 from k3handy import pjoin
 
 from ..errors import PushError
 from ..platform import platform_feature_dict
+from ..utils import debug
 from ..utils import mask_url_credential
-from ..utils import msg
 from .asset_repo import AssetRepo
 from .local_repo import LocalRepo
 
@@ -113,16 +112,6 @@ class Config(object):
         else:
             self.asset_repo = asset_repo
 
-        for k in (
-            "src_path",
-            "platform",
-            "output_dir",
-            "asset_output_dir",
-            "md_output_base",
-            "md_output_path",
-        ):
-            msg(darkyellow(k), ": ", getattr(self, k))
-
     def img_url(self, fn):
         url = self.asset_repo.path_pattern.format(path=pjoin(self.rel_dir, fn))
 
@@ -161,7 +150,8 @@ class Config(object):
         conf_str = "\n".join([k + ": " + str(v) for (k, v) in self.__dict__.items()])
         fns_str = "\n".join([src for (src, dst) in src_dst_fns])
 
-        cmdpass("git", "init", **x)
+        # -q: md2zhihu prints one line for the push, so git prints only its errors.
+        cmdpass("git", "init", "-q", **x)
         cmdpass("git", "add", ".", **x)
         cmdpass(
             "git",
@@ -170,6 +160,7 @@ class Config(object):
             "-c",
             "user.email='drdr.xp@gmail.com'",
             "commit",
+            "-q",
             "--allow-empty",
             "-m",
             "\n".join(
@@ -193,6 +184,7 @@ class Config(object):
             cmdpass(
                 "git",
                 "push",
+                "-q",
                 "-f",
                 self.asset_repo.url,
                 "HEAD:refs/heads/" + self.asset_repo.branch,
@@ -205,5 +197,5 @@ class Config(object):
             raise PushError(err) from None
 
         if not has_git:
-            msg("Removing tmp git dir: ", self.output_dir + "/.git")
+            debug("Removing tmp git dir: ", self.output_dir + "/.git")
             shutil.rmtree(self.output_dir + "/.git")

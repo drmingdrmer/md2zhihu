@@ -7,8 +7,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from k3color import darkyellow
-from k3color import green
 from k3fs import fread
 
 from ..config import AssetRepo
@@ -16,10 +14,45 @@ from ..config import Config
 from ..errors import UserError
 from ..parser import Article
 from ..parser import ParserConfig
+from ..utils import debug
 from ..utils import mask_url_credential
 from ..utils import msg
-from ..utils import sj
 from .args import create_parser
+
+# The parent logger of every md2zhihu module. The md2zhihu command prints what it logs.
+# Other libraries log through other loggers, such as k3handy, which logs each command with the token in a push URL.
+logger = logging.getLogger("md2zhihu")
+
+# The ANSI color of the "md2zhihu: warning:" or "md2zhihu: error:" prefix, by log level.
+prefix_colors = {logging.WARNING: "\x1b[33m", logging.ERROR: "\x1b[31m"}
+color_reset = "\x1b[0m"
+
+
+class MessageFormatter(logging.Formatter):
+    """
+    Format a message as md2zhihu prints it: a warning or an error starts with "md2zhihu: warning:" or "md2zhihu: error:".
+    With `color`, this prefix is colored.
+    """
+
+    def __init__(self, color: bool) -> None:
+        super().__init__()
+        self.color = color
+
+    def format(self, record: logging.LogRecord) -> str:
+        message = super().format(record)
+        if record.levelno < logging.WARNING:
+            return message
+
+        prefix = "md2zhihu: " + record.levelname.lower() + ":"
+        if self.color:
+            prefix = prefix_colors.get(record.levelno, "") + prefix + color_reset
+        return prefix + " " + message
+
+
+def use_color(stream) -> bool:
+    """Tell whether to color the messages: only on a terminal, and not if NO_COLOR is set, as https://no-color.org asks."""
+    no_color = os.environ.get("NO_COLOR", "") != ""
+    return stream.isatty() and not no_color
 
 
 def convert_md(parser_config, conf):
@@ -79,20 +112,19 @@ def main():
     Run the md2zhihu command.
     A failure that the user can fix ends with a one-line message on stderr and exit status 1.
     """
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(MessageFormatter(use_color(sys.stderr)))
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
     try:
         run()
     except UserError as e:
-        print(f"md2zhihu: error: {e}", file=sys.stderr)
+        logger.error("%s", e)
         sys.exit(1)
 
 
 def run():
-    # Configure logging to output to stdout (same as original print())
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("> %(message)s"))
-    logging.root.addHandler(handler)
-    logging.root.setLevel(logging.INFO)
-
     # TODO refine arg names
     # md2zhihu a.md --output-dir res/ --platform xxx --md-output foo/
     # res/fn.md
@@ -106,6 +138,9 @@ def run():
 
     args = parser.parse_args()
 
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+
     if args.md_output is None:
         args.md_output = args.output_dir + "/"
 
@@ -118,15 +153,12 @@ def run():
     check_src_paths(parser, args.src_path)
     asset_repo = new_asset_repo(parser, args.repo)
 
-    msg(
-        "Build markdown: ",
-        darkyellow(args.src_path),
-        " into ",
-        darkyellow(args.md_output),
-    )
-    msg("Build assets to: ", darkyellow(args.asset_output_dir))
-    msg("Git dir: ", darkyellow(args.output_dir))
-    msg("Gid dir will be pushed to: ", darkyellow(args.repo))
+    debug("--platform: ", args.platform)
+    debug("--output-dir: ", args.output_dir)
+    debug("--md-output: ", args.md_output)
+    debug("--asset-output-dir: ", args.asset_output_dir)
+    if asset_repo is not None:
+        debug("--repo: ", asset_repo.url, ", branch ", asset_repo.branch)
 
     confs = []
     for path in args.src_path:
@@ -155,21 +187,19 @@ def run():
     for conf in confs:
         convert_md(parser_config, conf)
 
-        msg(sj("Done building ", darkyellow(conf.md_output_path)))
+        msg(conf.src_path, " -> ", conf.md_output_path)
 
         stat.append([conf.src_path, conf.md_output_path])
 
     if conf.asset_repo.is_local:
-        msg("No git repo specified")
+        msg("no --repo, so images are referenced by relative path")
     else:
-        msg(
-            "Pushing ",
-            darkyellow(conf.output_dir),
-            " to ",
-            darkyellow(conf.asset_repo.url),
-            " branch: ",
-            darkyellow(conf.asset_repo.branch),
-        )
         conf.push(args, stat)
-
-    msg(green(sj("Great job!!!")))
+        msg(
+            "pushed ",
+            conf.output_dir,
+            " to ",
+            conf.asset_repo.url,
+            ", branch ",
+            conf.asset_repo.branch,
+        )

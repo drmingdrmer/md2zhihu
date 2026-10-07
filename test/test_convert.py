@@ -124,7 +124,7 @@ def check_golden(golden_path, got):
 
 
 @pytest.mark.parametrize("name", sorted(e2e_conversions))
-def test_e2e_conversion(name, tmp_path, monkeypatch, restore_root_logger):
+def test_e2e_conversion(name, tmp_path, monkeypatch, restore_logger):
     work_dir, args, result_path = e2e_conversions[name]
 
     # Convert a copy, so that no output lands in the source tree.
@@ -176,7 +176,7 @@ def test_undefined_reference_warning(name, tmp_path, caplog):
 
     got = []
     for record in caplog.records:
-        warning = re.search(r"Warn: undefined reference (.*) in 'warn\.md'", record.getMessage())
+        warning = re.search(r"undefined reference (.*) in 'warn\.md'", record.getMessage())
         if warning:
             got.append(warning.group(1))
     assert got == want

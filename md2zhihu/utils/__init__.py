@@ -20,9 +20,23 @@ def msg(*args) -> None:
 
     The token in a git push URL such as ``https://user:token@github.com/...`` is masked.
     """
+    log(logging.INFO, args)
+
+
+def debug(*args) -> None:
+    """Log a message as msg() does, at the debug level, which ``md2zhihu --verbose`` shows."""
+    log(logging.DEBUG, args)
+
+
+def warn(*args) -> None:
+    """Log a warning as msg() does."""
+    log(logging.WARNING, args)
+
+
+def log(level: int, args: tuple) -> None:
     line = "".join([str(x) for x in args])
     line = mask_url_credential(line)
-    logger.info(line)
+    logger.log(level, line)
 
 
 def mask_url_credential(s: str) -> str:

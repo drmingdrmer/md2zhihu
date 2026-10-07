@@ -3,7 +3,6 @@ import re
 from typing import List
 from typing import Optional
 
-from k3color import darkred
 from k3fs import fread
 
 from ..config import Config
@@ -11,8 +10,7 @@ from ..errors import MissingFileError
 from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..utils import add_paragraph_end
-from ..utils import msg
-from ..utils import sj
+from ..utils import warn
 from . import mistune3
 from .extract.front_matter import FrontMatter
 from .extract.front_matter import extract_front_matter
@@ -78,7 +76,7 @@ class Article(object):
         )
 
         for ref in undefined_refs:
-            msg(darkred(sj("Warn: undefined reference ", ref, " in ", repr(self.conf.src_path))))
+            warn("undefined reference ", ref, " in ", repr(self.conf.src_path))
 
         self.parse_embed()
 

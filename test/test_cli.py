@@ -4,6 +4,8 @@ Tests of the md2zhihu command: its exit status and what it prints.
 They run md2zhihu.main() in the test process.
 """
 
+import io
+import logging
 import os
 import subprocess
 import sys
@@ -11,6 +13,8 @@ import sys
 import pytest
 
 import md2zhihu
+from md2zhihu.cli import MessageFormatter
+from md2zhihu.cli import use_color
 from md2zhihu.cli.args import create_parser
 
 # Bad arguments, as name: (md2zhihu arguments, the error message).
@@ -38,6 +42,29 @@ bad_args = {
     ),
 }
 
+# The lines that md2zhihu prints for the message "x", as (log level, color, line).
+formatted_messages = [
+    (logging.INFO, False, "x"),
+    (logging.INFO, True, "x"),
+    (logging.WARNING, False, "md2zhihu: warning: x"),
+    (logging.WARNING, True, "\x1b[33mmd2zhihu: warning:\x1b[0m x"),
+    (logging.ERROR, True, "\x1b[31mmd2zhihu: error:\x1b[0m x"),
+]
+
+# Whether md2zhihu colors its messages, as (stream is a terminal, value of NO_COLOR, color).
+# An empty NO_COLOR counts as unset, as https://no-color.org says.
+color_cases = [
+    (True, None, True),
+    (True, "", True),
+    (True, "1", False),
+    (False, None, False),
+]
+
+
+class Terminal(io.StringIO):
+    def isatty(self):
+        return True
+
 
 def run_failing(monkeypatch, capsys, args):
     """Run md2zhihu with `args`, which must make it exit. Return the exit status and stderr."""
@@ -53,7 +80,7 @@ def usage_error(message):
 
 
 @pytest.mark.parametrize("name", sorted(bad_args))
-def test_bad_argument(name, tmp_path, monkeypatch, capsys, restore_root_logger):
+def test_bad_argument(name, tmp_path, monkeypatch, capsys, restore_logger):
     args, want = bad_args[name]
     monkeypatch.chdir(tmp_path)
     # "--repo ." must not find a git repo in a parent folder of tmp_path.
@@ -70,7 +97,7 @@ def test_bad_argument(name, tmp_path, monkeypatch, capsys, restore_root_logger):
     assert sorted(os.listdir(tmp_path)) == ["a.md", "b.md", "docs"]
 
 
-def test_repo_without_remote(tmp_path, monkeypatch, capsys, restore_root_logger):
+def test_repo_without_remote(tmp_path, monkeypatch, capsys, restore_logger):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / "a.md").write_text("# a\n")
@@ -79,3 +106,57 @@ def test_repo_without_remote(tmp_path, monkeypatch, capsys, restore_root_logger)
 
     assert code == 2
     assert err == usage_error("--repo .: the git repo in the working directory has no remote")
+
+
+def test_output(tmp_path, monkeypatch, capsys, restore_logger):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.md").write_text("see [x][y]\n")
+    (tmp_path / "b.md").write_text("# b\n")
+    monkeypatch.setattr(sys, "argv", ["md2zhihu", "a.md", "b.md"])
+
+    md2zhihu.main()
+
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == (
+        "md2zhihu: warning: undefined reference [x][y] in 'a.md'\n"
+        "a.md -> _md2/a.md\n"
+        "b.md -> _md2/b.md\n"
+        "no --repo, so images are referenced by relative path\n"
+    )
+
+
+def test_verbose_output(tmp_path, monkeypatch, capsys, restore_logger):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.md").write_text("# a\n")
+    monkeypatch.setattr(sys, "argv", ["md2zhihu", "-v", "a.md", "-p", "github", "-o", "out/"])
+
+    md2zhihu.main()
+
+    err = capsys.readouterr().err
+    assert err == (
+        "--platform: github\n"
+        "--output-dir: _md2\n"
+        "--md-output: out/\n"
+        "--asset-output-dir: _md2\n"
+        "a.md -> out/a.md\n"
+        "no --repo, so images are referenced by relative path\n"
+    )
+
+
+@pytest.mark.parametrize("level, color, want", formatted_messages)
+def test_message_formatter(level, color, want):
+    record = logging.makeLogRecord({"msg": "x", "levelno": level, "levelname": logging.getLevelName(level)})
+    got = MessageFormatter(color).format(record)
+    assert got == want
+
+
+@pytest.mark.parametrize("tty, no_color, want", color_cases)
+def test_use_color(tty, no_color, want, monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    if no_color is not None:
+        monkeypatch.setenv("NO_COLOR", no_color)
+    stream = Terminal() if tty else io.StringIO()
+
+    got = use_color(stream)
+    assert got == want

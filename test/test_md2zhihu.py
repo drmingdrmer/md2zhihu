@@ -145,7 +145,7 @@ class TestMd2zhihu(unittest.TestCase):
 
         code, out, err = k3proc.command("md2zhihu", "src/ref.md", "--output-dir", "dst", cwd=d)
         self.assertEqual(0, code)
-        self.assertIn("Warn: undefined reference [foo][bar] in 'src/ref.md'", out)
+        self.assertIn("md2zhihu: warning: undefined reference [foo][bar] in 'src/ref.md'\n", err)
 
         rm(d, "dst")
 
@@ -175,11 +175,14 @@ class TestMd2zhihu(unittest.TestCase):
             GIT_CONFIG_KEY_0="url./nonexistent/.insteadOf",
             GIT_CONFIG_VALUE_0=url_prefix,
         )
-        code, out, err = k3proc.command("md2zhihu", "a.md", "--repo", url_prefix + "nobody/nothing.git@b", cwd=d, env=env)
+        # -v also prints the URL in the settings.
+        code, out, err = k3proc.command(
+            "md2zhihu", "-v", "a.md", "--repo", url_prefix + "nobody/nothing.git@b", cwd=d, env=env
+        )
         self.assertEqual(1, code)
         self.assertNotIn(token, out)
         self.assertNotIn(token, err)
-        self.assertIn("https://***@github.com/nobody/nothing.git", out)
+        self.assertIn("--repo: https://***@github.com/nobody/nothing.git, branch b\n", err)
         # git writes its own error before md2zhihu's.
         want = "md2zhihu: error: failed to push _md2 to https://***@github.com/nobody/nothing.git, branch b"
         last_line = err.splitlines()[-1]
