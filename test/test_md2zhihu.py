@@ -200,7 +200,15 @@ class TestMd2zhihu(unittest.TestCase):
         rm(d, "_md2")
 
     def test_chunks(self):
-        parser_config = md2zhihu.ParserConfig(False, [])
+        self.check_chunks("v2")
+
+    # mistune 3 references are not resolved, and an escape in math loses its backslash.
+    @unittest.expectedFailure
+    def test_chunks_v3(self):
+        self.check_chunks("v3")
+
+    def check_chunks(self, engine):
+        parser_config = md2zhihu.ParserConfig(False, [], engine)
         conf = md2zhihu.Config(
             "foo.md",
             "null",
@@ -385,7 +393,13 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertEqual(want, got)
 
     def test_chunks_list(self):
-        parser_config = md2zhihu.ParserConfig(False, [])
+        self.check_chunks_list("v2")
+
+    def test_chunks_list_v3(self):
+        self.check_chunks_list("v3")
+
+    def check_chunks_list(self, engine):
+        parser_config = md2zhihu.ParserConfig(False, [], engine)
         conf = md2zhihu.Config(
             "foo.md",
             "null",

@@ -12,6 +12,7 @@ from ..renderer import RenderNode
 from ..utils import add_paragraph_end
 from ..utils import msg
 from ..utils import sj
+from . import mistune3
 from .extract.front_matter import FrontMatter
 from .extract.front_matter import extract_front_matter
 from .extract.refs import extract_ref_definitions
@@ -33,11 +34,20 @@ class ParserConfig(object):
     `populate_reference`: whether to replace reference with definition.
 
     `embed_patterns`: the url regex patterns to replace the content of url in ![](url).
+
+    `engine`: the markdown parser, "v2" for the vendored mistune 2.0.0a6 or "v3" for mistune 3.
+    It defaults to the environment variable MD2ZHIHU_PARSER, or to "v2" when the variable is unset.
     """
 
-    def __init__(self, populate_reference: bool, embed_patterns: List[str]):
+    def __init__(self, populate_reference: bool, embed_patterns: List[str], engine: Optional[str] = None):
         self.populate_reference = populate_reference
         self.embed_patterns = embed_patterns
+
+        if engine is None:
+            engine = os.environ.get("MD2ZHIHU_PARSER", "v2")
+        if engine not in ("v2", "v3"):
+            raise ValueError(f"unknown markdown parser {engine!r}, expected 'v2' or 'v3'")
+        self.engine = engine
 
 
 class Article(object):
@@ -76,10 +86,12 @@ class Article(object):
 
         # parse to ast and clean up
 
-        parse_to_ast = new_parser()
-        self.ast = parse_to_ast(self.md_text)
-
-        self.ast = parse_in_list_tables(self.ast)
+        if self.parser_config.engine == "v3":
+            self.ast = mistune3.parse(self.md_text)
+        else:
+            parse_to_ast = new_parser()
+            self.ast = parse_to_ast(self.md_text)
+            self.ast = parse_in_list_tables(self.ast)
 
         self.used_refs, undefined_refs = replace_ref_with_def(self.ast, self.refs, self.parser_config.populate_reference)
         for ref in undefined_refs:

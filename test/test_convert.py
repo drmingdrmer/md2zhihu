@@ -96,26 +96,72 @@ warn_cases = {
     "warn-emphasis-text": ("[*foo*][bar]", ["[*foo*][bar]"]),
 }
 
-# The parser under test: "v2" is the vendored mistune 2.0.0a6.
-engine = "v2"
+# The parsers under test: "v2" is the vendored mistune 2.0.0a6, and "v3" is mistune 3.
+# MD2ZHIHU_UPDATE_GOLDEN=1 writes the golden files from the output of the first one.
+engines = ["v2", "v3"]
 
-# Known bugs, as case name: {parser: reason}.
-# A listed case expects the correct result, written by hand.
+# The v3 differences that come from md2zhihu's reference and math post-processing,
+# which the v3 pipeline still runs on mistune 3's merged text.
+v3_refs = "references are not resolved"
+v3_refs_math = "references are not resolved, and an escape in math loses its backslash"
+v3_warn = "an undefined reference inside other text gets no warning"
+
+# Known bugs and differences, as case name: {parser: reason}. An end-to-end conversion is named "e2e/<name>".
+# A case with a v2 entry expects the correct result, written by hand.
+# A v3 entry that is not a bug above is an intended change of the output.
 # The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
 expected_fail = {
-    "escapes-backslash": {"v2": "a backslash escape loses its backslash"},
+    "code-blocks": {"v3": "an indented code block loses the empty line that mistune 2 keeps at its end"},
+    "e2e/github": {"v3": v3_refs_math},
+    "e2e/minimal_mistake": {"v3": v3_refs_math},
+    "e2e/simple": {"v3": v3_refs_math},
+    "e2e/transparent": {"v3": v3_refs},
+    "e2e/wechat": {"v3": v3_refs_math},
+    "e2e/weibo": {"v3": v3_refs_math},
+    "e2e/zhihu": {"v3": v3_refs_math},
+    "e2e/zhihu-deep-asset-dir": {"v3": v3_refs_math},
+    "e2e/zhihu-embed": {"v3": v3_refs},
+    "e2e/zhihu-localrepo": {"v3": v3_refs_math},
+    "e2e/zhihu-pushall": {"v3": v3_refs_math},
+    "escapes-backslash": {"v2": "a backslash escape loses its backslash", "v3": "a backslash escape loses its backslash"},
     "inline-autolink": {"v2": "an autolink crashes parse_in_list_tables"},
     "inline-cjk-underscore": {"v2": "`_` between Chinese characters becomes emphasis"},
+    "inline-hard-break-backslash": {"v3": "a backslash hard break is written as two trailing spaces"},
+    "inline-image-cjk-url": {"v3": "a remote image URL is percent-encoded"},
     "inline-link-ampersand": {"v2": "`&` in a link URL becomes `&amp;`"},
-    "math-dollar-amounts": {"v2": "`$5 and $` becomes inline math"},
-    "math-emphasis": {"v2": "emphasis inside `$...$` splits the text, so the math is not found"},
-    "math-escape": {"v2": "an escape inside `$...$` splits the text, so the math is not found"},
-    "math-table-cell": {"v2": r"`\|` in math in a table cell loses its backslash, which splits the cell"},
-    "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved"},
-    "refs-image": {"v2": "an image reference is not resolved, and its definition is removed"},
-    "refs-label-case": {"v2": "a reference label in another case is not resolved"},
-    "tables-escaped-pipe": {"v2": r"`\|` in a table cell loses its backslash, which splits the cell"},
-    "warn-emphasis-text": {"v2": "an undefined reference whose text has emphasis gets no warning"},
+    "math-dollar-amounts": {"v2": "`$5 and $` becomes inline math", "v3": "`$5 and $` becomes inline math"},
+    "math-emphasis": {
+        "v2": "emphasis inside `$...$` splits the text, so the math is not found",
+        "v3": "emphasis inside `$...$` splits the text, so the math is not found",
+    },
+    "math-escape": {
+        "v2": "an escape inside `$...$` splits the text, so the math is not found",
+        "v3": "an escape inside `$...$` loses its backslash",
+    },
+    "math-latex": {"v3": r"an escape such as `\{` in math loses its backslash"},
+    "math-table-cell": {
+        "v2": r"`\|` in math in a table cell loses its backslash, which splits the cell",
+        "v3": r"`\|` in math in a table cell loses its backslash, which splits the cell",
+    },
+    "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved", "v3": v3_refs},
+    "refs-external": {"v3": v3_refs},
+    "refs-footnote": {"v3": v3_refs},
+    "refs-footnote-indented": {"v3": v3_refs},
+    "refs-forms": {"v3": v3_refs},
+    "refs-front-matter": {"v3": v3_refs},
+    "refs-image": {"v2": "an image reference is not resolved, and its definition is removed", "v3": v3_refs},
+    "refs-label-case": {"v2": "a reference label in another case is not resolved", "v3": v3_refs},
+    "refs-no-populate": {"v3": v3_refs},
+    "refs-placement": {"v3": v3_refs},
+    "refs-title": {"v3": v3_refs},
+    "tables-escaped-pipe": {
+        "v2": r"`\|` in a table cell loses its backslash, which splits the cell",
+        "v3": r"`\|` in a table cell loses its backslash, which splits the cell",
+    },
+    "tables-syntax": {"v3": "a table row with fewer cells than the header gets empty cells, as GFM requires"},
+    "warn-emphasis-text": {"v2": "an undefined reference whose text has emphasis gets no warning", "v3": v3_warn},
+    "warn-in-text": {"v3": v3_warn},
+    "warn-two-on-one-line": {"v3": v3_warn},
 }
 
 # The inputs in test/data/robust/examples.json that md2zhihu fails to convert, as example id: {parser: error}.
@@ -174,8 +220,30 @@ def restore_root_logger():
     logging.root.setLevel(level)
 
 
-@pytest.mark.parametrize("name", sorted(e2e_conversions))
-def test_e2e_conversion(name, tmp_path, monkeypatch, restore_root_logger):
+def case_params(names, prefix=""):
+    """
+    Pair each case with each engine. The name of a case in expected_fail is prefix + name.
+    """
+    params = []
+    for engine in engines:
+        for name in names:
+            params.append(case_param(engine, name, prefix))
+    return params
+
+
+def case_param(engine, name, prefix):
+    if update_golden and engine != engines[0]:
+        return pytest.param(engine, name, marks=pytest.mark.skip(reason="the golden files are written from " + engines[0]))
+    reason = expected_fail.get(prefix + name, {}).get(engine)
+    if reason is None:
+        return pytest.param(engine, name)
+    if update_golden:
+        return pytest.param(engine, name, marks=pytest.mark.skip(reason=reason))
+    return pytest.param(engine, name, marks=pytest.mark.xfail(strict=True, reason=reason))
+
+
+@pytest.mark.parametrize("engine,name", case_params(sorted(e2e_conversions), "e2e/"))
+def test_e2e_conversion(engine, name, tmp_path, monkeypatch, restore_root_logger):
     work_dir, args, result_path = e2e_conversions[name]
 
     # Convert a copy, so that no output lands in the source tree.
@@ -185,6 +253,7 @@ def test_e2e_conversion(name, tmp_path, monkeypatch, restore_root_logger):
     monkeypatch.chdir(tmp_path / work_dir)
     monkeypatch.setattr(sys, "argv", ["md2zhihu"] + args)
     monkeypatch.setattr(k3down2, "convert", fake_convert)
+    monkeypatch.setenv("MD2ZHIHU_PARSER", engine)
     md2zhihu.main()
 
     with open(result_path, encoding="utf-8") as f:
@@ -192,17 +261,8 @@ def test_e2e_conversion(name, tmp_path, monkeypatch, restore_root_logger):
     check_golden(os.path.join(golden_base, "e2e", name + ".md"), got)
 
 
-def case_param(name):
-    reason = expected_fail.get(name, {}).get(engine)
-    if reason is None:
-        return name
-    if update_golden:
-        return pytest.param(name, marks=pytest.mark.skip(reason=reason))
-    return pytest.param(name, marks=pytest.mark.xfail(strict=True, reason=reason))
-
-
-@pytest.mark.parametrize("name", [case_param(name) for name in case_names])
-def test_case(name, tmp_path, monkeypatch):
+@pytest.mark.parametrize("engine,name", case_params(case_names))
+def test_case(engine, name, tmp_path, monkeypatch):
     # The zhihu converters wrap tables and math in fake_convert's markers,
     # so the output shows which nodes the parser built and the text they hold.
     monkeypatch.chdir(cases_dir)
@@ -214,7 +274,7 @@ def test_case(name, tmp_path, monkeypatch):
     os.makedirs(conf.asset_output_dir)
 
     populate_reference = name not in no_populate_cases
-    parser_config = md2zhihu.ParserConfig(populate_reference, [])
+    parser_config = md2zhihu.ParserConfig(populate_reference, [], engine)
 
     with open(src_path, encoding="utf-8") as f:
         md_text = f.read()
@@ -224,12 +284,12 @@ def test_case(name, tmp_path, monkeypatch):
     check_golden(os.path.join(golden_base, name + ".md"), got)
 
 
-@pytest.mark.parametrize("name", [case_param(name) for name in warn_cases])
-def test_undefined_reference_warning(name, tmp_path, caplog):
+@pytest.mark.parametrize("engine,name", case_params(warn_cases))
+def test_undefined_reference_warning(engine, name, tmp_path, caplog):
     md_text, want = warn_cases[name]
     out_dir = str(tmp_path)
     conf = md2zhihu.Config("warn.md", "zhihu", out_dir, out_dir, md_output_path=out_dir + "/")
-    parser_config = md2zhihu.ParserConfig(True, [])
+    parser_config = md2zhihu.ParserConfig(True, [], engine)
 
     caplog.set_level(logging.INFO)
     md2zhihu.Article(parser_config, conf, md_text)
@@ -242,13 +302,14 @@ def test_undefined_reference_warning(name, tmp_path, caplog):
     assert got == want
 
 
-def test_examples_convert(tmp_path):
+@pytest.mark.parametrize("engine", engines)
+def test_examples_convert(engine, tmp_path):
     # Platform "null" has no features, so only the parser and MDRender run.
     with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") as f:
         examples = json.load(f)
     out_dir = str(tmp_path)
     conf = md2zhihu.Config("example.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
-    parser_config = md2zhihu.ParserConfig(True, [])
+    parser_config = md2zhihu.ParserConfig(True, [], engine)
 
     got = {}
     for example_id, md_text in examples.items():
