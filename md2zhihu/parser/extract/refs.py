@@ -26,7 +26,8 @@ def extract_ref_definitions(cont: str) -> Tuple[str, RefDict]:
     rst = []
     refs: RefDict = {}
     for line in lines:
-        r = re.match(r"\[(.*?)\]:(.*?)$", line, flags=re.UNICODE)
+        # A definition whose URL is on the next line stays in the text, for the parser to read.
+        r = re.match(r"\[(.*?)\]:(\s*\S.*?)$", line, flags=re.UNICODE)
         if r:
             gs = r.groups()
             refs[gs[0]] = gs[1]

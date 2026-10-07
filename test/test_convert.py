@@ -111,7 +111,6 @@ expected_fail = {
     "math-emphasis": {"v2": "emphasis inside `$...$` splits the text, so the math is not found"},
     "math-escape": {"v2": "an escape inside `$...$` splits the text, so the math is not found"},
     "math-table-cell": {"v2": r"`\|` in math in a table cell loses its backslash, which splits the cell"},
-    "refs-def-url-next-line": {"v2": "a definition with its URL on the next line crashes replace_ref_with_def"},
     "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved"},
     "refs-footnote-indented": {"v2": "a definition indented by 1 space is not extracted and renders as `***:footnotes`"},
     "refs-image": {"v2": "an image reference is not resolved, and its definition is removed"},
@@ -123,10 +122,6 @@ expected_fail = {
 # The inputs in test/data/robust/examples.json that md2zhihu fails to convert, as example id: {parser: error}.
 # The error is the exception type, or "***:" when MDRender meets a node type it does not know.
 robust_failures = {
-    # A definition with no URL on its line crashes replace_ref_with_def.
-    "commonmark-162": {"v2": "IndexError"},
-    "commonmark-165": {"v2": "IndexError"},
-    "commonmark-166": {"v2": "IndexError"},
     # An autolink crashes parse_in_list_tables.
     "commonmark-297": {"v2": "TypeError"},
     "commonmark-327": {"v2": "TypeError"},
