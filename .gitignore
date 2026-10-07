@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 .DS_Store
+.idea/
 
 # C extensions
 *.so
@@ -129,3 +130,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# npm install, for the mermaid-cli in package.json
+node_modules/
+package-lock.json
+
+# The default output directory of md2zhihu
+_md2/
