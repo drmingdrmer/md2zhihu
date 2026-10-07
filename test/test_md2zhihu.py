@@ -202,7 +202,7 @@ class TestMd2zhihu(unittest.TestCase):
     def test_chunks(self):
         self.check_chunks("v2")
 
-    # mistune 3 references are not resolved, and an escape in math loses its backslash.
+    # With mistune 3, an escape in math loses its backslash.
     @unittest.expectedFailure
     def test_chunks_v3(self):
         self.check_chunks("v3")

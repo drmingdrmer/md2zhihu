@@ -8,16 +8,20 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 from urllib.parse import unquote
 
 import mistune
+from mistune.core import BlockState
 from mistune.core import InlineState
 from mistune.inline_parser import InlineParser
 from mistune.plugins.table import table_in_list
 from mistune.plugins.table import table_in_quote
+from mistune.util import unikey
 
 from ..types import ASTNode
 from ..types import ASTNodes
+from ..types import RefDict
 
 # A mistune 3 token.
 Token = Dict[str, Any]
@@ -29,6 +33,10 @@ attr_fields = {
     "list": {"ordered": "ordered"},
     "table_cell": {"align": "align"},
 }
+
+# The forms of an undefined reference that md2zhihu warns about: "[text][label]" and "[label][]".
+# A lone "[label]" is usually plain text, so it gets no warning.
+undefined_ref_forms = re.compile(r"\[[^\[\]]*\]\[[^\[\]]*\]")
 
 
 def new_markdown() -> mistune.Markdown:
@@ -45,25 +53,52 @@ def new_markdown() -> mistune.Markdown:
     return md
 
 
-def parse(text: str) -> ASTNodes:
+def parse(text: str, refs: RefDict, populate_reference: bool) -> Tuple[ASTNodes, RefDict, List[str]]:
     """
     Parse markdown with mistune 3 into the AST that md2zhihu renders.
+
+    `refs` maps md2zhihu's name of each reference to its value, such as `https://a.com "title"`.
+    With `populate_reference` False, a link to one of them stays as written, such as `[text][name]`.
+
+    Return the AST, the references in `refs` that it uses, and the undefined references in it.
     """
 
+    state = BlockState()
+    state.env["ref_links"] = new_ref_links(refs)
+    state.env["populate_reference"] = populate_reference
+    state.env["used_refs"] = {}
+    state.env["undefined_refs"] = []
+
     md = new_markdown()
-    tokens, _ = md.parse(text)
+    tokens, _ = md.parse(text, state)
     assert isinstance(tokens, list)
-    return adapt(tokens)
+    return adapt(tokens), state.env["used_refs"], state.env["undefined_refs"]
+
+
+def new_ref_links(refs: RefDict) -> Dict[str, Dict[str, str]]:
+    """
+    Build mistune 3's `ref_links` from md2zhihu's references, so that mistune resolves them.
+    """
+
+    ref_links = {}
+    for name, value in refs.items():
+        # mistune upper-cases its key, so the entry also keeps md2zhihu's name and value, which the output lists.
+        ref_links[unikey(name)] = {"url": value.split()[0], "name": name, "value": value}
+    return ref_links
 
 
 def parse_link(inline: InlineParser, m: re.Match[str], state: InlineState) -> Optional[int]:
     """
     Run mistune's link rule. On an image it builds, keep the alt text as written.
+    Record the references that md2zhihu defines and the links use, and the undefined references.
     """
 
     count = len(state.tokens)
     end = inline.parse_link(m, state)
     if end is None:
+        form = undefined_ref_forms.match(state.src, m.start())
+        if form is not None:
+            state.env["undefined_refs"].append(form.group(0))
         return None
 
     new_tokens = state.tokens[count:]
@@ -72,7 +107,27 @@ def parse_link(inline: InlineParser, m: re.Match[str], state: InlineState) -> Op
         alt_end = closing_bracket(state.src, m.end())
         new_tokens[0]["alt"] = state.src[m.end() : alt_end]
 
+    if len(new_tokens) == 1 and new_tokens[0]["type"] == "link" and "ref" in new_tokens[0]:
+        use_ref(state, count, state.src[m.start() : end])
+
     return end
+
+
+def use_ref(state: InlineState, index: int, source: str) -> None:
+    """
+    Record the reference that the link `state.tokens[index]` uses, if md2zhihu defines it.
+    With populate_reference False, replace the link with its source text.
+    """
+
+    ref = state.env["ref_links"][state.tokens[index]["ref"]]
+    if "name" not in ref:
+        # md2zhihu did not extract this definition, such as one whose URL is on the next line, so mistune read it from the text.
+        return
+
+    state.env["used_refs"][ref["name"]] = ref["value"]
+    if not state.env["populate_reference"]:
+        # With "_emphasis" False, mistune finds no emphasis in the text, such as in "[*foo*][bar]".
+        state.tokens[index] = {"type": "text", "raw": source, "_emphasis": False}
 
 
 def closing_bracket(src: str, pos: int) -> int:

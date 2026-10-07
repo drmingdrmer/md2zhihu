@@ -100,11 +100,9 @@ warn_cases = {
 # MD2ZHIHU_UPDATE_GOLDEN=1 writes the golden files from the output of the first one.
 engines = ["v2", "v3"]
 
-# The v3 differences that come from md2zhihu's reference and math post-processing,
-# which the v3 pipeline still runs on mistune 3's merged text.
-v3_refs = "references are not resolved"
-v3_refs_math = "references are not resolved, and an escape in math loses its backslash"
-v3_warn = "an undefined reference inside other text gets no warning"
+# The v3 difference that comes from md2zhihu's math post-processing, which the v3 pipeline still runs
+# on mistune 3's text, in which an escape such as `\{` has lost its backslash.
+v3_math = "an escape in math loses its backslash"
 
 # Known bugs and differences, as case name: {parser: reason}. An end-to-end conversion is named "e2e/<name>".
 # A case with a v2 entry expects the correct result, written by hand.
@@ -112,17 +110,15 @@ v3_warn = "an undefined reference inside other text gets no warning"
 # The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
 expected_fail = {
     "code-blocks": {"v3": "an indented code block loses the empty line that mistune 2 keeps at its end"},
-    "e2e/github": {"v3": v3_refs_math},
-    "e2e/minimal_mistake": {"v3": v3_refs_math},
-    "e2e/simple": {"v3": v3_refs_math},
-    "e2e/transparent": {"v3": v3_refs},
-    "e2e/wechat": {"v3": v3_refs_math},
-    "e2e/weibo": {"v3": v3_refs_math},
-    "e2e/zhihu": {"v3": v3_refs_math},
-    "e2e/zhihu-deep-asset-dir": {"v3": v3_refs_math},
-    "e2e/zhihu-embed": {"v3": v3_refs},
-    "e2e/zhihu-localrepo": {"v3": v3_refs_math},
-    "e2e/zhihu-pushall": {"v3": v3_refs_math},
+    "e2e/github": {"v3": v3_math},
+    "e2e/minimal_mistake": {"v3": v3_math},
+    "e2e/simple": {"v3": v3_math},
+    "e2e/wechat": {"v3": v3_math},
+    "e2e/weibo": {"v3": v3_math},
+    "e2e/zhihu": {"v3": v3_math},
+    "e2e/zhihu-deep-asset-dir": {"v3": v3_math},
+    "e2e/zhihu-localrepo": {"v3": v3_math},
+    "e2e/zhihu-pushall": {"v3": v3_math},
     "escapes-backslash": {"v2": "a backslash escape loses its backslash", "v3": "a backslash escape loses its backslash"},
     "inline-autolink": {"v2": "an autolink crashes parse_in_list_tables"},
     "inline-cjk-underscore": {"v2": "`_` between Chinese characters becomes emphasis"},
@@ -143,25 +139,15 @@ expected_fail = {
         "v2": r"`\|` in math in a table cell loses its backslash, which splits the cell",
         "v3": r"`\|` in math in a table cell loses its backslash, which splits the cell",
     },
-    "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved", "v3": v3_refs},
-    "refs-external": {"v3": v3_refs},
-    "refs-footnote": {"v3": v3_refs},
-    "refs-footnote-indented": {"v3": v3_refs},
-    "refs-forms": {"v3": v3_refs},
-    "refs-front-matter": {"v3": v3_refs},
-    "refs-image": {"v2": "an image reference is not resolved, and its definition is removed", "v3": v3_refs},
-    "refs-label-case": {"v2": "a reference label in another case is not resolved", "v3": v3_refs},
-    "refs-no-populate": {"v3": v3_refs},
-    "refs-placement": {"v3": v3_refs},
-    "refs-title": {"v3": v3_refs},
+    "refs-emphasis-text": {"v2": "a reference whose text has emphasis is not resolved"},
+    "refs-image": {"v2": "an image reference is not resolved, and its definition is removed"},
+    "refs-label-case": {"v2": "a reference label in another case is not resolved"},
     "tables-escaped-pipe": {
         "v2": r"`\|` in a table cell loses its backslash, which splits the cell",
         "v3": r"`\|` in a table cell loses its backslash, which splits the cell",
     },
     "tables-syntax": {"v3": "a table row with fewer cells than the header gets empty cells, as GFM requires"},
-    "warn-emphasis-text": {"v2": "an undefined reference whose text has emphasis gets no warning", "v3": v3_warn},
-    "warn-in-text": {"v3": v3_warn},
-    "warn-two-on-one-line": {"v3": v3_warn},
+    "warn-emphasis-text": {"v2": "an undefined reference whose text has emphasis gets no warning"},
 }
 
 # The inputs in test/data/robust/examples.json that md2zhihu fails to convert, as example id: {parser: error}.
