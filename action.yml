@@ -101,9 +101,11 @@ runs:
           if git diff-index --quiet HEAD --; then
             echo "Nothing to commit"
           else
-            git \
-              -c "user.name=drmingdrmer" \
-              -c "user.email=drdr.xp@gmail.com" \
+            # Commit as the user that git knows, or as md2zhihu for what git has no config for, as on a fresh runner.
+            identity=()
+            git config user.name > /dev/null || identity+=(-c user.name=md2zhihu)
+            git config user.email > /dev/null || identity+=(-c user.email=noreply@localhost)
+            git "${identity[@]}" \
               commit \
               -m "md2zhihu built"
           fi

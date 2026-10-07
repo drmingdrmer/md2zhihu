@@ -51,6 +51,13 @@ embed_args = [
     (["--embed", "x", "--embed", "y", "a.md"], ["x", "y"]),
 ]
 
+# The git config of the user, and the committer of the assets that md2zhihu pushes.
+identity_cases = {
+    "user": ({"user.name": "Ann", "user.email": "ann@example.com"}, "Ann <ann@example.com>"),
+    "name-only": ({"user.name": "Ann"}, "Ann <noreply@localhost>"),
+    "no-config": ({}, "md2zhihu <noreply@localhost>"),
+}
+
 # The lines that md2zhihu prints for the message "x", as (log level, color, line).
 formatted_messages = [
     (logging.INFO, False, "x"),
@@ -199,3 +206,29 @@ def test_embed_args(args, want):
     parsed = create_parser().parse_args(args)
     assert parsed.src_path == ["a.md"]
     assert parsed.embed == want
+
+
+@pytest.mark.parametrize("name", sorted(identity_cases))
+def test_commit_identity(name, tmp_path, monkeypatch, restore_logger):
+    config, want = identity_cases[name]
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.md").write_text("# a\n")
+    bare = str(tmp_path / "assets.git")
+    subprocess.run(["git", "init", "-q", "--bare", bare], check=True)
+
+    # git reads only these config entries. The first one makes it push to the local bare repo.
+    entries = {"url." + bare + ".insteadOf": "git@github.com:x/y.git", **config}
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_COUNT", str(len(entries)))
+    for i, (key, value) in enumerate(entries.items()):
+        monkeypatch.setenv(f"GIT_CONFIG_KEY_{i}", key)
+        monkeypatch.setenv(f"GIT_CONFIG_VALUE_{i}", value)
+    monkeypatch.setattr(sys, "argv", ["md2zhihu", "a.md", "-r", "git@github.com:x/y.git@b"])
+
+    md2zhihu.main()
+
+    log = subprocess.run(
+        ["git", "--git-dir", bare, "log", "-1", "--format=%an <%ae>", "b"], capture_output=True, text=True, check=True
+    )
+    assert log.stdout == want + "\n"

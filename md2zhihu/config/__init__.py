@@ -7,6 +7,8 @@ import shutil
 import subprocess
 from typing import List
 
+from k3handy import CMD_NONE_ONELINE
+from k3handy import cmdf
 from k3handy import cmdpass
 from k3handy import pjoin
 
@@ -16,6 +18,9 @@ from ..utils import debug
 from ..utils import mask_url_credential
 from .asset_repo import AssetRepo
 from .local_repo import LocalRepo
+
+# The committer of the assets, for each part of it that git has no config for, as on a fresh CI runner.
+fallback_identity = {"user.name": "md2zhihu", "user.email": "noreply@localhost"}
 
 
 class Config(object):
@@ -153,19 +158,24 @@ class Config(object):
         # -q: md2zhihu prints one line for the push, so git prints only its errors.
         cmdpass("git", "init", "-q", **x)
         cmdpass("git", "add", ".", **x)
+
+        # Commit as the user that git knows.
+        identity = []
+        for key, fallback in fallback_identity.items():
+            value = cmdf("git", "config", key, flag=CMD_NONE_ONELINE, **x)
+            if not value:
+                identity += ["-c", key + "=" + fallback]
+
         cmdpass(
             "git",
-            "-c",
-            "user.name='drmingdrmer'",
-            "-c",
-            "user.email='drdr.xp@gmail.com'",
+            *identity,
             "commit",
             "-q",
             "--allow-empty",
             "-m",
             "\n".join(
                 [
-                    "Built pages by md2zhihu by drdr.xp@gmail.com",
+                    "Built pages by md2zhihu",
                     "",
                     "CLI args:",
                     args_str,
