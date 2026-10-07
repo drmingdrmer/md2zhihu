@@ -187,7 +187,8 @@ def parse_math(inline: InlineParser, m: re.Match[str], state: InlineState) -> Op
     if text is None:
         text = math.group(2)
 
-    starts_paragraph = math.start() == 0
+    # mistune parses a link's text on its own, so the start of that text is not the start of the paragraph.
+    starts_paragraph = math.start() == 0 and not state.in_link
     ends_line = math.end() == len(state.src) or state.src.startswith("\n", math.end())
     if starts_paragraph and ends_line:
         state.append_token({"type": "math_block", "raw": text})

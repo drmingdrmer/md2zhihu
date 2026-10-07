@@ -10,3 +10,5 @@
 > quote with $z^2$
 
 Two on one line: $a$ and $b$.
+
+Link text: [$x^2$](https://a.com).
