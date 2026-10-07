@@ -58,6 +58,13 @@ class AssetRepo(object):
         self.repo: Optional[str] = repo
         self.branch: str = branch
 
+        protected_branches = ["main", "master"]
+        if branch in protected_branches:
+            raise ValueError(f"Cannot force push to protected branch: {branch}. Use a different branch name.")
+
+        if host not in url_patterns:
+            raise ValueError(f"unsupported git host: {host}, supported: {', '.join(url_patterns)}")
+
         ptn = url_patterns[host]
         if self.cdn and host == "github.com":
             ptn = cdn_patterns[host]
@@ -111,7 +118,10 @@ class AssetRepo(object):
             remote = g.branch_default_remote(branch, flag=[CmdFlag.NONE])
             if remote is None:
                 # `branch` has no remote configured.
-                remote = g.cmdf("remote", flag=CMD_RAISE_STDOUT)[0]
+                remotes = g.cmdf("remote", flag=CMD_RAISE_STDOUT)
+                if len(remotes) == 0:
+                    raise ValueError("the git repo in the working directory has no remote")
+                remote = remotes[0]
 
         remote_url: str = g.remote_get(remote, flag=[CmdFlag.RAISE])
         return remote_url

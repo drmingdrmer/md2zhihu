@@ -26,7 +26,7 @@ class Config(object):
         platform,
         output_dir,
         asset_output_dir,
-        asset_repo_url=None,
+        asset_repo=None,
         md_output_path=None,
         code_width=1000,
         keep_meta=None,
@@ -45,7 +45,7 @@ class Config(object):
 
             output_dir(str): the output dir path to which converted/generated file saves.
 
-            asset_repo_url(str): url of a git repo to upload output files, i.e.
+            asset_repo(AssetRepo): git repo to upload output files, i.e.
                     result markdown, moved image or generated images.
 
             md_output_path(str): when present, specifies the path of the result markdown or result dir.
@@ -107,10 +107,10 @@ class Config(object):
         else:
             self.md_output_base = os.path.split(os.path.abspath(self.md_output_path))[0]
 
-        if asset_repo_url is None:
+        if asset_repo is None:
             self.asset_repo = LocalRepo(self.md_output_path, self.output_dir)
         else:
-            self.asset_repo = AssetRepo(asset_repo_url)
+            self.asset_repo = asset_repo
 
         for k in (
             "src_path",
@@ -187,12 +187,6 @@ class Config(object):
             ),
             **x,
         )
-        # Validate branch before force push
-        branch = self.asset_repo.branch
-        protected_branches = ["main", "master"]
-        if branch in protected_branches:
-            raise ValueError(f"Cannot force push to protected branch: {branch}. Use a different branch name.")
-
         # Push with error handling
         try:
             cmdpass(

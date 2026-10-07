@@ -12,6 +12,8 @@ class SmartFormatter(argparse.HelpFormatter):
 def create_parser() -> argparse.ArgumentParser:
     """Build the argument parser of the md2zhihu command."""
     parser = argparse.ArgumentParser(
+        # Python 3.14 derives the default name from a "python -m" run, such as "python -m pytest".
+        prog="md2zhihu",
         description="Convert markdown to zhihu compatible",
         formatter_class=SmartFormatter,
     )

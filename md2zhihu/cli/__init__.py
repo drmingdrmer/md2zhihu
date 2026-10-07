@@ -1,15 +1,21 @@
+import argparse
 import logging
 import os
+import subprocess
 import sys
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from k3color import darkred
 from k3color import darkyellow
 from k3color import green
 from k3fs import fread
 
+from ..config import AssetRepo
 from ..config import Config
 from ..parser import Article
 from ..parser import ParserConfig
+from ..utils import mask_url_credential
 from ..utils import msg
 from ..utils import sj
 from .args import create_parser
@@ -30,6 +36,41 @@ def convert_md(parser_config, conf):
         f.write(str("\n".join(output_lines)))
 
     return conf.md_output_path
+
+
+def check_src_paths(parser: argparse.ArgumentParser, paths: List[str]) -> None:
+    """Exit with a usage error if a path is not a file."""
+    for path in paths:
+        if os.path.isdir(path):
+            example = os.path.join(path, "*.md")
+            parser.error(f"{path}: is a directory, pass the markdown files in it, such as {example}")
+        if not os.path.isfile(path):
+            parser.error(f"{path}: no such file")
+
+
+def new_asset_repo(parser: argparse.ArgumentParser, url: Optional[str]) -> Optional[AssetRepo]:
+    """Build the repo that --repo names, or exit with a usage error if it is bad."""
+    if url is None:
+        return None
+
+    try:
+        return AssetRepo(url)
+    except ValueError as e:
+        reason = str(e)
+    except subprocess.CalledProcessError as e:
+        # A shortcut such as "--repo ." runs git, which fails outside a git repo.
+        reason = e.stderr.strip()
+    parser.error(mask_url_credential(f"--repo {url}: {reason}"))
+
+
+def check_md_outputs(parser: argparse.ArgumentParser, confs: List[Config]) -> None:
+    """Exit with a usage error if two inputs convert to the same markdown file."""
+    src_by_output: Dict[str, str] = {}
+    for conf in confs:
+        output = conf.md_output_path
+        if output in src_by_output:
+            parser.error(f"{src_by_output[output]} and {conf.src_path} both convert to {output}")
+        src_by_output[output] = conf.src_path
 
 
 def main():
@@ -61,6 +102,9 @@ def main():
     if args.jekyll:
         args.keep_meta = True
 
+    check_src_paths(parser, args.src_path)
+    asset_repo = new_asset_repo(parser, args.repo)
+
     msg(
         "Build markdown: ",
         darkyellow(args.src_path),
@@ -71,7 +115,7 @@ def main():
     msg("Git dir: ", darkyellow(args.output_dir))
     msg("Gid dir will be pushed to: ", darkyellow(args.repo))
 
-    stat = []
+    confs = []
     for path in args.src_path:
         #  TODO Config should accept only two arguments: the path and a args
         conf = Config(
@@ -79,7 +123,7 @@ def main():
             args.platform,
             args.output_dir,
             args.asset_output_dir,
-            asset_repo_url=args.repo,
+            asset_repo=asset_repo,
             md_output_path=args.md_output,
             code_width=args.code_width,
             keep_meta=args.keep_meta,
@@ -88,21 +132,19 @@ def main():
             rewrite=args.rewrite,
             download=args.download,
         )
+        confs.append(conf)
 
-        parser_config = ParserConfig(True, args.embed)
+    check_md_outputs(parser, confs)
 
-        # Check if file exists
-        try:
-            fread(conf.src_path)
-        except FileNotFoundError:
-            msg(darkred(sj("Warn: file not found: ", repr(conf.src_path))))
-            continue
+    parser_config = ParserConfig(True, args.embed)
 
+    stat = []
+    for conf in confs:
         convert_md(parser_config, conf)
 
         msg(sj("Done building ", darkyellow(conf.md_output_path)))
 
-        stat.append([path, conf.md_output_path])
+        stat.append([conf.src_path, conf.md_output_path])
 
     if conf.asset_repo.is_local:
         msg("No git repo specified")

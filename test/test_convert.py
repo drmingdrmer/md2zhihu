@@ -123,16 +123,6 @@ def check_golden(golden_path, got):
     assert got == want
 
 
-@pytest.fixture
-def restore_root_logger():
-    # md2zhihu.main() adds a stdout handler to the root logger on each call.
-    handlers = list(logging.root.handlers)
-    level = logging.root.level
-    yield
-    logging.root.handlers = handlers
-    logging.root.setLevel(level)
-
-
 @pytest.mark.parametrize("name", sorted(e2e_conversions))
 def test_e2e_conversion(name, tmp_path, monkeypatch, restore_root_logger):
     work_dir, args, result_path = e2e_conversions[name]
