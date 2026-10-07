@@ -7,6 +7,7 @@ from k3color import darkred
 from k3fs import fread
 
 from ..config import Config
+from ..errors import MissingFileError
 from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..utils import add_paragraph_end
@@ -120,7 +121,7 @@ class Article(object):
 
             article_path = self.conf.relpath_from_cwd(child["src"])
             if not os.path.exists(article_path):
-                raise FileNotFoundError(f"embedded markdown not found: {article_path!r}, used in {self.conf.src_path!r}")
+                raise MissingFileError(f"embedded markdown not found: {article_path!r}, used in {self.conf.src_path!r}")
             md_text = fread(article_path)
 
             # save and restore parent src_path

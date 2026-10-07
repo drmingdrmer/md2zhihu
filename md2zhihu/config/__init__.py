@@ -4,13 +4,14 @@ import argparse
 import os
 import re
 import shutil
+import subprocess
 from typing import List
 
-from k3color import darkred
 from k3color import darkyellow
 from k3handy import cmdpass
 from k3handy import pjoin
 
+from ..errors import PushError
 from ..platform import platform_feature_dict
 from ..utils import mask_url_credential
 from ..utils import msg
@@ -197,11 +198,11 @@ class Config(object):
                 "HEAD:refs/heads/" + self.asset_repo.branch,
                 **x,
             )
-        except Exception as e:
-            err = mask_url_credential(f"Failed to push to {self.asset_repo.url}: {e}")
-            msg(darkred(err))
-            # `e` shows the push URL with the token, so it is not chained.
-            raise RuntimeError(err) from None
+        except subprocess.CalledProcessError:
+            repo = self.asset_repo
+            err = mask_url_credential(f"failed to push {self.output_dir} to {repo.url}, branch {repo.branch}")
+            # The git error shows the push URL with the token, so it is not chained.
+            raise PushError(err) from None
 
         if not has_git:
             msg("Removing tmp git dir: ", self.output_dir + "/.git")

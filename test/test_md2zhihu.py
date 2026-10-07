@@ -141,7 +141,7 @@ class TestMd2zhihu(unittest.TestCase):
             dd(fn)
             code, out, err = k3proc.command("md2zhihu", fn, "--output-dir", "dst", cwd=d)
             self.assertEqual(1, code)
-            self.assertIn(want, err)
+            self.assertEqual("md2zhihu: error: " + want + "\n", err)
 
         code, out, err = k3proc.command("md2zhihu", "src/ref.md", "--output-dir", "dst", cwd=d)
         self.assertEqual(0, code)
@@ -180,7 +180,10 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertNotIn(token, out)
         self.assertNotIn(token, err)
         self.assertIn("https://***@github.com/nobody/nothing.git", out)
-        self.assertIn("RuntimeError: Failed to push to https://***@github.com/nobody/nothing.git", err)
+        # git writes its own error before md2zhihu's.
+        want = "md2zhihu: error: failed to push _md2 to https://***@github.com/nobody/nothing.git, branch b"
+        last_line = err.splitlines()[-1]
+        self.assertEqual(want, last_line)
 
         _, commit_msg, _ = k3proc.command("git", "log", "-1", "--format=%B", cwd=pjoin(d, "_md2"), check=True)
         self.assertNotIn(token, commit_msg)

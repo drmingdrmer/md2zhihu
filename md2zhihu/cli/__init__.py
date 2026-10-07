@@ -13,6 +13,7 @@ from k3fs import fread
 
 from ..config import AssetRepo
 from ..config import Config
+from ..errors import UserError
 from ..parser import Article
 from ..parser import ParserConfig
 from ..utils import mask_url_credential
@@ -74,6 +75,18 @@ def check_md_outputs(parser: argparse.ArgumentParser, confs: List[Config]) -> No
 
 
 def main():
+    """
+    Run the md2zhihu command.
+    A failure that the user can fix ends with a one-line message on stderr and exit status 1.
+    """
+    try:
+        run()
+    except UserError as e:
+        print(f"md2zhihu: error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def run():
     # Configure logging to output to stdout (same as original print())
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(logging.Formatter("> %(message)s"))

@@ -10,6 +10,8 @@ import urllib3
 from k3handy import pjoin
 from k3handy import to_bytes
 
+from ..errors import MissingFileError
+
 if TYPE_CHECKING:
     from ..renderer.md_render import MDRender
     from ..renderer.render_node import RenderNode
@@ -51,7 +53,7 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
 
     src = mdrender.conf.relpath_from_cwd(src)
     if not os.path.exists(src):
-        raise FileNotFoundError(f"image not found: {src!r}, used in {mdrender.conf.src_path!r}")
+        raise MissingFileError(f"image not found: {src!r}, used in {mdrender.conf.src_path!r}")
 
     fn = os.path.split(src)[1]
 
