@@ -1,0 +1,2 @@
+universal:
+  - "protobuf": https://github.com/protocolbuffers/protobuf "protobuf"

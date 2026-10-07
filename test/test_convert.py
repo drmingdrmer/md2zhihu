@@ -17,7 +17,8 @@ import md2zhihu
 
 this_base = os.path.dirname(os.path.abspath(__file__))
 test_data = os.path.join(this_base, "data")
-golden_base = os.path.join(test_data, "cases", "want")
+cases_dir = os.path.join(test_data, "cases")
+golden_base = os.path.join(cases_dir, "want")
 
 update_golden = os.environ.get("MD2ZHIHU_UPDATE_GOLDEN") == "1"
 
@@ -67,6 +68,30 @@ e2e_conversions = {
         ["simple.md", "--md-output", "out.md", "--output-dir", ".", "--asset-output-dir", "foo/bar"],
         "out.md",
     ),
+}
+
+# The small cases in test/data/cases/src/, by file name without ".md".
+case_files = os.listdir(os.path.join(cases_dir, "src"))
+case_names = sorted(fn[: -len(".md")] for fn in case_files if fn.endswith(".md"))
+
+# Config arguments of the small cases that need them.
+case_config = {
+    "refs-external": {"ref_files": ["src/refs-external.yaml"]},
+    "blocks-front-matter-keep-meta": {"keep_meta": True},
+}
+
+# The small cases that keep references as written, as Article.chunks() does.
+no_populate_cases = {"refs-no-populate"}
+
+# The parser under test: "v2" is the vendored mistune 2.0.0a6.
+engine = "v2"
+
+# Known bugs of the small cases, as case name: {parser: reason}.
+# The golden file of a listed case holds the correct output, written by hand.
+# The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
+expected_fail = {
+    "math-table-cell": {"v2": r"`\|` in math in a table cell loses its backslash, which splits the cell"},
+    "tables-escaped-pipe": {"v2": r"`\|` in a table cell loses its backslash, which splits the cell"},
 }
 
 
@@ -121,3 +146,35 @@ def test_e2e_conversion(name, tmp_path, monkeypatch, restore_root_logger):
     with open(result_path, encoding="utf-8") as f:
         got = f.read()
     check_golden(os.path.join(golden_base, "e2e", name + ".md"), got)
+
+
+def case_param(name):
+    reason = expected_fail.get(name, {}).get(engine)
+    if reason is None:
+        return name
+    if update_golden:
+        return pytest.param(name, marks=pytest.mark.skip(reason=reason))
+    return pytest.param(name, marks=pytest.mark.xfail(strict=True, reason=reason))
+
+
+@pytest.mark.parametrize("name", [case_param(name) for name in case_names])
+def test_case(name, tmp_path, monkeypatch):
+    # The zhihu converters wrap tables and math in fake_convert's markers,
+    # so the output shows which nodes the parser built and the text they hold.
+    monkeypatch.chdir(cases_dir)
+    monkeypatch.setattr(k3down2, "convert", fake_convert)
+    src_path = "src/" + name + ".md"
+    out_dir = str(tmp_path)
+    options = case_config.get(name, {})
+    conf = md2zhihu.Config(src_path, "zhihu", out_dir, out_dir, md_output_path=out_dir + "/", **options)
+    os.makedirs(conf.asset_output_dir)
+
+    populate_reference = name not in no_populate_cases
+    parser_config = md2zhihu.ParserConfig(populate_reference, [])
+
+    with open(src_path, encoding="utf-8") as f:
+        md_text = f.read()
+    article = md2zhihu.Article(parser_config, conf, md_text)
+
+    got = "\n".join(article.render())
+    check_golden(os.path.join(golden_base, name + ".md"), got)
