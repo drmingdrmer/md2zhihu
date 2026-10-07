@@ -103,7 +103,6 @@ engine = "v2"
 # A listed case expects the correct result, written by hand.
 # The case must fail on each listed parser, and MD2ZHIHU_UPDATE_GOLDEN=1 skips it.
 expected_fail = {
-    "blocks-empty-quote": {"v2": "a block quote with no text crashes strip_paragraph_end"},
     "escapes-backslash": {"v2": "a backslash escape loses its backslash"},
     "inline-autolink": {"v2": "an autolink crashes parse_in_list_tables"},
     "inline-cjk-underscore": {"v2": "`_` between Chinese characters becomes emphasis"},
@@ -128,10 +127,6 @@ robust_failures = {
     "commonmark-162": {"v2": "IndexError"},
     "commonmark-165": {"v2": "IndexError"},
     "commonmark-166": {"v2": "IndexError"},
-    # A block quote with no text crashes strip_paragraph_end.
-    "commonmark-181": {"v2": "IndexError"},
-    "commonmark-202": {"v2": "IndexError"},
-    "commonmark-203": {"v2": "IndexError"},
     # An autolink crashes parse_in_list_tables.
     "commonmark-297": {"v2": "TypeError"},
     "commonmark-327": {"v2": "TypeError"},

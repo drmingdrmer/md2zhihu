@@ -56,7 +56,7 @@ def add_paragraph_end(lines: List[str]) -> List[str]:
 
 def strip_paragraph_end(lines: List[str]) -> List[str]:
     #  remove last blank lines
-    if lines[-1] == "":
+    if lines and lines[-1] == "":
         return strip_paragraph_end(lines[:-1])
 
     return lines
