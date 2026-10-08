@@ -67,7 +67,7 @@ class Article(object):
 
         self.refs.update(load_external_refs(self.conf))
         if self.front_matter is not None:
-            self.refs.update(self.front_matter.get_refs(conf.platform))
+            self.refs.update(self.front_matter.get_refs(conf.platform, conf.src_path))
         self.refs.update(article_refs)
 
         # parse to ast and clean up

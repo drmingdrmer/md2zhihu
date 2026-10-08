@@ -1,0 +1,5 @@
+---
+
+---
+
+An empty front matter.

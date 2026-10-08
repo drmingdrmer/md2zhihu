@@ -7,6 +7,8 @@ from typing import Tuple
 import yaml
 
 from ...types import RefDict
+from .refs import mapping_in
+from .refs import refs_in
 
 
 class FrontMatter(object):
@@ -18,29 +20,26 @@ class FrontMatter(object):
         self.text: str = front_matter_text
         self.data: Dict[str, Any] = yaml.safe_load(front_matter_text)
 
-    def get_refs(self, platform: str) -> RefDict:
+    def get_refs(self, platform: str, src_path: str = "the markdown") -> RefDict:
         """
         Get refs from front matter.
+        Raise FormatError, which names `src_path`, if "refs" or "platform_refs" has a shape that md2zhihu can not use.
         """
         dic: RefDict = {}
 
         meta = self.data
+        # Front matter that is empty, or that is not a mapping, such as "Foo" in "---\nFoo\n---", has no refs.
+        if not isinstance(meta, dict):
+            return dic
+
+        where = " in the front matter of " + src_path
 
         # Collect universal refs
-        if "refs" in meta:
-            refs = meta["refs"]
-
-            for r in refs:
-                dic.update(r)
+        dic.update(refs_in(meta.get("refs"), "refs" + where))
 
         # Collect platform specific refs
-        if "platform_refs" in meta:
-            refs = meta["platform_refs"]
-            if platform in refs:
-                refs = refs[platform]
-
-                for r in refs:
-                    dic.update(r)
+        platform_refs = mapping_in(meta.get("platform_refs"), "platform_refs" + where)
+        dic.update(refs_in(platform_refs.get(platform), "platform_refs." + platform + where))
 
         return dic
 

@@ -49,6 +49,22 @@ bad_args = {
     ),
 }
 
+# The rule that the references in a front matter or a --refs file break.
+refs_rule = "must be a mapping of names to URLs, or a list of such mappings"
+
+# Front matter and --refs files of a shape that md2zhihu can not read, as name: (a.md, refs.yaml, the error message).
+# md2zhihu converts a.md with "--refs refs.yaml".
+bad_shapes = {
+    "refs-number": ("---\nrefs: 3\n---\n", "", "refs in the front matter of a.md: " + refs_rule),
+    "platform-refs-list": (
+        "---\nplatform_refs: [x]\n---\n",
+        "",
+        "platform_refs in the front matter of a.md: must be a mapping",
+    ),
+    "refs-file-list": ("# a\n", "- x\n", "refs.yaml: must be a mapping"),
+    "universal-text": ("# a\n", "universal: http://a\n", "universal in refs.yaml: " + refs_rule),
+}
+
 # --embed flags before an input, as (md2zhihu arguments, the parsed regexes).
 # Each flag takes one regex, so "a.md" stays the input.
 embed_args = [
@@ -117,6 +133,19 @@ def test_bad_argument(name, tmp_path, monkeypatch, capsys, restore_logger):
     assert err == usage_error(want)
     # md2zhihu found the bad argument before it wrote anything.
     assert sorted(os.listdir(tmp_path)) == ["a.md", "b.md", "docs"]
+
+
+@pytest.mark.parametrize("name", sorted(bad_shapes))
+def test_bad_shape(name, tmp_path, monkeypatch, capsys, restore_logger):
+    md, refs_yaml, want = bad_shapes[name]
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.md").write_text(md)
+    (tmp_path / "refs.yaml").write_text(refs_yaml)
+
+    code, err = run_failing(monkeypatch, capsys, ["a.md", "--refs", "refs.yaml"])
+
+    assert code == 1
+    assert err == "md2zhihu: error: " + want + "\n"
 
 
 def test_repo_without_remote(tmp_path, monkeypatch, capsys, restore_logger):
