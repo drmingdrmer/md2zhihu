@@ -88,7 +88,8 @@ jobs:
         GITHUB_USERNAME: ${{ github.repository_owner }}
         GITHUB_TOKEN: ${{ secrets.MD2TEST_TOKEN }}
       with:
-        pattern: test/data/transparent/src/transparent.md
+        # "**" stands for the two folders test/data/, which it matches only with bash's globstar option.
+        pattern: '**/transparent/src/transparent.md'
         asset_repo: https://github.com/drmingdrmer/md2test.git
         asset_branch: action_test
         output_branch: ''

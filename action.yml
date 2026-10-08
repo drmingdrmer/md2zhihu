@@ -77,6 +77,10 @@ runs:
       run: |
         echo 'asset_repo: ${{ inputs.asset_repo }}'
 
+        # globstar: "**" in the pattern matches any number of folders, not just one, as "*" does.
+        # nullglob: a pattern that matches no file passes no file, and md2zhihu fails because it gets no input.
+        shopt -s globstar nullglob
+
         # The image holds md2zhihu and every tool it runs.
         # --pull always: a self-hosted runner keeps images, and would run an old `latest`.
         # --user: later steps can change the files that md2zhihu writes.
