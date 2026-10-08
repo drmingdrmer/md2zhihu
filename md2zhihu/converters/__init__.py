@@ -8,6 +8,7 @@ from ..asset import save_image_to_asset_dir
 from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..utils import asset_fn
+from ..utils import code_fence
 from ..utils import escape
 from ..utils import fwrite
 
@@ -15,7 +16,8 @@ from ..utils import fwrite
 def code_join(n: dict) -> str:
     lang = n["info"] or ""
     lines = n["text"][:-1].split("\n")
-    txt = "\n".join(["```" + lang] + lines + ["```", ""])
+    fence = code_fence(n["text"])
+    txt = "\n".join([fence + lang] + lines + [fence, ""])
     return txt
 
 

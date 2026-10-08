@@ -76,6 +76,21 @@ def strip_paragraph_end(lines: List[str]) -> List[str]:
     return lines
 
 
+def code_fence(code: str) -> str:
+    """
+    Return the fence for a code block that holds `code`: a run of "`" that no run of "`" in `code` closes.
+    It is 1 longer than the longest run in `code`, and at least 3 long.
+    """
+    longest = longest_backtick_run(code)
+    return "`" * max(3, longest + 1)
+
+
+def longest_backtick_run(text: str) -> int:
+    """Return the length of the longest run of "`" in `text`, or 0."""
+    runs = re.findall("`+", text)
+    return max([len(r) for r in runs], default=0)
+
+
 def asset_fn(text: str, suffix: str) -> str:
     textmd5 = hashlib.md5(to_bytes(text)).hexdigest()
     escaped = re.sub(r"[^a-zA-Z0-9_\-=]+", "", text)

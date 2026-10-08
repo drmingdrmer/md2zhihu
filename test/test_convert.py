@@ -186,6 +186,13 @@ def test_undefined_reference_warning(name, tmp_path, caplog):
     assert got == want
 
 
+def test_code_join():
+    # The text of a code image, as wechat makes one, has a fence that the fence in the code does not close.
+    node = {"type": "block_code", "info": "markdown", "text": "```python\nprint(1)\n```\n"}
+    got = md2zhihu.converters.code_join(node)
+    assert got == "````markdown\n```python\nprint(1)\n```\n````\n"
+
+
 def test_download_image_name(tmp_path, monkeypatch):
     # A server on this machine holds "图片 1.png". The markdown has its URL percent-encoded, as mistune writes it.
     www = tmp_path / "www"

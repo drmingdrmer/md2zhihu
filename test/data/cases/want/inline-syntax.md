@@ -2,7 +2,7 @@
 
 中文*斜体*中文
 
-A code span with a backtick: `a`b`
+A code span with a backtick: ``a`b``
 
 Two spaces make a hard break:  
 next line
