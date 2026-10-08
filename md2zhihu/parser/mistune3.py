@@ -209,6 +209,7 @@ def join_math_paragraphs(tokens: List[Token]) -> None:
     """
     Join each paragraph that opens "$$" math with the paragraphs after it, up to the one that closes the math.
     mistune's block parser splits such math at a blank line, and this runs before mistune parses the inline text.
+    If no paragraph closes the math, nothing is joined, and the "$$" is text.
     """
 
     i = 0
@@ -217,17 +218,42 @@ def join_math_paragraphs(tokens: List[Token]) -> None:
         if "children" in tok:
             join_math_paragraphs(tok["children"])
 
-        following = i + 1
-        while following < len(tokens) and tokens[following]["type"] == "blank_line":
-            following += 1
-
-        joinable = tok["type"] == "paragraph" and following < len(tokens) and tokens[following]["type"] == "paragraph"
-        if not joinable or not opens_math(tok["text"]):
+        end = closing_math_paragraph(tokens, i)
+        if end is None:
             i += 1
             continue
 
-        tok["text"] = tok["text"].rstrip("\n") + "\n\n" + tokens[following]["text"]
-        del tokens[i + 1 : following + 1]
+        for following in tokens[i + 1 : end + 1]:
+            if following["type"] == "paragraph":
+                tok["text"] = tok["text"].rstrip("\n") + "\n\n" + following["text"]
+        del tokens[i + 1 : end + 1]
+
+
+def closing_math_paragraph(tokens: List[Token], i: int) -> Optional[int]:
+    """
+    Return the index of the paragraph that closes the "$$" math that the paragraph `tokens[i]` opens, or None.
+    Only paragraphs and blank lines may come between them.
+    """
+
+    if tokens[i]["type"] != "paragraph":
+        return None
+
+    text = tokens[i]["text"]
+    if not opens_math(text):
+        return None
+
+    for j in range(i + 1, len(tokens)):
+        typ = tokens[j]["type"]
+        if typ == "blank_line":
+            continue
+        if typ != "paragraph":
+            return None
+
+        text += "\n\n" + tokens[j]["text"]
+        if not opens_math(text):
+            return j
+
+    return None
 
 
 def opens_math(text: str) -> bool:
