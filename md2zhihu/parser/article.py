@@ -43,8 +43,9 @@ class Article(object):
 
         # init
 
-        # Input markdown in str
-        self.md_text: str = md_text
+        # Input markdown in str, with the "\n" line ends that the extractors below expect.
+        # A caller may pass "\r\n", which the md2zhihu command does not, because it reads files in text mode.
+        self.md_text: str = md_text.replace("\r\n", "\n")
 
         # References defined in this markdown
         self.refs = {}

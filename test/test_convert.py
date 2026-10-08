@@ -186,6 +186,18 @@ def test_undefined_reference_warning(name, tmp_path, caplog):
     assert got == want
 
 
+def test_crlf_line_ends(tmp_path):
+    # The front matter is found, and its references are loaded, as with "\n" line ends.
+    md_text = "---\r\ntitle: x\r\nrefs:\r\n  - a: http://a\r\n---\r\n\r\n[a][]\r\n"
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", out_dir, out_dir, md_output_path=out_dir + "/")
+    parser_config = md2zhihu.ParserConfig(True, [])
+
+    got = md2zhihu.Article(parser_config, conf, md_text).render()
+    want = md2zhihu.Article(parser_config, conf, md_text.replace("\r\n", "\n")).render()
+    assert got == want
+
+
 def test_code_join():
     # The text of a code image, as wechat makes one, has a fence that the fence in the code does not close.
     node = {"type": "block_code", "info": "markdown", "text": "```python\nprint(1)\n```\n"}
