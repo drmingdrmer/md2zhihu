@@ -16,17 +16,18 @@ jobs:
         python-version: ["3.10", "3.11", "3.14"]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v7
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install ruff
+        # The version in .pre-commit-config.yaml, so that CI and pre-commit format the code the same way.
+        pip install ruff==0.16.10
         pip install -e ".[test]"
 
     - name: Install npm dependencies
@@ -80,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Convert a markdown with the action in this commit
       uses: ./

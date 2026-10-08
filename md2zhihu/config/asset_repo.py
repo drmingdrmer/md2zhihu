@@ -6,7 +6,7 @@ from typing import Optional
 import k3git
 from k3handy import CMD_RAISE_STDOUT
 from k3handy import CmdFlag
-from k3str import to_bytes
+from k3handy import to_bytes
 
 from ..utils import debug
 

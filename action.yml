@@ -116,6 +116,6 @@ runs:
 
           git push -f origin HEAD:refs/heads/${{ inputs.output_branch }}
 
-          echo "::set-output name=converted_branch::https://github.com/${{ github.repository }}/tree/${{ inputs.output_branch }}"
+          echo "converted_branch=https://github.com/${{ github.repository }}/tree/${{ inputs.output_branch }}" >> "$GITHUB_OUTPUT"
         fi
       shell: bash

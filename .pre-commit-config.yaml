@@ -1,8 +1,9 @@
 repos:
+  # The version of ruff that CI installs in .github/workflows/ut.yml.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
+    rev: v0.16.10
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       - id: ruff-format
 
