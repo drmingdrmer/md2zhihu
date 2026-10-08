@@ -5,12 +5,16 @@ They run md2zhihu in the test process, and need no browser, LaTeX tool, network 
 Run them with MD2ZHIHU_UPDATE_GOLDEN=1 to rewrite the golden files from the current output.
 """
 
+import functools
+import hashlib
+import http.server
 import json
 import logging
 import os
 import re
 import shutil
 import sys
+import threading
 
 import k3down2
 import pytest
@@ -180,6 +184,31 @@ def test_undefined_reference_warning(name, tmp_path, caplog):
         if warning:
             got.append(warning.group(1))
     assert got == want
+
+
+def test_download_image_name(tmp_path, monkeypatch):
+    # A server on this machine holds "图片 1.png". The markdown has its URL percent-encoded, as mistune writes it.
+    www = tmp_path / "www"
+    www.mkdir()
+    (www / "图片 1.png").write_bytes(b"png")
+    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(www))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{server.server_address[1]}/%E5%9B%BE%E7%89%87%201.png"
+
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/", download=True)
+    os.makedirs(conf.asset_output_dir)
+    article = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "![](" + url + ")")
+    lines = article.render()
+    server.shutdown()
+
+    # md2zhihu stores the image under the decoded file name, with "-" for the space, and refers to it by that name.
+    url_md5 = hashlib.md5(url.encode()).hexdigest()[:16]
+    stored = url_md5 + "-图片-1.png"
+    assert os.listdir(conf.asset_output_dir) == [stored]
+    assert (tmp_path / "out" / "a" / stored).read_bytes() == b"png"
+    assert lines[0] == "![](a/" + stored + ")"
 
 
 def test_examples_convert(tmp_path):

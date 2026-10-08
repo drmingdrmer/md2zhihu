@@ -5,6 +5,7 @@ import shutil
 from typing import TYPE_CHECKING
 from typing import List
 from typing import Optional
+from urllib.parse import unquote
 
 import urllib3
 from k3handy import pjoin
@@ -15,6 +16,10 @@ from ..errors import MissingFileError
 if TYPE_CHECKING:
     from ..renderer.md_render import MDRender
     from ..renderer.render_node import RenderNode
+
+# The characters of a file name that break the image URL that it is stored under:
+# a space ends the URL in markdown, a server reads "%", "#" and "?" as URL syntax, and "/" as a folder.
+unsafe_name_chars = re.compile(r"[\s%#?/]")
 
 
 def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Optional[List[str]]:
@@ -31,6 +36,9 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
             return None
 
         fn = src.split("/")[-1].split("#")[0].split("?")[0]
+        # mistune percent-encodes the URL, such as "图片.png" to "%E5%9B%BE%E7%89%87.png".
+        fn = unquote(fn)
+        fn = unsafe_name_chars.sub("-", fn)
 
         content_md5 = hashlib.md5(to_bytes(src)).hexdigest()
         content_md5 = content_md5[:16]
@@ -56,6 +64,7 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
         raise MissingFileError(f"image not found: {src!r}, used in {mdrender.conf.src_path!r}")
 
     fn = os.path.split(src)[1]
+    fn = unsafe_name_chars.sub("-", fn)
 
     with open(src, "rb") as f:
         content = f.read()
