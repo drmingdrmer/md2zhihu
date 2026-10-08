@@ -118,11 +118,13 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--keep-front-matter",
         "--keep-meta",
         action="store_true",
         required=False,
         default=False,
-        help='Keep the front matter, the meta block between two "---" lines at the start of the markdown.',
+        help='Keep the front matter, the YAML block between two "---" lines at the start of the markdown.'
+        " The old name --keep-meta still works, but is deprecated.",
     )
 
     parser.add_argument(
@@ -130,7 +132,8 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         required=False,
         default=False,
-        help="Keep the front matter, and the date prefix of the file name, such as 2021-06-11-title.md, as Jekyll needs.",
+        help="Same as --keep-front-matter, and also keep the date prefix of the file name,"
+        " such as 2021-06-11-title.md, as Jekyll needs.",
     )
 
     parser.add_argument(

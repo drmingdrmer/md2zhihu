@@ -173,7 +173,7 @@ def run():
         args.embed = [r"[.]md$"]
 
     if args.jekyll:
-        args.keep_meta = True
+        args.keep_front_matter = True
 
     check_src_paths(parser, args.src_path)
     check_md_output(parser, args.md_output)
@@ -198,7 +198,7 @@ def run():
             asset_repo=asset_repo,
             md_output_path=args.md_output,
             code_width=args.code_width,
-            keep_meta=args.keep_meta,
+            keep_meta=args.keep_front_matter,
             ref_files=args.refs,
             jekyll=args.jekyll,
             rewrite=args.rewrite,

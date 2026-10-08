@@ -91,6 +91,14 @@ embed_args = [
     (["--embed", "x", "--embed", "y", "a.md"], ["x", "y"]),
 ]
 
+# Arguments, as (md2zhihu arguments, whether md2zhihu keeps the front matter).
+# --keep-meta is the deprecated old name of --keep-front-matter.
+keep_front_matter_args = [
+    (["a.md"], False),
+    (["--keep-front-matter", "a.md"], True),
+    (["--keep-meta", "a.md"], True),
+]
+
 # The git config of the user, and the committer of the assets that md2zhihu pushes.
 identity_cases = {
     "user": ({"user.name": "Ann", "user.email": "ann@example.com"}, "Ann <ann@example.com>"),
@@ -238,7 +246,7 @@ def test_usage(monkeypatch):
     got = create_parser().format_usage()
     assert got == (
         "usage: md2zhihu [-h] [-d DIR] [-o PATH] [--asset-output-dir DIR] [-r URL] [-p PLATFORM]"
-        " [--keep-meta] [--jekyll] [--refs YAML] [--rewrite REGEX REPLACEMENT] [--download] [--embed REGEX]"
+        " [--keep-front-matter] [--jekyll] [--refs YAML] [--rewrite REGEX REPLACEMENT] [--download] [--embed REGEX]"
         " [--code-width PIXELS] [-v] [--version] MARKDOWN [MARKDOWN ...]\n"
     )
 
@@ -259,6 +267,12 @@ def test_embed_args(args, want):
     parsed = create_parser().parse_args(args)
     assert parsed.src_path == ["a.md"]
     assert parsed.embed == want
+
+
+@pytest.mark.parametrize("args, want", keep_front_matter_args)
+def test_keep_front_matter_args(args, want):
+    parsed = create_parser().parse_args(args)
+    assert parsed.keep_front_matter == want
 
 
 @pytest.mark.parametrize("name", sorted(identity_cases))
