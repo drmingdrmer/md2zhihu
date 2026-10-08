@@ -1,4 +1,3 @@
-import pprint
 from typing import List
 from typing import Optional
 
@@ -179,9 +178,7 @@ class MDRender(object):
         if typ == "linebreak":
             return ["  \n"]
 
-        print(typ, n.keys())
-        pprint.pprint(n)
-        return ["***:" + typ]
+        raise TypeError(f"MDRender can not render a node of type {typ!r}, at {rnode.to_str()}")
 
     def render(self, rnode) -> List[str]:
         rst = []

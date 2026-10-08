@@ -246,6 +246,18 @@ def test_download_image_name(tmp_path, monkeypatch):
     assert lines[0] == "![](a/" + stored + ")"
 
 
+def test_unknown_node_type(tmp_path):
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("a.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
+    mdr = md2zhihu.MDRender(conf, features={})
+    paragraph = {"type": "paragraph", "children": [{"type": "nope"}]}
+    root = md2zhihu.RenderNode({"type": "ROOT", "children": [paragraph]})
+
+    with pytest.raises(TypeError) as exc_info:
+        mdr.render(root)
+    assert str(exc_info.value) == "MDRender can not render a node of type 'nope', at ROOT -> paragraph -> nope"
+
+
 def test_examples_convert(tmp_path):
     # Platform "null" has no features, so only the parser and MDRender run.
     with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") as f:
@@ -256,14 +268,11 @@ def test_examples_convert(tmp_path):
 
     got = {}
     for example_id, md_text in examples.items():
+        # MDRender raises TypeError for a node type that it does not know.
         try:
             article = md2zhihu.Article(parser_config, conf, md_text)
-            output = "\n".join(article.render())
+            article.render()
         except Exception as e:
             got[example_id] = type(e).__name__
-            continue
-        # MDRender writes "***:" and the type of a node that it does not know.
-        if "***:" in output:
-            got[example_id] = "***:"
 
     assert got == {}
