@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 
+import k3down2
 import pytest
 
 import md2zhihu
@@ -107,6 +108,14 @@ keep_front_matter_args = [
     (["a.md"], False),
     (["--keep-front-matter", "a.md"], True),
     (["--keep-meta", "a.md"], True),
+]
+
+# Code width arguments, as (md2zhihu arguments, the width of a code block without a language, the width of one with a language).
+code_width_args = [
+    ([], 1000, 600),
+    (["--code-width", "800"], 800, 800),
+    (["--plain-code-width", "1200"], 1200, 600),
+    (["--code-width", "800", "--plain-code-width", "1200"], 1200, 800),
 ]
 
 # The git config of the user, and the committer of the assets that md2zhihu pushes.
@@ -259,6 +268,7 @@ def test_usage(monkeypatch):
         "usage: md2zhihu [-h] [-d DIR] [-o PATH] [--asset-output-dir DIR]"
         " [-r URL] [-b NAME] [--download] [--rewrite REGEX REPLACEMENT]"
         " [-p PLATFORM] [--keep-front-matter] [--jekyll] [--embed REGEX] [--refs YAML] [--code-width PIXELS]"
+        " [--plain-code-width PIXELS]"
         " [-v] [--version] MARKDOWN [MARKDOWN ...]\n"
     )
 
@@ -285,6 +295,27 @@ def test_embed_args(args, want):
 def test_keep_front_matter_args(args, want):
     parsed = create_parser().parse_args(args)
     assert parsed.keep_front_matter == want
+
+
+# The three platforms that turn code blocks into images.
+@pytest.mark.parametrize("platform", ["wechat", "weibo", "simple"])
+@pytest.mark.parametrize("args, plain_width, code_width", code_width_args)
+def test_code_width(platform, args, plain_width, code_width, tmp_path, monkeypatch, restore_logger):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.md").write_text("```\nplain\n```\n\n```python\ncode\n```\n")
+
+    widths = []
+
+    def convert(input_typ, content, output_typ, opt=None):
+        widths.append(opt["html"]["width"])
+        return b"jpg"
+
+    monkeypatch.setattr(k3down2, "convert", convert)
+    monkeypatch.setattr(sys, "argv", ["md2zhihu", "a.md", "-p", platform] + args)
+
+    md2zhihu.main()
+
+    assert widths == [plain_width, code_width]
 
 
 @pytest.mark.parametrize("name", sorted(identity_cases))

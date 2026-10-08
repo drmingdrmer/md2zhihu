@@ -41,13 +41,13 @@ def block_code_to_jpg(mdrender: "MDRender", rnode: "RenderNode", width: Optional
 
     w = width
     if w is None:
-        w = mdrender.conf.code_width
+        w = mdrender.conf.plain_code_width
 
     return typ_text_to_jpg(mdrender, "code", txt, opt={"html": {"width": w}})
 
 
 def block_code_to_fixwidth_jpg(mdrender: "MDRender", rnode: "RenderNode") -> List[str]:
-    return block_code_to_jpg(mdrender, rnode, width=600)
+    return block_code_to_jpg(mdrender, rnode, width=mdrender.conf.code_width)
 
 
 def block_code_mermaid_to_jpg(mdrender: "MDRender", rnode: "RenderNode") -> List[str]:

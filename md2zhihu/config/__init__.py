@@ -22,6 +22,10 @@ from .local_repo import LocalRepo
 # The committer of the assets, for each part of it that git has no config for, as on a fresh CI runner.
 fallback_identity = {"user.name": "md2zhihu", "user.email": "noreply@localhost"}
 
+# The width of the image of a code block with a language, such as ```python, and of one without, such as an ASCII diagram.
+default_code_width = 600
+default_plain_code_width = 1000
+
 
 class Config(object):
     #  TODO refactor var names
@@ -33,12 +37,13 @@ class Config(object):
         asset_output_dir,
         asset_repo=None,
         md_output_path=None,
-        code_width=1000,
+        code_width=None,
         keep_meta=None,
         ref_files=None,
         jekyll=False,
         rewrite=None,
         download=False,
+        plain_code_width=None,
     ):
         """
         Config of markdown rendering
@@ -56,7 +61,11 @@ class Config(object):
             md_output_path(str): when present, specifies the path of the result markdown or result dir.
                     ``{title}`` in it is replaced with the article name.
 
-            code_width(int): the result image width of code block.
+            code_width(int): the width of the image of each code block.
+                    Default: 600 for a block with a language, and 1000 for a block without one.
+
+            plain_code_width(int): the width of the image of a code block without a language,
+                    such as an ASCII diagram. Default: code_width if given, else 1000.
 
             keep_meta(bool): whether to keep the jekyll meta file header.
 
@@ -69,7 +78,17 @@ class Config(object):
         self.src_path = src_path
         self.root_src_path = self.src_path
 
+        # A width given for every code block also applies to a block without a language.
+        if plain_code_width is None:
+            plain_code_width = code_width
+        if plain_code_width is None:
+            plain_code_width = default_plain_code_width
+        self.plain_code_width = plain_code_width
+
+        if code_width is None:
+            code_width = default_code_width
         self.code_width = code_width
+
         if keep_meta is None:
             keep_meta = False
         self.keep_meta = keep_meta

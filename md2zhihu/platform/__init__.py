@@ -69,7 +69,7 @@ def weibo_specific(mdrender, rnode) -> Optional[List[str]]:
         if lang == "":
             return block_code_to_jpg(mdrender, rnode)
         else:
-            return block_code_to_jpg(mdrender, rnode, width=600)
+            return block_code_to_jpg(mdrender, rnode, width=mdrender.conf.code_width)
 
     return None
 

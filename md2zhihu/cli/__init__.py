@@ -204,6 +204,7 @@ def run():
             asset_repo=asset_repo,
             md_output_path=args.md_output,
             code_width=args.code_width,
+            plain_code_width=args.plain_code_width,
             keep_meta=args.keep_front_matter,
             ref_files=args.refs,
             jekyll=args.jekyll,

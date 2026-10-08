@@ -1,6 +1,9 @@
 import argparse
 import importlib.metadata
 
+from ..config import default_code_width
+from ..config import default_plain_code_width
+
 epilog = """\
 platforms:
   zhihu            math to zhihu equation images, tables to HTML, mermaid and
@@ -212,9 +215,20 @@ def create_parser() -> argparse.ArgumentParser:
         action="store",
         type=int,
         required=False,
-        default=1000,
         metavar="PIXELS",
-        help="The width of a code block image. Default: %(default)s",
+        help="The width of each code block image. Only wechat, weibo and simple turn code blocks into images."
+        f" Default: {default_code_width} for a code block with a language, such as ```python,"
+        f" and {default_plain_code_width} for one without.",
+    )
+
+    what_to_convert.add_argument(
+        "--plain-code-width",
+        action="store",
+        type=int,
+        required=False,
+        metavar="PIXELS",
+        help="The width of the image of a code block without a language, such as an ASCII diagram."
+        f" Default: --code-width if given, else {default_plain_code_width}.",
     )
 
     parser.add_argument(
