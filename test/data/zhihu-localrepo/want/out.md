@@ -109,7 +109,7 @@ ref asset from repo root:
 例如在 [slimarray] 中使用2次曲线 `f(x) = β₁ + β₂x + β₃x²`, 所要做的就是确定每个βᵢ的值,
 以使得`f(xⱼ) - yⱼ`的均方差最小. xⱼ是数组下标0, 1, 2...; yⱼ是数组中每个元素的值.
 
-<img src="https://www.zhihu.com/equation?tex=X%20%3D%20%5Cbegin%7Bbmatrix%7D1%20%20%20%20%20%20%26%20x_1%20%20%20%20%26%20x_1%5E2%20%5C%5C1%20%20%20%20%20%20%26%20x_2%20%20%20%20%26%20x_2%5E2%20%5C%5C%5Cvdots%20%26%20%5Cvdots%20%26%20%5Cvdots%20%20%20%20%5C%5C1%20%20%20%20%20%20%26%20x_n%20%20%20%20%26%20x_n%5E2%5Cend%7Bbmatrix%7D%2C%5Cvec%7B%5Cbeta%7D%20%3D%5Cbegin%7Bbmatrix%7D%5Cbeta_1%20%5C%5C%5Cbeta_2%20%5C%5C%5Cbeta_3%20%5C%5C%5Cend%7Bbmatrix%7D%2CY%20%3D%5Cbegin%7Bbmatrix%7Dy_1%20%5C%5Cy_2%20%5C%5C%5Cvdots%20%5C%5Cy_n%5Cend%7Bbmatrix%7D%5C%5C" alt="X = \begin{bmatrix}1      & x_1    & x_1^2 \\1      & x_2    & x_2^2 \\\vdots & \vdots & \vdots    \\1      & x_n    & x_n^2\end{bmatrix},\vec{\beta} =\begin{bmatrix}\beta_1 \\\beta_2 \\\beta_3 \\\end{bmatrix},Y =\begin{bmatrix}y_1 \\y_2 \\\vdots \\y_n\end{bmatrix}\\" class="ee_img tr_noresize" eeimg="1">
+<img src="https://www.zhihu.com/equation?tex=%20X%20%3D%20%5Cbegin%7Bbmatrix%7D%201%20%20%20%20%20%20%26%20x_1%20%20%20%20%26%20x_1%5E2%20%5C%5C%201%20%20%20%20%20%20%26%20x_2%20%20%20%20%26%20x_2%5E2%20%5C%5C%20%5Cvdots%20%26%20%5Cvdots%20%26%20%5Cvdots%20%20%20%20%5C%5C%201%20%20%20%20%20%20%26%20x_n%20%20%20%20%26%20x_n%5E2%20%5Cend%7Bbmatrix%7D%20%2C%20%20%5Cvec%7B%5Cbeta%7D%20%3D%20%5Cbegin%7Bbmatrix%7D%20%5Cbeta_1%20%5C%5C%20%5Cbeta_2%20%5C%5C%20%5Cbeta_3%20%5C%5C%20%5Cend%7Bbmatrix%7D%20%2C%20%20Y%20%3D%20%5Cbegin%7Bbmatrix%7D%20y_1%20%5C%5C%20y_2%20%5C%5C%20%5Cvdots%20%5C%5C%20y_n%20%5Cend%7Bbmatrix%7D%20%5C%5C" alt=" X = \begin{bmatrix} 1      & x_1    & x_1^2 \\ 1      & x_2    & x_2^2 \\ \vdots & \vdots & \vdots    \\ 1      & x_n    & x_n^2 \end{bmatrix} ,  \vec{\beta} = \begin{bmatrix} \beta_1 \\ \beta_2 \\ \beta_3 \\ \end{bmatrix} ,  Y = \begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_n \end{bmatrix} \\" class="ee_img tr_noresize" eeimg="1">
 
 `spanIndex = OnesCount(bitmap & (1<<(i/16) - 1))`
 
@@ -154,7 +154,7 @@ formula in list:
 
 -   对奇数节点, n = 2k+1, 还是沿用 **多数派** 节点的集合, 大部分场合都可以很好的工作:
 
-    <img src="https://www.zhihu.com/equation?tex=Q_%7Bodd%7D%28C%29%20%3D%20M%28C%29%20%3D%20%5C%7B%20q%20%3A%20q%20%5Csubseteq%20C%2C%20%20%7Cq%7C%20%5Cgt%20%7CC%7C/2%20%5C%7D%5C%5C" alt="Q_{odd}(C) = M(C) = \{ q : q \subseteq C,  |q| \gt |C|/2 \}\\" class="ee_img tr_noresize" eeimg="1">
+    <img src="https://www.zhihu.com/equation?tex=%20Q_%7Bodd%7D%28C%29%20%3D%20M%28C%29%20%3D%20%5C%7B%20q%20%3A%20q%20%5Csubseteq%20C%2C%20%20%7Cq%7C%20%5Cgt%20%7CC%7C/2%20%5C%7D%20%5C%5C" alt=" Q_{odd}(C) = M(C) = \{ q : q \subseteq C,  |q| \gt |C|/2 \} \\" class="ee_img tr_noresize" eeimg="1">
 
 -   对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,
     我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,
@@ -169,7 +169,7 @@ formula in list:
 
     于是偶数节点的 quorum 集合就可以是 M(D) 的一个扩张:
 
-    <img src="https://www.zhihu.com/equation?tex=Q_%7Beven%7D%28D%29_x%20%3D%20M%28D%29%20%5Ccup%20M%28D%20%5Csetminus%20%5C%7Bx%5C%7D%29%5C%5C" alt="Q_{even}(D)_x = M(D) \cup M(D \setminus \{x\})\\" class="ee_img tr_noresize" eeimg="1">
+    <img src="https://www.zhihu.com/equation?tex=%20Q_%7Beven%7D%28D%29_x%20%3D%20M%28D%29%20%5Ccup%20M%28D%20%5Csetminus%20%5C%7Bx%5C%7D%29%20%5C%5C" alt=" Q_{even}(D)_x = M(D) \cup M(D \setminus \{x\}) \\" class="ee_img tr_noresize" eeimg="1">
 
     当然这个x可以随意选择, 例如在abcd的例子中, 如果选x = d, 那么
     Q' = M(abcd) ∪ {ab, bc, ca};
