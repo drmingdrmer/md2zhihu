@@ -13,13 +13,16 @@ import logging
 import os
 import re
 import shutil
+import socket
 import sys
 import threading
 
 import k3down2
 import pytest
+import urllib3
 
 import md2zhihu
+from md2zhihu.errors import DownloadError
 
 this_base = os.path.dirname(os.path.abspath(__file__))
 test_data = os.path.join(this_base, "data")
@@ -221,29 +224,67 @@ def test_code_join():
     assert got == "````markdown\n```python\nprint(1)\n```\n````\n"
 
 
-def test_download_image_name(tmp_path, monkeypatch):
-    # A server on this machine holds "图片 1.png". The markdown has its URL percent-encoded, as mistune writes it.
-    www = tmp_path / "www"
-    www.mkdir()
-    (www / "图片 1.png").write_bytes(b"png")
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(www))
+@pytest.fixture
+def www(tmp_path):
+    """Serve the files in tmp_path/www over HTTP on this machine. Yield the folder and its URL."""
+    folder = tmp_path / "www"
+    folder.mkdir()
+    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(folder))
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    url = f"http://127.0.0.1:{server.server_address[1]}/%E5%9B%BE%E7%89%87%201.png"
+    yield folder, f"http://127.0.0.1:{server.server_address[1]}"
+    server.shutdown()
+    server.server_close()
 
-    monkeypatch.chdir(tmp_path)
+
+def download_article(url):
+    """Return an Article of the image at `url`, which md2zhihu downloads into out/a/ in the working directory."""
     conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/", download=True)
     os.makedirs(conf.asset_output_dir)
-    article = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "![](" + url + ")")
-    lines = article.render()
-    server.shutdown()
+    return md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "![](" + url + ")")
+
+
+def test_download_image_name(tmp_path, monkeypatch, www):
+    folder, base_url = www
+    (folder / "图片 1.png").write_bytes(b"png")
+    # The URL is percent-encoded, as mistune writes it.
+    url = base_url + "/%E5%9B%BE%E7%89%87%201.png"
+    monkeypatch.chdir(tmp_path)
+
+    lines = download_article(url).render()
 
     # md2zhihu stores the image under the decoded file name, with "-" for the space, and refers to it by that name.
     url_md5 = hashlib.md5(url.encode()).hexdigest()[:16]
     stored = url_md5 + "-图片-1.png"
-    assert os.listdir(conf.asset_output_dir) == [stored]
+    assert os.listdir("out/a") == [stored]
     assert (tmp_path / "out" / "a" / stored).read_bytes() == b"png"
     assert lines[0] == "![](a/" + stored + ")"
+
+
+def test_download_missing_image(tmp_path, monkeypatch, www):
+    _, base_url = www
+    url = base_url + "/x.png"
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(DownloadError) as exc_info:
+        download_article(url).render()
+    assert str(exc_info.value) == "failed to download " + url + ": HTTP status 404"
+
+
+def test_download_stalled_server(tmp_path, monkeypatch):
+    # The server accepts a connection, but never answers.
+    server = socket.create_server(("127.0.0.1", 0))
+    url = f"http://127.0.0.1:{server.getsockname()[1]}/x.png"
+    monkeypatch.setattr(md2zhihu.asset, "download_timeout", urllib3.Timeout(connect=1.0, read=0.1))
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(DownloadError) as exc_info:
+        download_article(url).render()
+    server.close()
+
+    message = str(exc_info.value)
+    assert message.startswith("failed to download " + url + ": ")
+    assert "Read timed out" in message
 
 
 def test_unknown_node_type(tmp_path):

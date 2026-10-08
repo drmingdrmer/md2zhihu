@@ -16,5 +16,9 @@ class PushError(UserError, RuntimeError):
     """git failed to push the output folder to the asset repo."""
 
 
+class DownloadError(UserError, RuntimeError):
+    """--download can not download an image, such as for a 404 status or a stalled server."""
+
+
 class FormatError(UserError, ValueError):
     """A file that md2zhihu reads has a shape that it can not use, such as front matter whose "refs" is a number."""
