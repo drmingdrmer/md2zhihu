@@ -47,6 +47,10 @@ bad_args = {
         ["a.md", "-r", "."],
         "--repo .: fatal: not a git repository (or any of the parent directories): .git",
     ),
+    "asset-dir-outside": (
+        ["a.md", "-d", "out", "--asset-output-dir", "elsewhere", "-r", "git@github.com:x/y.git@b"],
+        "--asset-output-dir elsewhere: is outside --output-dir out, which is the only folder that --repo pushes",
+    ),
 }
 
 # The rule that the references in a front matter or a --refs file break.

@@ -91,6 +91,18 @@ def check_md_output(parser: argparse.ArgumentParser, md_output: str) -> None:
         parser.error(f"-o {md_output}: {rule}")
 
 
+def check_asset_output_dir(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """Exit with a usage error if --repo would not push the images, because they are outside --output-dir."""
+    if args.repo is None:
+        return
+
+    rel = os.path.relpath(args.asset_output_dir, args.output_dir)
+    outside = rel == os.pardir or rel.startswith(os.pardir + os.sep)
+    if outside:
+        rule = f"is outside --output-dir {args.output_dir}, which is the only folder that --repo pushes"
+        parser.error(f"--asset-output-dir {args.asset_output_dir}: {rule}")
+
+
 def new_asset_repo(parser: argparse.ArgumentParser, url: Optional[str]) -> Optional[AssetRepo]:
     """Build the repo that --repo names, or exit with a usage error if it is bad."""
     if url is None:
@@ -165,6 +177,7 @@ def run():
 
     check_src_paths(parser, args.src_path)
     check_md_output(parser, args.md_output)
+    check_asset_output_dir(parser, args)
     asset_repo = new_asset_repo(parser, args.repo)
 
     debug("--platform: ", args.platform)
