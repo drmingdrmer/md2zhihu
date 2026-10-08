@@ -8,6 +8,3 @@ b
 {/tex_block}
 
 
-
-Reference:
-

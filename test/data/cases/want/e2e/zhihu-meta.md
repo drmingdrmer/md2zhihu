@@ -17,6 +17,3 @@ platform_refs:
 {/table}
 
 
-
-Reference:
-

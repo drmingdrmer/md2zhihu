@@ -9,6 +9,3 @@
 {/table}
 
 
-
-Reference:
-

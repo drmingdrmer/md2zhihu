@@ -21,6 +21,3 @@ an HTML block
 > > inner
 
 
-
-Reference:
-

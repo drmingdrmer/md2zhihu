@@ -29,6 +29,3 @@ Bullets:
 -   minus
 
 
-
-Reference:
-

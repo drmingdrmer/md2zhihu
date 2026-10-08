@@ -5,6 +5,3 @@ y = 3
 {/tex_block}
 
 
-
-Reference:
-

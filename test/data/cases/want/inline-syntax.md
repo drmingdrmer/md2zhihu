@@ -10,6 +10,3 @@ next line
 Inline HTML: a <b>bold</b> c
 
 
-
-Reference:
-

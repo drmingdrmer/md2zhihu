@@ -5,6 +5,3 @@ Before.
 After.
 
 
-
-Reference:
-

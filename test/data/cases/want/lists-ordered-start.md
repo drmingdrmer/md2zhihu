@@ -26,6 +26,3 @@ A list that starts at 10, with a second paragraph:
     more about ten
 
 
-
-Reference:
-

@@ -19,6 +19,3 @@ $x$ inside code
 ```
 
 
-
-Reference:
-

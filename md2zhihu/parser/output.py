@@ -5,6 +5,9 @@ from ..types import RefDict
 
 # TODO: move to renderer module?
 def render_ref_list(refs: RefDict, platform: str) -> List[str]:
+    if len(refs) == 0:
+        return []
+
     ref_lines: List[str] = ["", "Reference:", ""]
     for ref_id in sorted(refs):
         #  url_and_alt is in form "<url> <alt>"

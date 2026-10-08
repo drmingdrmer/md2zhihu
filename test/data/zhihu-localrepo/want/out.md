@@ -197,6 +197,3 @@ table in list:
     </table>
 
 
-
-Reference:
-

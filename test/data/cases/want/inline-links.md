@@ -5,6 +5,3 @@
 ![an image](https://a.com/x.png "Image title")
 
 
-
-Reference:
-

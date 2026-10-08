@@ -3,6 +3,3 @@
 -   c
 
 
-
-Reference:
-

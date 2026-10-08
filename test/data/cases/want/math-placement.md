@@ -16,6 +16,3 @@ Two on one line: {tex_inline:imgtag}a{/tex_inline} and {tex_inline:imgtag}b{/tex
 Link text: [{tex_inline:imgtag}x^2{/tex_inline}](https://a.com).
 
 
-
-Reference:
-

@@ -4,6 +4,3 @@
 {/table}
 
 
-
-Reference:
-

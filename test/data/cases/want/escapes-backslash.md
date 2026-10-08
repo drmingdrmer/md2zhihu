@@ -9,6 +9,3 @@ a \*not em\*
 \[x\] is not a link, \\ is one backslash, and \$5 is not math.
 
 
-
-Reference:
-

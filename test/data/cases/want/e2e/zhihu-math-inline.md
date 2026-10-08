@@ -15,6 +15,3 @@ z
 {/tex_block}
 
 
-
-Reference:
-

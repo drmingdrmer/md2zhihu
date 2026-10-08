@@ -23,6 +23,3 @@ A code span with two spaces on each side: `  a  `.
 The last paragraph stays a paragraph.
 
 
-
-Reference:
-
