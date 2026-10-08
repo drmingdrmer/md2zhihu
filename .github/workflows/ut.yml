@@ -56,7 +56,7 @@ jobs:
     - name: Type check with mypy
       run: |
         pip install mypy types-PyYAML
-        mypy md2zhihu/__init__.py --follow-imports=silent --ignore-missing-imports
+        mypy md2zhihu --ignore-missing-imports
 
     - name: Test with pytest
       env:
