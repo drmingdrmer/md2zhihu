@@ -188,9 +188,8 @@ class TestMd2zhihu(unittest.TestCase):
         last_line = err.splitlines()[-1]
         self.assertEqual(want, last_line)
 
-        _, commit_msg, _ = k3proc.command("git", "log", "-1", "--format=%B", cwd=pjoin(d, "_md2"), check=True)
-        self.assertNotIn(token, commit_msg)
-        self.assertIn("\nrepo: https://***@github.com/nobody/nothing.git@b\n", commit_msg)
+        # The failed push removes the .git that md2zhihu created.
+        self.assertEqual(["a", "a.md"], sorted(os.listdir(pjoin(d, "_md2"))))
 
         rm(d, "_md2")
 

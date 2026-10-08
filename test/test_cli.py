@@ -232,3 +232,30 @@ def test_commit_identity(name, tmp_path, monkeypatch, restore_logger):
         ["git", "--git-dir", bare, "log", "-1", "--format=%an <%ae>", "b"], capture_output=True, text=True, check=True
     )
     assert log.stdout == want + "\n"
+
+
+def test_push(tmp_path, monkeypatch, capsys, restore_logger):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.md").write_text("# a\n")
+    bare = str(tmp_path / "assets.git")
+    subprocess.run(["git", "init", "-q", "--bare", bare], check=True)
+
+    url = "https://someone:TOKEN@github.com/x/y.git"
+    # git pushes to the local bare repo instead of github.com.
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "url." + bare + ".insteadOf")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", url)
+    monkeypatch.setattr(sys, "argv", ["md2zhihu", "a.md", "-r", url + "@b"])
+
+    md2zhihu.main()
+
+    err = capsys.readouterr().err
+    assert err == "a.md -> _md2/a.md\npushed _md2 to https://***@github.com/x/y.git, branch b\n"
+    # md2zhihu removes the .git that it created.
+    assert sorted(os.listdir(tmp_path / "_md2")) == ["a", "a.md"]
+
+    log = subprocess.run(
+        ["git", "--git-dir", bare, "log", "-1", "--format=%B", "b"], capture_output=True, text=True, check=True
+    )
+    assert "TOKEN" not in log.stdout
+    assert "\nrepo: https://***@github.com/x/y.git@b\n" in log.stdout

@@ -145,18 +145,30 @@ class Config(object):
         return p
 
     def push(self, args: argparse.Namespace, src_dst_fns: List[List[str]]) -> None:
-        x = dict(cwd=self.output_dir)
-
+        """
+        Commit `output_dir` and push it to the asset repo.
+        A `.git` that this creates in `output_dir` is removed afterwards, also when the push fails.
+        """
         git_path = pjoin(self.output_dir, ".git")
         has_git = os.path.exists(git_path)
+
+        # -q: md2zhihu prints one line for the push, so git prints only its errors.
+        cmdpass("git", "init", "-q", cwd=self.output_dir)
+        try:
+            self._commit_and_push(args, src_dst_fns)
+        finally:
+            if not has_git:
+                debug("Removing tmp git dir: ", git_path)
+                shutil.rmtree(git_path)
+
+    def _commit_and_push(self, args: argparse.Namespace, src_dst_fns: List[List[str]]) -> None:
+        x = dict(cwd=self.output_dir)
 
         args_str = "\n".join([k + ": " + str(v) for (k, v) in args.__dict__.items()])
         args_str = mask_url_credential(args_str)
         conf_str = "\n".join([k + ": " + str(v) for (k, v) in self.__dict__.items()])
         fns_str = "\n".join([src for (src, dst) in src_dst_fns])
 
-        # -q: md2zhihu prints one line for the push, so git prints only its errors.
-        cmdpass("git", "init", "-q", **x)
         cmdpass("git", "add", ".", **x)
 
         # Commit as the user that git knows.
@@ -205,7 +217,3 @@ class Config(object):
             err = mask_url_credential(f"failed to push {self.output_dir} to {repo.url}, branch {repo.branch}")
             # The git error shows the push URL with the token, so it is not chained.
             raise PushError(err) from None
-
-        if not has_git:
-            debug("Removing tmp git dir: ", self.output_dir + "/.git")
-            shutil.rmtree(self.output_dir + "/.git")
