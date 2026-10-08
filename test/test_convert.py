@@ -89,6 +89,16 @@ case_config = {
 # The small cases that keep references as written, as Article.chunks() does.
 no_populate_cases = {"refs-no-populate"}
 
+# URLs in a markdown that is embedded from "src/sub" into "src", and the URLs after embedding.
+rebase_cases = [
+    ("x.png", "sub/x.png"),
+    ("../x.png", "x.png"),
+    ("/x.png", "/x.png"),
+    ("https://a.com/x.png", "https://a.com/x.png"),
+    ("mailto:a@b.com", "mailto:a@b.com"),
+    ("#intro", "#intro"),
+]
+
 # Inputs with references, as name: (markdown, the undefined references that Article warns about).
 # A lone `[x]` is usually plain text, so it gets no warning.
 warn_cases = {
@@ -183,6 +193,12 @@ def test_undefined_reference_warning(name, tmp_path, caplog):
         warning = re.search(r"undefined reference (.*) in 'warn\.md'", record.getMessage())
         if warning:
             got.append(warning.group(1))
+    assert got == want
+
+
+@pytest.mark.parametrize("src, want", rebase_cases)
+def test_rebase_url(src, want):
+    got = md2zhihu.parser.rebase_url("src/sub", "src", src)
     assert got == want
 
 

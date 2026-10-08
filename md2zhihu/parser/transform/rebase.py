@@ -1,5 +1,5 @@
 import os
-import re
+from urllib.parse import urlsplit
 
 from ...types import ASTNodes
 
@@ -22,10 +22,12 @@ def rebase_url(frm: str, to: str, src: str) -> str:
     """
     Change relative path based from ``frm`` to from ``to``.
     """
-    if re.match(r"http[s]?://", src):
+    # A URL with a scheme, such as "https:" or "mailto:", is not a path.
+    if urlsplit(src).scheme != "":
         return src
 
-    if src.startswith("/"):
+    # "#intro" refers to a heading in the article.
+    if src.startswith("/") or src.startswith("#"):
         return src
 
     p = os.path.join(frm, src)
