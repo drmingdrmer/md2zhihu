@@ -19,6 +19,8 @@ examples:
   md2zhihu a.md                     convert to _md2/a.md, with images in _md2/a/
   md2zhihu a.md -r .                also push _md2 to the remote of the git repo
                                     in the working directory
+  md2zhihu a.md -r git@gitee.com:me/assets.git -b blog
+                                    push _md2 to branch blog of a gitee.com repo
   md2zhihu _drafts/*.md --jekyll -o _posts/
                                     keep the front matter and the date prefix
 
@@ -91,15 +93,27 @@ def create_parser() -> argparse.ArgumentParser:
         required=False,
         metavar="URL",
         help="Push <output-dir> to this public git repo on github.com or gitee.com,"
-        " and refer to each image by its URL in the repo, such as"
-        ' "git@github.com:me/assets.git@branch".'
+        " and refer to each image by its URL in the repo."
+        ' URL is a git URL, "." for the remote of the git repo in the working directory,'
+        ' or the name of one of its remotes, such as "origin".'
+        " An https URL needs a token: in the URL, as https://user:token@gitee.com/me/assets.git,"
+        " or for github.com in the environment variables GITHUB_USERNAME and GITHUB_TOKEN."
+        " Without a token, md2zhihu pushes over ssh."
+        " zhihu.com loads images from gitee.com, so use a gitee.com repo for -p zhihu."
+        " Without --repo, the markdown refers to its images by relative path.",
+    )
+
+    where_to_store.add_argument(
+        "-b",
+        "--branch",
+        action="store",
+        metavar="NAME",
+        help="The branch that --repo pushes to."
         " Each run force-pushes <output-dir> as a new commit, which replaces everything on the branch,"
         ' so use a branch for md2zhihu only. "main" and "master" are refused.'
-        ' Without "@branch", the branch is "_md2zhihu_{cwd_tail}_{md5(cwd)[:8]}",'
-        " in which cwd_tail is the last part of the working directory."
-        ' "." stands for the remote of the git repo in the working directory,'
-        ' and a remote name, such as "origin@branch", for that remote.'
-        " Without --repo, the markdown refers to its images by relative path.",
+        " Default: _md2zhihu_<folder>_<hash>, made from the absolute path of the working directory,"
+        " so a run in another folder pushes to another branch; -v prints it."
+        ' The old form "--repo URL@NAME" still works.',
     )
 
     where_to_store.add_argument(

@@ -57,6 +57,16 @@ bad_args = {
         ["a.md", "-r", "http://someone:TOKEN@gitee.com/x/y.git"],
         "--repo http://***@gitee.com/x/y.git: " + repo_url_rule,
     ),
+    "branch-twice": (
+        ["a.md", "-r", "git@github.com:x/y.git@b", "-b", "c"],
+        "--repo git@github.com:x/y.git@b --branch c: the branch is given twice: b in the URL, and c",
+    ),
+    "protected-branch-flag": (
+        ["a.md", "-r", "git@github.com:x/y.git", "-b", "main"],
+        "--repo git@github.com:x/y.git --branch main: Cannot force push to protected branch: main."
+        " Use a different branch name.",
+    ),
+    "branch-without-repo": (["a.md", "-b", "b"], "--branch b: is the branch that --repo pushes to, so it needs --repo"),
     "not-in-git": (
         ["a.md", "-r", "."],
         "--repo .: fatal: not a git repository (or any of the parent directories): .git",
@@ -247,7 +257,7 @@ def test_usage(monkeypatch):
     # The options of each group in --help are adjacent.
     assert got == (
         "usage: md2zhihu [-h] [-d DIR] [-o PATH] [--asset-output-dir DIR]"
-        " [-r URL] [--download] [--rewrite REGEX REPLACEMENT]"
+        " [-r URL] [-b NAME] [--download] [--rewrite REGEX REPLACEMENT]"
         " [-p PLATFORM] [--keep-front-matter] [--jekyll] [--embed REGEX] [--refs YAML] [--code-width PIXELS]"
         " [-v] [--version] MARKDOWN [MARKDOWN ...]\n"
     )
@@ -303,18 +313,27 @@ def test_commit_identity(name, tmp_path, monkeypatch, restore_logger):
     assert log.stdout == want + "\n"
 
 
-def test_push(tmp_path, monkeypatch, capsys, restore_logger):
+# Two ways to name the branch b of push_url, as name: (md2zhihu arguments, the --repo line of the commit message).
+push_url = "https://someone:TOKEN@github.com/x/y.git"
+branch_args = {
+    "in-url": (["-r", push_url + "@b"], "repo: https://***@github.com/x/y.git@b"),
+    "flag": (["-r", push_url, "-b", "b"], "repo: https://***@github.com/x/y.git"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(branch_args))
+def test_push(name, tmp_path, monkeypatch, capsys, restore_logger):
+    args, want_repo_line = branch_args[name]
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text("# a\n")
     bare = str(tmp_path / "assets.git")
     subprocess.run(["git", "init", "-q", "--bare", bare], check=True)
 
-    url = "https://someone:TOKEN@github.com/x/y.git"
     # git pushes to the local bare repo instead of github.com.
     monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
     monkeypatch.setenv("GIT_CONFIG_KEY_0", "url." + bare + ".insteadOf")
-    monkeypatch.setenv("GIT_CONFIG_VALUE_0", url)
-    monkeypatch.setattr(sys, "argv", ["md2zhihu", "a.md", "-r", url + "@b"])
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", push_url)
+    monkeypatch.setattr(sys, "argv", ["md2zhihu", "a.md"] + args)
 
     md2zhihu.main()
 
@@ -327,4 +346,4 @@ def test_push(tmp_path, monkeypatch, capsys, restore_logger):
         ["git", "--git-dir", bare, "log", "-1", "--format=%B", "b"], capture_output=True, text=True, check=True
     )
     assert "TOKEN" not in log.stdout
-    assert "\nrepo: https://***@github.com/x/y.git@b\n" in log.stdout
+    assert "\n" + want_repo_line + "\n" in log.stdout

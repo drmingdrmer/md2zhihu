@@ -103,19 +103,25 @@ def check_asset_output_dir(parser: argparse.ArgumentParser, args: argparse.Names
         parser.error(f"--asset-output-dir {args.asset_output_dir}: {rule}")
 
 
-def new_asset_repo(parser: argparse.ArgumentParser, url: Optional[str]) -> Optional[AssetRepo]:
-    """Build the repo that --repo names, or exit with a usage error if it is bad."""
+def new_asset_repo(parser: argparse.ArgumentParser, url: Optional[str], branch: Optional[str]) -> Optional[AssetRepo]:
+    """Build the repo that --repo and --branch name, or exit with a usage error if they are bad."""
     if url is None:
+        if branch is not None:
+            parser.error(f"--branch {branch}: is the branch that --repo pushes to, so it needs --repo")
         return None
 
     try:
-        return AssetRepo(url)
+        return AssetRepo(url, branch=branch)
     except ValueError as e:
         reason = str(e)
     except subprocess.CalledProcessError as e:
         # A shortcut such as "--repo ." runs git, which fails outside a git repo.
         reason = e.stderr.strip()
-    parser.error(mask_url_credential(f"--repo {url}: {reason}"))
+
+    given = f"--repo {url}"
+    if branch is not None:
+        given += f" --branch {branch}"
+    parser.error(mask_url_credential(f"{given}: {reason}"))
 
 
 def check_md_outputs(parser: argparse.ArgumentParser, confs: List[Config]) -> None:
@@ -178,7 +184,7 @@ def run():
     check_src_paths(parser, args.src_path)
     check_md_output(parser, args.md_output)
     check_asset_output_dir(parser, args)
-    asset_repo = new_asset_repo(parser, args.repo)
+    asset_repo = new_asset_repo(parser, args.repo, args.branch)
 
     debug("--platform: ", args.platform)
     debug("--output-dir: ", args.output_dir)

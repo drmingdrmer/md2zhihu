@@ -14,7 +14,7 @@ from ..utils import debug
 class AssetRepo(object):
     is_local: bool = False
 
-    def __init__(self, repo_url: str, cdn: bool = True) -> None:
+    def __init__(self, repo_url: str, cdn: bool = True, branch: Optional[str] = None) -> None:
         #  TODO: test rendering md rendering with pushed assets
 
         self.cdn: bool = cdn
@@ -29,7 +29,7 @@ class AssetRepo(object):
         else:
             url = gu.fmt(scheme="ssh")
 
-        host, user, repo, branch = (
+        host, user, repo, url_branch = (
             f.get("host"),
             f.get("user"),
             f.get("repo"),
@@ -47,11 +47,14 @@ class AssetRepo(object):
             "github.com": "https://cdn.jsdelivr.net/gh/{user}/{repo}@{branch}/{path}",
         }
 
+        if url_branch is not None:
+            if branch is not None:
+                raise ValueError(f"the branch is given twice: {url_branch[1:]} in the URL, and {branch}")
+            #  strip '@'
+            branch = url_branch[1:]
+
         if branch is None:
             branch = self.make_default_branch()
-        else:
-            #  strip '@'
-            branch = branch[1:]
 
         self.host: Optional[str] = host
         self.user: Optional[str] = user
