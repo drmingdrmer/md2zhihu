@@ -28,7 +28,7 @@ Token = Dict[str, Any]
 
 # For each token type: the mistune 3 attributes that md2zhihu reads, and md2zhihu's field name for each.
 attr_fields = {
-    "link": {"url": "link"},
+    "link": {"url": "link", "title": "title"},
     "heading": {"level": "level"},
     "list": {"ordered": "ordered"},
     "table_cell": {"align": "align"},

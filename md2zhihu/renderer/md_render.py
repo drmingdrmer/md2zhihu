@@ -1,5 +1,6 @@
 import pprint
 from typing import List
+from typing import Optional
 
 from ..utils import add_paragraph_end
 from ..utils import indent
@@ -93,10 +94,8 @@ class MDRender(object):
             return [("`" + n["text"] + "`")]
 
         if typ == "image":
-            if n["title"] is None:
-                return ["![{alt}]({src})".format(**n)]
-            else:
-                return ["![{alt}]({src} {title})".format(**n)]
+            title = link_title(n["title"])
+            return ["![{alt}]({src}{title})".format(alt=n["alt"], src=n["src"], title=title)]
 
         if typ == "list":
             lines = self.render(rnode)
@@ -131,10 +130,9 @@ class MDRender(object):
             return add_paragraph_end([n["text"]])
 
         if typ == "link":
-            #  TODO title
             lines = self.render(rnode)
             lines[0] = "[" + lines[0]
-            lines[-1] = lines[-1] + "](" + n["link"] + ")"
+            lines[-1] = lines[-1] + "](" + n["link"] + link_title(n["title"]) + ")"
 
             return lines
 
@@ -179,3 +177,14 @@ class MDRender(object):
 
     def msg(self, *args):
         msg(*args)
+
+
+def link_title(title: Optional[str]) -> str:
+    """
+    Return the title of a link or an image as written after its URL, such as ` "Figure 1"`, or "" without a title.
+    mistune removes the backslash escapes from a title, so a backslash and a double quote in it are escaped again.
+    """
+    if title is None:
+        return ""
+    escaped = title.replace("\\", "\\\\").replace('"', '\\"')
+    return ' "' + escaped + '"'
