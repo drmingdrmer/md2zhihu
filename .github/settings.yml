@@ -10,7 +10,7 @@ repository:
   has_projects: true
   has_wiki: true
   has_downloads: true
-  default_branch: master
+  default_branch: main
   allow_squash_merge: true
 
   # Either `true` to allow merging pull requests with a merge commit, or `false`

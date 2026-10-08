@@ -6,7 +6,6 @@ line-length = 127
 
 # Exclude vendored and build directories
 exclude = [
-    "_building/",
     "node_modules/",
 ]
 

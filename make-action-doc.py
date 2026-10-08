@@ -6,7 +6,7 @@ import yaml
 with open("action.yml", "r") as f:
     cont = f.read()
 
-y = yaml.load(cont)
+y = yaml.safe_load(cont)
 
 with open("action-doc.md", "w") as f:
     for k, v in y["inputs"].items():
