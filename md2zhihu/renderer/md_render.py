@@ -110,7 +110,13 @@ class MDRender(object):
 
             head = "-   "
             if parent.node["ordered"]:
-                head = "1.  "
+                # mistune gives the number of the first item only when it is not 1.
+                start = parent.node["start"]
+                if start is None:
+                    start = 1
+                # A markdown parser numbers the items from the first number and ignores the others.
+                # Up to 99, the marker is 4 characters wide, as indent() indents the later lines of the item.
+                head = (str(start) + ".").ljust(3) + " "
 
             lines[0] = head + lines[0]
             lines = lines[0:1] + [indent(x) for x in lines[1:]]

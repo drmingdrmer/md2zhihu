@@ -17,8 +17,8 @@ Nested:
 
 Ordered, starting at 3:
 
-1.  three
-1.  four
+3.  three
+3.  four
 
 Bullets:
 

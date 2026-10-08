@@ -30,7 +30,7 @@ Token = Dict[str, Any]
 attr_fields = {
     "link": {"url": "link", "title": "title"},
     "heading": {"level": "level"},
-    "list": {"ordered": "ordered"},
+    "list": {"ordered": "ordered", "start": "start"},
     "table_cell": {"align": "align"},
 }
 
