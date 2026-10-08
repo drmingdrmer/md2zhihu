@@ -21,6 +21,12 @@ from md2zhihu.cli.args import create_parser
 # The rule that a bad -o path breaks.
 placeholder_rule = "the only placeholder is {title}, and a brace in a name must be doubled, as {{ or }}"
 
+# The rule that a --repo URL breaks when md2zhihu can not read the host from it.
+repo_url_rule = (
+    "can not find the host, owner and repo in the URL;"
+    " use a URL such as git@github.com:me/assets.git or https://github.com/me/assets.git"
+)
+
 # Bad arguments, as name: (md2zhihu arguments, the error message).
 # The working directory holds a.md, b.md and the folder docs.
 bad_args = {
@@ -42,6 +48,14 @@ bad_args = {
     "unsupported-host": (
         ["a.md", "-r", "git@example.com:x/y.git"],
         "--repo git@example.com:x/y.git: unsupported git host: example.com, supported: github.com, gitee.com",
+    ),
+    "no-repo-name": (
+        ["a.md", "-r", "https://someone:TOKEN@gitee.com/onlyuser"],
+        "--repo https://***@gitee.com/onlyuser: " + repo_url_rule,
+    ),
+    "http-token": (
+        ["a.md", "-r", "http://someone:TOKEN@gitee.com/x/y.git"],
+        "--repo http://***@gitee.com/x/y.git: " + repo_url_rule,
     ),
     "not-in-git": (
         ["a.md", "-r", "."],

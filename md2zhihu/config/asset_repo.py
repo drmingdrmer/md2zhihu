@@ -62,6 +62,13 @@ class AssetRepo(object):
         if branch in protected_branches:
             raise ValueError(f"Cannot force push to protected branch: {branch}. Use a different branch name.")
 
+        # k3git may read another part of a bad URL as the host, such as "https:" or "user:token@gitee.com".
+        if not re.fullmatch(r"[a-zA-Z0-9.-]+", host):
+            raise ValueError(
+                "can not find the host, owner and repo in the URL;"
+                " use a URL such as git@github.com:me/assets.git or https://github.com/me/assets.git"
+            )
+
         if host not in url_patterns:
             raise ValueError(f"unsupported git host: {host}, supported: {', '.join(url_patterns)}")
 
