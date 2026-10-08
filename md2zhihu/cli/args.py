@@ -50,7 +50,9 @@ def create_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("src_path", type=str, nargs="+", metavar="MARKDOWN", help="the markdown files to convert")
 
-    parser.add_argument(
+    where_to_write = parser.add_argument_group("where to write")
+
+    where_to_write.add_argument(
         "-d",
         "--output-dir",
         action="store",
@@ -59,7 +61,7 @@ def create_parser() -> argparse.ArgumentParser:
         help="The folder of the output, which --repo pushes. Default: %(default)s",
     )
 
-    parser.add_argument(
+    where_to_write.add_argument(
         "-o",
         "--md-output",
         action="store",
@@ -71,7 +73,7 @@ def create_parser() -> argparse.ArgumentParser:
         " Default: <output-dir>/",
     )
 
-    parser.add_argument(
+    where_to_write.add_argument(
         "--asset-output-dir",
         action="store",
         metavar="DIR",
@@ -80,7 +82,9 @@ def create_parser() -> argparse.ArgumentParser:
         " Default: <output-dir>",
     )
 
-    parser.add_argument(
+    where_to_store = parser.add_argument_group("where to store the images")
+
+    where_to_store.add_argument(
         "-r",
         "--repo",
         action="store",
@@ -98,7 +102,27 @@ def create_parser() -> argparse.ArgumentParser:
         " Without --repo, the markdown refers to its images by relative path.",
     )
 
-    parser.add_argument(
+    where_to_store.add_argument(
+        "--download",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Also download each remote image, whose URL starts with http:// or https://, and store it as a local image.",
+    )
+
+    where_to_store.add_argument(
+        "--rewrite",
+        action="append",
+        nargs=2,
+        required=False,
+        metavar=("REGEX", "REPLACEMENT"),
+        help="Change the URL of each image that md2zhihu stores with re.sub(REGEX, REPLACEMENT, url),"
+        ' such as --rewrite "^/asset/" "/resource/". Repeat it to give more than one rule.',
+    )
+
+    what_to_convert = parser.add_argument_group("what to convert")
+
+    what_to_convert.add_argument(
         "-p",
         "--platform",
         action="store",
@@ -117,7 +141,7 @@ def create_parser() -> argparse.ArgumentParser:
         help='The platform to convert for, one of the "platforms" below. Default: %(default)s',
     )
 
-    parser.add_argument(
+    what_to_convert.add_argument(
         "--keep-front-matter",
         "--keep-meta",
         action="store_true",
@@ -127,7 +151,7 @@ def create_parser() -> argparse.ArgumentParser:
         " The old name --keep-meta still works, but is deprecated.",
     )
 
-    parser.add_argument(
+    what_to_convert.add_argument(
         "--jekyll",
         action="store_true",
         required=False,
@@ -136,7 +160,16 @@ def create_parser() -> argparse.ArgumentParser:
         " such as 2021-06-11-title.md, as Jekyll needs.",
     )
 
-    parser.add_argument(
+    what_to_convert.add_argument(
+        "--embed",
+        action="append",
+        required=False,
+        metavar="REGEX",
+        help='Replace an image "![](url)" whose url matches REGEX with the content of the markdown at url.'
+        ' Repeat it to give more than one regex. Default: "[.]md$"',
+    )
+
+    what_to_convert.add_argument(
         "--refs",
         action="append",
         required=False,
@@ -160,34 +193,7 @@ def create_parser() -> argparse.ArgumentParser:
         "    - grpc: https://zhuanlan.zhihu.com/p/123",
     )
 
-    parser.add_argument(
-        "--rewrite",
-        action="append",
-        nargs=2,
-        required=False,
-        metavar=("REGEX", "REPLACEMENT"),
-        help="Change the URL of each image that md2zhihu stores with re.sub(REGEX, REPLACEMENT, url),"
-        ' such as --rewrite "^/asset/" "/resource/". Repeat it to give more than one rule.',
-    )
-
-    parser.add_argument(
-        "--download",
-        action="store_true",
-        required=False,
-        default=False,
-        help="Also download each remote image, whose URL starts with http:// or https://, and store it as a local image.",
-    )
-
-    parser.add_argument(
-        "--embed",
-        action="append",
-        required=False,
-        metavar="REGEX",
-        help='Replace an image "![](url)" whose url matches REGEX with the content of the markdown at url.'
-        ' Repeat it to give more than one regex. Default: "[.]md$"',
-    )
-
-    parser.add_argument(
+    what_to_convert.add_argument(
         "--code-width",
         action="store",
         type=int,

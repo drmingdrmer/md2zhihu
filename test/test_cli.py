@@ -244,10 +244,12 @@ def test_usage(monkeypatch):
     monkeypatch.setenv("COLUMNS", "1000")
 
     got = create_parser().format_usage()
+    # The options of each group in --help are adjacent.
     assert got == (
-        "usage: md2zhihu [-h] [-d DIR] [-o PATH] [--asset-output-dir DIR] [-r URL] [-p PLATFORM]"
-        " [--keep-front-matter] [--jekyll] [--refs YAML] [--rewrite REGEX REPLACEMENT] [--download] [--embed REGEX]"
-        " [--code-width PIXELS] [-v] [--version] MARKDOWN [MARKDOWN ...]\n"
+        "usage: md2zhihu [-h] [-d DIR] [-o PATH] [--asset-output-dir DIR]"
+        " [-r URL] [--download] [--rewrite REGEX REPLACEMENT]"
+        " [-p PLATFORM] [--keep-front-matter] [--jekyll] [--embed REGEX] [--refs YAML] [--code-width PIXELS]"
+        " [-v] [--version] MARKDOWN [MARKDOWN ...]\n"
     )
 
 
