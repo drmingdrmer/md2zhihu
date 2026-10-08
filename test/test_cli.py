@@ -18,12 +18,18 @@ from md2zhihu.cli import MessageFormatter
 from md2zhihu.cli import use_color
 from md2zhihu.cli.args import create_parser
 
+# The rule that a bad -o path breaks.
+placeholder_rule = "the only placeholder is {title}, and a brace in a name must be doubled, as {{ or }}"
+
 # Bad arguments, as name: (md2zhihu arguments, the error message).
 # The working directory holds a.md, b.md and the folder docs.
 bad_args = {
     "missing-input": (["a.md", "nope.md"], "nope.md: no such file"),
     "folder-input": (["docs"], "docs: is a directory, pass the markdown files in it, such as docs/*.md"),
     "same-output": (["a.md", "b.md", "-o", "out.md"], "a.md and b.md both convert to out.md"),
+    "unknown-placeholder": (["a.md", "-o", "out/{name}.md"], "-o out/{name}.md: " + placeholder_rule),
+    "positional-placeholder": (["a.md", "-o", "out/{0}.md"], "-o out/{0}.md: " + placeholder_rule),
+    "single-brace": (["a.md", "-o", "out/{"], "-o out/{: " + placeholder_rule),
     "protected-branch": (
         ["a.md", "-r", "git@github.com:x/y.git@main"],
         "--repo git@github.com:x/y.git@main: Cannot force push to protected branch: main. Use a different branch name.",

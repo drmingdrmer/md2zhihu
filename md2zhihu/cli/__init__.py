@@ -82,6 +82,15 @@ def check_src_paths(parser: argparse.ArgumentParser, paths: List[str]) -> None:
             parser.error(f"{path}: no such file")
 
 
+def check_md_output(parser: argparse.ArgumentParser, md_output: str) -> None:
+    """Exit with a usage error if the -o path has a placeholder that Config can not fill in."""
+    try:
+        md_output.format(title="x")
+    except (KeyError, IndexError, ValueError):
+        rule = "the only placeholder is {title}, and a brace in a name must be doubled, as {{ or }}"
+        parser.error(f"-o {md_output}: {rule}")
+
+
 def new_asset_repo(parser: argparse.ArgumentParser, url: Optional[str]) -> Optional[AssetRepo]:
     """Build the repo that --repo names, or exit with a usage error if it is bad."""
     if url is None:
@@ -155,6 +164,7 @@ def run():
         args.keep_meta = True
 
     check_src_paths(parser, args.src_path)
+    check_md_output(parser, args.md_output)
     asset_repo = new_asset_repo(parser, args.repo)
 
     debug("--platform: ", args.platform)
