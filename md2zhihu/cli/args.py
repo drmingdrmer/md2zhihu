@@ -83,7 +83,7 @@ def create_parser() -> argparse.ArgumentParser:
         action="store",
         metavar="DIR",
         help="The folder of the images. The images of a.md go into its subfolder a/."
-        " --repo pushes only the images inside <output-dir>."
+        " With --repo, it must be inside <output-dir>."
         " Default: <output-dir>",
     )
 
