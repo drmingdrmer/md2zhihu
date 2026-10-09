@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "md2zhihu"
-version = "0.16"
+version = "0.17"
 description = "convert markdown to zhihu compatible format. https://github.com/drmingdrmer/md2zhihu"
 readme = "README.md"
 license = {text = "MIT"}
