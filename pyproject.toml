@@ -40,10 +40,12 @@ dependencies = [
 test = [
     "pytest>=7.0",
     "scikit-image",
+    "k3ut>=0.1.7,<0.2",
 ]
 dev = [
     "pytest>=7.0",
     "scikit-image",
+    "k3ut>=0.1.7,<0.2",
     "pre-commit",
     "mypy",
     "types-PyYAML",
