@@ -181,7 +181,7 @@ And the assets it references are uploaded to the git repo found in current dir.
 **Use another git to store assets**:
 
 ```
-md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git@test
+md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git -b test
 ```
 
 And you need **write access** on the git repo otherwise the assests can not be
@@ -234,12 +234,12 @@ To upload the images to a git repo:
 docker run --rm -v "${PWD}:/work" \
     -e GITHUB_USERNAME=<user> -e GITHUB_TOKEN=<token> \
     ghcr.io/drmingdrmer/md2zhihu \
-    md2zhihu your_great_work.md -r https://github.com/<owner>/<repo>.git@<branch>
+    md2zhihu your_great_work.md -r https://github.com/<owner>/<repo>.git -b <branch>
 ```
 
 `<token>` is a [personal access token](https://github.com/settings/tokens) that can write to `<owner>/<repo>`.
 The container has no SSH key, so `-r` must be an `https://` URL.
-For gitee.com, put the token in the URL instead: `-r https://<user>:<token>@gitee.com/<owner>/<repo>.git@<branch>`.
+For gitee.com, put the token in the URL instead: `-r https://<user>:<token>@gitee.com/<owner>/<repo>.git -b <branch>`.
 
 # Features
 

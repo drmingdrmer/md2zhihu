@@ -153,7 +153,7 @@ md2zhihu your_great_work.md -r .
 **使用另一个 git 存储图片**：
 
 ```
-md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git@test
+md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git -b test
 ```
 
 您需要在 git 仓库上具有 **写入权限**，否则无法上传图片。
@@ -206,12 +206,12 @@ docker run --rm -v "${PWD}:/work" ghcr.io/drmingdrmer/md2zhihu md2zhihu your_gre
 docker run --rm -v "${PWD}:/work" \
     -e GITHUB_USERNAME=<user> -e GITHUB_TOKEN=<token> \
     ghcr.io/drmingdrmer/md2zhihu \
-    md2zhihu your_great_work.md -r https://github.com/<owner>/<repo>.git@<branch>
+    md2zhihu your_great_work.md -r https://github.com/<owner>/<repo>.git -b <branch>
 ```
 
 `<token>` 是对 `<owner>/<repo>` 有写权限的 [personal access token](https://github.com/settings/tokens)。
 容器里没有 SSH 密钥，所以 `-r` 必须是 `https://` 地址。
-使用 gitee.com 时，把 token 写在地址里：`-r https://<user>:<token>@gitee.com/<owner>/<repo>.git@<branch>`。
+使用 gitee.com 时，把 token 写在地址里：`-r https://<user>:<token>@gitee.com/<owner>/<repo>.git -b <branch>`。
 
 # Features
 
