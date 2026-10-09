@@ -12,6 +12,7 @@ from typing import Tuple
 from urllib.parse import unquote
 
 import mistune
+from mistune.block_parser import BlockParser
 from mistune.core import BlockState
 from mistune.core import InlineState
 from mistune.inline_parser import InlineParser
@@ -45,6 +46,9 @@ math_pattern = re.compile(r"\$\$([^$][\s\S]*?)\$\$|\$([^$][\s\S]*?)\$(?!\d)")
 # A code span, whose "$$", such as in `$$`, is not math.
 code_span = re.compile(r"(`+)[\s\S]*?\1")
 
+# A line of only "$$", which opens math on the lines after it.
+math_opening_line = r"^ {0,3}\$\$[ \t]*$"
+
 
 def new_markdown() -> mistune.Markdown:
     """
@@ -59,6 +63,9 @@ def new_markdown() -> mistune.Markdown:
     md.inline.register("escape", None, parse_escape)
     md.inline.register("link", None, parse_link)
     md.inline.register("math", r"\$", parse_math)
+    md.block.register("math_lines", math_opening_line, parse_math_lines)
+    md.block.insert_rule(md.block.block_quote_rules, "math_lines")
+    md.block.insert_rule(md.block.list_rules, "math_lines")
     md.before_render_hooks.append(lambda md, state: join_math_paragraphs(state.tokens))
     return md
 
@@ -205,6 +212,27 @@ def parse_math(inline: InlineParser, m: re.Match[str], state: InlineState) -> Op
     return math.end()
 
 
+def parse_math_lines(block: BlockParser, m: re.Match[str], state: BlockState) -> Optional[int]:
+    """
+    Read the math that a line of only "$$" opens, up to the end of the line that closes it, as paragraph text.
+    So mistune's block parser reads no line in the math as a block, such as "=" as the underline of a heading.
+    parse_math then reads the math in the paragraph.
+    """
+
+    if math_is_open(state.tokens):
+        # The line closes the math that the paragraphs before it open, and join_math_paragraphs joins them.
+        return None
+
+    start = state.src.index("$$", m.start())
+    math = math_pattern.match(state.src, start)
+    if math is None:
+        return None
+
+    end = state.find_line_end_at(math.end())
+    state.add_paragraph(state.get_text(end))
+    return end
+
+
 def join_math_paragraphs(tokens: List[Token]) -> None:
     """
     Join each paragraph that opens "$$" math with the paragraphs after it, up to the one that closes the math.
@@ -254,6 +282,22 @@ def closing_math_paragraph(tokens: List[Token], i: int) -> Optional[int]:
             return j
 
     return None
+
+
+def math_is_open(tokens: List[Token]) -> bool:
+    """
+    Tell whether the last paragraphs of `tokens`, with only blank lines between them, have a "$$" that is not closed.
+    """
+
+    texts: List[str] = []
+    for tok in reversed(tokens):
+        if tok["type"] == "blank_line":
+            continue
+        if tok["type"] != "paragraph":
+            break
+        texts.insert(0, tok["text"])
+
+    return opens_math("\n\n".join(texts))
 
 
 def opens_math(text: str) -> bool:
