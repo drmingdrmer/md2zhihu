@@ -155,13 +155,6 @@ def main():
 
 
 def run():
-    # TODO refine arg names
-    # md2zhihu a.md --output-dir res/ --platform xxx --md-output foo/
-    # res/fn.md
-    #    /assets/fn/xx.jpg
-    #
-    # md2zhihu a.md --output-dir res/ --repo a@branch --platform xxx --md-output b.md
-    #
     # TODO then test drmingdrmer.github.io with action
 
     parser = create_parser()
