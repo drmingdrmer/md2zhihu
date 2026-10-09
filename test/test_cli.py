@@ -34,6 +34,10 @@ bad_args = {
     "missing-input": (["a.md", "nope.md"], "nope.md: no such file"),
     "folder-input": (["docs"], "docs: is a directory, pass the markdown files in it, such as docs/*.md"),
     "same-output": (["a.md", "b.md", "-o", "out.md"], "a.md and b.md both convert to out.md"),
+    "output-folder": (
+        ["a.md", "-o", "docs"],
+        'a.md converts to docs, which is a folder; -o PATH is a folder only when it ends with "/"',
+    ),
     "unknown-placeholder": (["a.md", "-o", "out/{name}.md"], "-o out/{name}.md: " + placeholder_rule),
     "positional-placeholder": (["a.md", "-o", "out/{0}.md"], "-o out/{0}.md: " + placeholder_rule),
     "single-brace": (["a.md", "-o", "out/{"], "-o out/{: " + placeholder_rule),

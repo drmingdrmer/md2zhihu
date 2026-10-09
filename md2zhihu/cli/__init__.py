@@ -125,10 +125,13 @@ def new_asset_repo(parser: argparse.ArgumentParser, url: Optional[str], branch: 
 
 
 def check_md_outputs(parser: argparse.ArgumentParser, confs: List[Config]) -> None:
-    """Exit with a usage error if two inputs convert to the same markdown file."""
+    """Exit with a usage error if an input converts to an existing folder, or two inputs convert to the same markdown file."""
     src_by_output: Dict[str, str] = {}
     for conf in confs:
         output = conf.md_output_path
+        if os.path.isdir(output):
+            rule = '-o PATH is a folder only when it ends with "/"'
+            parser.error(f"{conf.src_path} converts to {output}, which is a folder; {rule}")
         if output in src_by_output:
             parser.error(f"{src_by_output[output]} and {conf.src_path} both convert to {output}")
         src_by_output[output] = conf.src_path
