@@ -154,11 +154,10 @@ class MDRender(object):
 
         if typ == "heading":
             lines = self.render(rnode)
-            if not lines:
-                # A heading with no text, such as "##", has no children.
-                lines = [""]
-            lines[0] = "#" * n["level"] + " " + lines[0]
-            return lines + [""]
+            # The heading is written on one line, so its parts, such as text and code, are joined.
+            # The lines of a setext heading are joined with a space.
+            text = "".join(lines).replace("\n", " ")
+            return ["#" * n["level"] + " " + text, ""]
 
         if typ == "strikethrough":
             lines = self.render(rnode)

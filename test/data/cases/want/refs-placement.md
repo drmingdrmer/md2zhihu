@@ -1,5 +1,4 @@
-# Heading with 
-[slim](https://github.com/openacid/slim)
+# Heading with [slim](https://github.com/openacid/slim)
 
 {table:html}| name | link |
 | --- | --- |

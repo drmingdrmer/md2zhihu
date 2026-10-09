@@ -1,5 +1,4 @@
-# Heading with 
-{tex_inline:imgtag}x^2{/tex_inline}
+# Heading with {tex_inline:imgtag}x^2{/tex_inline}
 
 -   item with {tex_inline:imgtag}x^2{/tex_inline}
 
