@@ -16,7 +16,7 @@ platforms:
                    Minimal Mistakes
   simple           math, tables and code blocks to images, and inline code to
                    plain text
-  transparent      copy local images and change nothing else
+  transparent      copy local images and linked files, and change nothing else
 
 examples:
   md2zhihu a.md                     convert to _md2/a.md, with images in _md2/a/
@@ -31,6 +31,7 @@ output layout, with the defaults:
   _md2/        -d, --output-dir: the folder that --repo pushes
     a.md       -o, --md-output: <output-dir>/<name>.md
     a/         --asset-output-dir: <asset-output-dir>/<name>/ holds the images
+               and the linked files
 """
 
 
@@ -82,7 +83,8 @@ def create_parser() -> argparse.ArgumentParser:
         "--asset-output-dir",
         action="store",
         metavar="DIR",
-        help="The folder of the images. The images of a.md go into its subfolder a/."
+        help="The folder of the images, and of the local files that links refer to, such as [a](paper.pdf)."
+        " Those of a.md go into its subfolder a/."
         " With --repo, it must be inside <output-dir>."
         " Default: <output-dir>",
     )
@@ -96,14 +98,14 @@ def create_parser() -> argparse.ArgumentParser:
         required=False,
         metavar="URL",
         help="Push <output-dir> to this public git repo on github.com or gitee.com,"
-        " and refer to each image by its URL in the repo."
+        " and refer to each image and linked file by its URL in the repo."
         ' URL is a git URL, "." for the remote of the git repo in the working directory,'
         ' or the name of one of its remotes, such as "origin".'
         " An https URL needs a token: in the URL, as https://user:token@gitee.com/me/assets.git,"
         " or for github.com in the environment variables GITHUB_USERNAME and GITHUB_TOKEN."
         " Without a token, md2zhihu pushes over ssh."
         " zhihu.com loads images from gitee.com, so use a gitee.com repo for -p zhihu."
-        " Without --repo, the markdown refers to its images by relative path.",
+        " Without --repo, the markdown refers to its images and linked files by relative path.",
     )
 
     where_to_store.add_argument(
@@ -133,7 +135,7 @@ def create_parser() -> argparse.ArgumentParser:
         nargs=2,
         required=False,
         metavar=("REGEX", "REPLACEMENT"),
-        help="Change the URL of each image that md2zhihu stores with re.sub(REGEX, REPLACEMENT, url),"
+        help="Change the URL of each image or linked file that md2zhihu stores with re.sub(REGEX, REPLACEMENT, url),"
         ' such as --rewrite "^/asset/" "/resource/". Repeat it to give more than one rule.',
     )
 

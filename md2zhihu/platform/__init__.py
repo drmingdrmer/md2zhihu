@@ -2,6 +2,7 @@ from typing import List
 from typing import Optional
 
 from ..asset import save_image_to_asset_dir
+from ..asset import save_linked_file_to_asset_dir
 from ..converters import block_code_graphviz_to_jpg
 from ..converters import block_code_mermaid_to_jpg
 from ..converters import block_code_to_fixwidth_jpg
@@ -27,6 +28,9 @@ def weibo_specific(mdrender, rnode) -> Optional[List[str]]:
 
     if typ == "image":
         return save_image_to_asset_dir(mdrender, rnode)
+
+    if typ == "link":
+        return save_linked_file_to_asset_dir(mdrender, rnode)
 
     if typ == "math_block":
         return math_block_to_imgtag(mdrender, rnode)
@@ -76,10 +80,12 @@ def weibo_specific(mdrender, rnode) -> Optional[List[str]]:
 
 transparent_features = dict(
     image=save_image_to_asset_dir,
+    link=save_linked_file_to_asset_dir,
 )
 
 simple_features = dict(
     image=save_image_to_asset_dir,
+    link=save_linked_file_to_asset_dir,
     math_block=math_block_to_jpg,
     math_inline=math_inline_to_jpg,
     table=table_to_jpg,
@@ -99,6 +105,7 @@ weibo_features = {"*": weibo_specific}
 
 wechat_features = dict(
     image=save_image_to_asset_dir,
+    link=save_linked_file_to_asset_dir,
     math_block=math_block_to_imgtag,
     math_inline=math_inline_to_imgtag,
     table=table_to_barehtml,
@@ -114,6 +121,7 @@ wechat_features = dict(
 
 zhihu_features = dict(
     image=save_image_to_asset_dir,
+    link=save_linked_file_to_asset_dir,
     math_block=math_block_to_imgtag,
     math_inline=math_inline_to_imgtag,
     table=table_to_barehtml,
@@ -129,6 +137,7 @@ zhihu_features = dict(
 #  - mermaid
 github_features = dict(
     image=save_image_to_asset_dir,
+    link=save_linked_file_to_asset_dir,
     math_block=math_block_join_dolar_when_nested,
     # github use single dolar inline math.
     math_inline=math_inline_single_dolar,
@@ -140,6 +149,7 @@ github_features = dict(
 #  jekyll theme: minimal mistake
 minimal_mistake_features = dict(
     image=save_image_to_asset_dir,
+    link=save_linked_file_to_asset_dir,
     block_code=dict(
         mermaid=block_code_mermaid_to_jpg,
         graphviz=block_code_graphviz_to_jpg,
@@ -151,6 +161,9 @@ minimal_mistake_features = dict(
 all_features = dict(
     image=dict(
         local_to_remote=save_image_to_asset_dir,
+    ),
+    link=dict(
+        local_to_remote=save_linked_file_to_asset_dir,
     ),
     math_block=dict(
         to_imgtag=math_block_to_imgtag,

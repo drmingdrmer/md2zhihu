@@ -250,7 +250,7 @@ For gitee.com, put the token in the URL instead: `-r https://<user>:<token>@gite
 
 - Transform table to HTML.
 
-- Upload images to specified git repo.
+- Upload images, and the local files that links refer to, such as `[paper](paper.pdf)`, to specified git repo.
 
 - Transform mermaid code block to image:
 

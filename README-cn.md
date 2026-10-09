@@ -222,7 +222,7 @@ docker run --rm -v "${PWD}:/work" \
 
 - 将表格转换为 HTML。
 
-- 将图片上传到指定的 git 仓库。
+- 将图片和链接指向的本地文件（如 `[论文](paper.pdf)`）上传到指定的 git 仓库。
 
 - 将 mermaid 代码块转换为图片：
 

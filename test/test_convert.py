@@ -224,6 +224,22 @@ def test_code_join():
     assert got == "````markdown\n```python\nprint(1)\n```\n````\n"
 
 
+def test_linked_file(tmp_path, monkeypatch):
+    (tmp_path / "paper 1.pdf").write_bytes(b"pdf")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "[paper](<paper 1.pdf>)").render()
+
+    # md2zhihu copies the file into the asset folder, with "-" for the space, and points the link at the copy.
+    content_md5 = hashlib.md5(b"pdf").hexdigest()[:16]
+    stored = content_md5 + "-paper-1.pdf"
+    assert os.listdir("out/a") == [stored]
+    assert (tmp_path / "out" / "a" / stored).read_bytes() == b"pdf"
+    assert lines[0] == "[paper](a/" + stored + ")"
+
+
 @pytest.fixture
 def www(tmp_path):
     """Serve the files in tmp_path/www over HTTP on this machine. Yield the folder and its URL."""

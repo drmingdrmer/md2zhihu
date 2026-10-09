@@ -5,10 +5,12 @@ from typing import Optional
 
 from k3fs import fread
 
+from ..asset import store_linked_file
 from ..config import Config
 from ..errors import MissingFileError
 from ..renderer import MDRender
 from ..renderer import RenderNode
+from ..types import RefDict
 from ..utils import add_paragraph_end
 from ..utils import warn
 from . import mistune3
@@ -183,7 +185,8 @@ class Article(object):
                 output_lines = mdr.render(root_node)
                 yield "content", node["type"], "\n".join(output_lines)
 
-        ref_lines = ["[{id}]: {d}".format(id=ref_id, d=self.used_refs[ref_id]) for ref_id in sorted(self.used_refs)]
+        used_refs = self.stored_refs()
+        ref_lines = ["[{id}]: {d}".format(id=ref_id, d=used_refs[ref_id]) for ref_id in sorted(used_refs)]
 
         yield "ref_def", "", "\n".join(ref_lines)
 
@@ -201,15 +204,32 @@ class Article(object):
 
         output_lines.append("")
 
-        ref_list = render_ref_list(self.used_refs, self.conf.platform)
+        used_refs = self.stored_refs()
+        ref_list = render_ref_list(used_refs, self.conf.platform)
         output_lines.extend(ref_list)
 
         output_lines.append("")
 
-        ref_lines = ["[{id}]: {d}".format(id=ref_id, d=self.used_refs[ref_id]) for ref_id in sorted(self.used_refs)]
+        ref_lines = ["[{id}]: {d}".format(id=ref_id, d=used_refs[ref_id]) for ref_id in sorted(used_refs)]
         output_lines.extend(ref_lines)
 
         return output_lines
+
+    def stored_refs(self) -> RefDict:
+        """
+        Return the used references, with the URL of a local file replaced by the URL of its copy in the asset dir,
+        as every platform does for a link.
+        """
+        # __init__ sets the used references when it parses the markdown.
+        assert self.used_refs is not None
+
+        refs: RefDict = {}
+        for ref_id, definition in self.used_refs.items():
+            # A definition is a URL and an optional title, as render_ref_list() reads it.
+            url = definition.split()[0]
+            stored_url = store_linked_file(self.conf, url)
+            refs[ref_id] = definition.replace(url, stored_url, 1)
+        return refs
 
 
 def regex_search_any(regex_list: List[str], s):
