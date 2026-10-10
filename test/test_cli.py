@@ -205,7 +205,7 @@ def usage_error(message):
 
 
 @pytest.mark.parametrize("name", sorted(bad_args))
-def test_bad_argument(name, tmp_path, monkeypatch, capsys, restore_logger):
+def test_bad_argument(name, tmp_path, monkeypatch, capsys):
     args, want = bad_args[name]
     monkeypatch.chdir(tmp_path)
     # "--repo ." must not find a git repo in a parent folder of tmp_path.
@@ -228,7 +228,7 @@ def folder_content(folder):
 
 
 @pytest.mark.parametrize("name", sorted(alias_args))
-def test_output_alias(name, tmp_path, monkeypatch, capsys, restore_logger):
+def test_output_alias(name, tmp_path, monkeypatch, capsys):
     args, want = alias_args[name]
     monkeypatch.chdir(tmp_path)
     for fn in ["a.md", "b.md", "ax.md", "a2.md"]:
@@ -250,7 +250,7 @@ def test_output_alias(name, tmp_path, monkeypatch, capsys, restore_logger):
 
 
 @pytest.mark.parametrize("name", sorted(bad_shapes))
-def test_bad_shape(name, tmp_path, monkeypatch, capsys, restore_logger):
+def test_bad_shape(name, tmp_path, monkeypatch, capsys):
     md, refs_yaml, want = bad_shapes[name]
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text(md)
@@ -265,7 +265,7 @@ def test_bad_shape(name, tmp_path, monkeypatch, capsys, restore_logger):
     assert (tmp_path / "a.md").read_text() == md
 
 
-def test_repo_without_remote(tmp_path, monkeypatch, capsys, restore_logger):
+def test_repo_without_remote(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / "a.md").write_text("# a\n")
@@ -276,7 +276,7 @@ def test_repo_without_remote(tmp_path, monkeypatch, capsys, restore_logger):
     assert err == usage_error("--repo .: the git repo in the working directory has no remote")
 
 
-def test_output(tmp_path, monkeypatch, capsys, restore_logger):
+def test_output(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text("see [x][y]\n")
     (tmp_path / "b.md").write_text("# b\n")
@@ -294,7 +294,32 @@ def test_output(tmp_path, monkeypatch, capsys, restore_logger):
     )
 
 
-def test_asset_output_dir_only(tmp_path, monkeypatch, restore_logger):
+def test_main_twice(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.md").write_text("# a\n")
+    (tmp_path / "bad.md").write_text("![](nope.png)\n")
+    logger = logging.getLogger("md2zhihu")
+    handlers = list(logger.handlers)
+    level = logger.level
+
+    code, err = run_failing(monkeypatch, capsys, ["bad.md"])
+
+    assert code == 1
+    assert err == "md2zhihu: error: image not found: 'nope.png', used in 'bad.md'\n"
+    assert logger.handlers == handlers
+    assert logger.level == level
+
+    # The failed call removed its handler, so this call prints each message once.
+    monkeypatch.setattr(sys, "argv", ["md2zhihu", "a.md"])
+    md2zhihu.main()
+
+    err = capsys.readouterr().err
+    assert err == "a.md -> _md2/a.md\nno --repo, so images are referenced by relative path\n"
+    assert logger.handlers == handlers
+    assert logger.level == level
+
+
+def test_asset_output_dir_only(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "a.md").write_text("![](x.png)\n")
@@ -309,7 +334,7 @@ def test_asset_output_dir_only(tmp_path, monkeypatch, restore_logger):
     assert sorted(os.listdir(tmp_path)) == ["posts", "res", "src"]
 
 
-def test_verbose_output(tmp_path, monkeypatch, capsys, restore_logger):
+def test_verbose_output(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text("# a\n")
     monkeypatch.setattr(sys, "argv", ["md2zhihu", "-v", "a.md", "-p", "github", "-o", "out/"])
@@ -360,7 +385,7 @@ def test_usage(monkeypatch):
     )
 
 
-def test_version(monkeypatch, capsys, restore_logger):
+def test_version(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["md2zhihu", "--version"])
 
     with pytest.raises(SystemExit) as exit_info:
@@ -387,7 +412,7 @@ def test_keep_front_matter_args(args, want):
 # The three platforms that turn code blocks into images.
 @pytest.mark.parametrize("platform", ["wechat", "weibo", "simple"])
 @pytest.mark.parametrize("args, plain_width, code_width", code_width_args)
-def test_code_width(platform, args, plain_width, code_width, tmp_path, monkeypatch, restore_logger):
+def test_code_width(platform, args, plain_width, code_width, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text("```\nplain\n```\n\n```python\ncode\n```\n")
 
@@ -406,7 +431,7 @@ def test_code_width(platform, args, plain_width, code_width, tmp_path, monkeypat
 
 
 @pytest.mark.parametrize("name", sorted(identity_cases))
-def test_commit_identity(name, tmp_path, monkeypatch, restore_logger):
+def test_commit_identity(name, tmp_path, monkeypatch):
     config, want = identity_cases[name]
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text("# a\n")
@@ -440,7 +465,7 @@ branch_args = {
 
 
 @pytest.mark.parametrize("name", sorted(branch_args))
-def test_push(name, tmp_path, monkeypatch, capsys, restore_logger):
+def test_push(name, tmp_path, monkeypatch, capsys):
     args, want_repo_line = branch_args[name]
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text("# a\n")

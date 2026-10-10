@@ -183,6 +183,7 @@ def main():
     """
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(MessageFormatter(use_color(sys.stderr)))
+    level = logger.level
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 
@@ -191,6 +192,10 @@ def main():
     except UserError as e:
         logger.error("%s", e)
         sys.exit(1)
+    finally:
+        # The next call, such as in a test, adds its own handler, and with this one each message would print twice.
+        logger.removeHandler(handler)
+        logger.setLevel(level)
 
 
 def run():

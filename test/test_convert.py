@@ -233,7 +233,7 @@ def check_golden(golden_path, got):
 
 
 @pytest.mark.parametrize("name", sorted(e2e_conversions))
-def test_e2e_conversion(name, tmp_path, monkeypatch, restore_logger):
+def test_e2e_conversion(name, tmp_path, monkeypatch):
     work_dir, args, result_path = e2e_conversions[name]
 
     # Convert a copy, so that no output lands in the source tree.
