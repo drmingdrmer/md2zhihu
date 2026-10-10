@@ -1,3 +1,4 @@
+import copy
 import os
 import re
 from typing import List
@@ -165,7 +166,10 @@ class Article(object):
 
         mdr = MDRender(self.conf, features=self.conf.features)
 
-        for node in self.ast:
+        # The renderer changes nodes, such as the URL of a local image to the URL of its copy,
+        # so it renders a copy, and the next render reads the AST as parsed.
+        ast = copy.deepcopy(self.ast)
+        for node in ast:
             # render list items separately
             if node["type"] == "list":
                 root_node = RenderNode(node)
@@ -193,9 +197,11 @@ class Article(object):
     def render(self):
         mdr = MDRender(self.conf, features=self.conf.features)
 
+        # As in chunks(), the renderer changes the nodes of a copy.
+        ast = copy.deepcopy(self.ast)
         root_node = {
             "type": "ROOT",
-            "children": self.ast,
+            "children": ast,
         }
         output_lines = mdr.render(RenderNode(root_node))
 

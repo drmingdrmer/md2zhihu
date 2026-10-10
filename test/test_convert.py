@@ -5,6 +5,7 @@ They run md2zhihu in the test process, and need no browser, LaTeX tool, network 
 Run them with MD2ZHIHU_UPDATE_GOLDEN=1 to rewrite the golden files from the current output.
 """
 
+import copy
 import functools
 import hashlib
 import http.server
@@ -330,6 +331,31 @@ def test_reference_definition(name, tmp_path, monkeypatch):
     lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
 
     assert lines == want
+
+
+def test_render_twice(tmp_path, monkeypatch):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "x.png").write_bytes(b"png")
+    (tmp_path / "src" / "f.pdf").write_bytes(b"pdf")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("src/a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+    article = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "![](x.png) [f](f.pdf)\n")
+    ast = copy.deepcopy(article.ast)
+    conf_attrs = dict(vars(conf))
+
+    renders = [article.render(), article.render()]
+    chunks = [list(article.chunks()), list(article.chunks())]
+
+    # Each render copies the files again and points the image and the link at the copies.
+    img = "a/" + hashlib.md5(b"png").hexdigest()[:16] + "-x.png"
+    pdf = "a/" + hashlib.md5(b"pdf").hexdigest()[:16] + "-f.pdf"
+    text = f"![]({img}) [f]({pdf})"
+    assert renders == [[text, "", "", ""], [text, "", "", ""]]
+    want_chunks = [("content", "paragraph", text + "\n"), ("ref_def", "", "")]
+    assert chunks == [want_chunks, want_chunks]
+    assert article.ast == ast
+    assert vars(conf) == conf_attrs
 
 
 def request_convert(input_typ, content, output_typ, opt=None):
