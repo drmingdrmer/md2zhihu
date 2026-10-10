@@ -16,7 +16,6 @@ from ..utils import warn
 from . import mistune3
 from .extract.front_matter import FrontMatter
 from .extract.front_matter import extract_front_matter
-from .extract.refs import extract_ref_definitions
 from .extract.refs import load_external_refs
 from .output import render_ref_list
 from .transform.rebase import rebase_url
@@ -49,7 +48,8 @@ class Article(object):
         # A caller may pass "\r\n", which the md2zhihu command does not, because it reads files in text mode.
         self.md_text: str = md_text.replace("\r\n", "\n")
 
-        # References defined in this markdown
+        # References from outside the text: the --refs files and the front matter.
+        # A definition in the text wins over one of them, as mistune3.parse reads the text.
         self.refs = {}
 
         # References used in this markdown
@@ -63,14 +63,12 @@ class Article(object):
         # extract article meta
 
         self.md_text, self.front_matter = extract_front_matter(self.md_text)
-        self.md_text, article_refs = extract_ref_definitions(self.md_text)
 
         # build refs
 
         self.refs.update(load_external_refs(self.conf))
         if self.front_matter is not None:
             self.refs.update(self.front_matter.get_refs(conf.platform, conf.src_path))
-        self.refs.update(article_refs)
 
         # parse to ast and clean up
 
