@@ -494,8 +494,8 @@ class TestMd2zhihu(unittest.TestCase):
                 "out.md",
                 "simple.md",
                 "simple/18b61671112f3aeb-slim.jpg",
-                "simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg",
-                "simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg",
+                "simple/digraphRnodeshape=plaintextrankd-64adfb3ac6b25dd2.jpg",
+                "simple/graphLRAHardedge--LinktextBRound-c3f417acad149464.jpg",
             ],
             out,
         )
@@ -556,8 +556,8 @@ class TestMd2zhihu(unittest.TestCase):
             [
                 "assets/slim.jpg",
                 "foo/bar/simple/18b61671112f3aeb-slim.jpg",
-                "foo/bar/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg",
-                "foo/bar/simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg",
+                "foo/bar/simple/digraphRnodeshape=plaintextrankd-64adfb3ac6b25dd2.jpg",
+                "foo/bar/simple/graphLRAHardedge--LinktextBRound-c3f417acad149464.jpg",
                 "out.md",
                 "simple.md",
             ],

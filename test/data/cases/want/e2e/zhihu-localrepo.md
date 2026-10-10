@@ -19,11 +19,11 @@ next line
 | 转换后 | b | d |
 {/table}
 
-![](simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
+![](simple/graphLRAHardedge--LinktextBRound-c3f417acad149464.jpg)
 
 ### graphviz
 
-![](simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
+![](simple/digraphRnodeshape=plaintextrankd-64adfb3ac6b25dd2.jpg)
 
 例如 `$$ ||X{\vec {\beta }}-Y||^{2} $$`
 ![](simple/18b61671112f3aeb-slim.jpg)

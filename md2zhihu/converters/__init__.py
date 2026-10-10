@@ -1,3 +1,4 @@
+import json
 import os
 from typing import List
 from typing import Optional
@@ -28,10 +29,25 @@ def to_plaintext(mdrender, rnode):
 
 def typ_text_to_jpg(mdrender: "MDRender", typ: str, txt: str, opt: Optional[dict] = None) -> List[str]:
     d = k3down2.convert(typ, txt, "jpg", opt=opt)
-    fn = asset_fn(txt, "jpg")
+    # One text can make different images, such as x in $x$ and in $$x$$, so the name also has the converter.
+    fn = asset_fn(txt, "jpg", conversion_key(typ, opt))
     fwrite(mdrender.conf.asset_output_dir, fn, d)
 
     return [r"![]({})".format(mdrender.conf.img_url(fn)), ""]
+
+
+def conversion_key(typ: str, opt: Optional[dict]) -> str:
+    """
+    Return the converter `typ` and its options `opt`, which make an image from a text.
+    The html option asset_base is left out: it is the absolute path of the folder of the article,
+    the same for each table of the article, and with it the name of an image would depend on where the article is.
+    """
+    key_opt = dict(opt or {})
+    if "html" in key_opt:
+        html = dict(key_opt["html"])
+        html.pop("asset_base", None)
+        key_opt["html"] = html
+    return json.dumps([typ, key_opt], sort_keys=True)
 
 
 def block_code_to_jpg(mdrender: "MDRender", rnode: "RenderNode", width: Optional[int] = None) -> List[str]:

@@ -91,8 +91,12 @@ def longest_backtick_run(text: str) -> int:
     return max([len(r) for r in runs], default=0)
 
 
-def asset_fn(text: str, suffix: str) -> str:
-    textmd5 = hashlib.md5(to_bytes(text)).hexdigest()
+def asset_fn(text: str, suffix: str, key: str = "") -> str:
+    """
+    Return the file name of an asset made from `text`: the letters and digits of `text`, then an md5 of `text` and `key`.
+    `key` tells apart the assets made from one text, such as the images of different converters.
+    """
+    textmd5 = hashlib.md5(to_bytes(text + key)).hexdigest()
     escaped = re.sub(r"[^a-zA-Z0-9_\-=]+", "", text)
     fn = escaped[:32] + "-" + textmd5[:16] + "." + suffix
     return fn

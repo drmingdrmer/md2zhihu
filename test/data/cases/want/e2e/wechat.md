@@ -6,11 +6,11 @@
 | 转换后 | b | d |
 {/table}
 
-![](simple/graphLRAHardedge--LinktextBRound-38e149134ebbdae5.jpg)
+![](simple/graphLRAHardedge--LinktextBRound-c3f417acad149464.jpg)
 
 ### graphviz
 
-![](simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
+![](simple/digraphRnodeshape=plaintextrankd-64adfb3ac6b25dd2.jpg)
 
 例如 `$$ ||X{\vec {\beta }}-Y||^{2} $$`
 ![](simple/18b61671112f3aeb-slim.jpg)
@@ -89,7 +89,7 @@ y_n
 
 简化的读取逻辑如下:
 
-![](simple/gofuncsmSlimArrayGetiint32uint32-1342107f36c6b014.jpg)
+![](simple/gofuncsmSlimArrayGetiint32uint32-2177a41e4bdc932d.jpg)
 
 formula in list:
 
@@ -131,7 +131,7 @@ table in list:
 
 no lang code:
 
-![](simple/12345678912345678912345678912345-90d3b2afd0be86fe.jpg)
+![](simple/12345678912345678912345678912345-a4b5057c57fb5af0.jpg)
 
 
 

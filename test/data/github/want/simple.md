@@ -16,7 +16,7 @@ graph LR
 
 ### graphviz
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/digraphRnodeshape=plaintextrankd-e723805f61ebc412.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/digraphRnodeshape=plaintextrankd-64adfb3ac6b25dd2.jpg)
 
 例如 `$$ ||X{\vec {\beta }}-Y||^{2} $$`
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/18b61671112f3aeb-slim.jpg)

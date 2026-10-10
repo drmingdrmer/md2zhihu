@@ -240,6 +240,39 @@ def test_linked_file(tmp_path, monkeypatch):
     assert lines[0] == "[paper](a/" + stored + ")"
 
 
+def request_convert(input_typ, content, output_typ, opt=None):
+    """Replace ``k3down2.convert``: an image holds the whole request, so that two different requests make different images."""
+    return json.dumps([input_typ, content, output_typ, opt]).encode("utf-8")
+
+
+def test_each_conversion_has_its_own_image(tmp_path, monkeypatch):
+    # $x$ and $$x$$ convert x with two converters, and two runs convert one code block at two widths into one folder.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(k3down2, "convert", request_convert)
+    md_text = "inline $x$.\n\n$$x$$\n\n```\ncode\n```\n"
+
+    urls = []
+    for width in [600, 800]:
+        conf = md2zhihu.Config("a.md", "simple", "out", "out", md_output_path="out/", plain_code_width=width)
+        os.makedirs(conf.asset_output_dir, exist_ok=True)
+        lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
+        urls.extend(re.findall(r"!\[\]\((.*?)\)", "\n".join(lines)))
+
+    got = [(tmp_path / "out" / url).read_bytes() for url in urls]
+    want = [
+        request_convert("tex_inline", "x", "jpg"),
+        request_convert("tex_block", "x", "jpg"),
+        request_convert("code", "```\ncode\n```\n", "jpg", {"html": {"width": 600}}),
+        request_convert("tex_inline", "x", "jpg"),
+        request_convert("tex_block", "x", "jpg"),
+        request_convert("code", "```\ncode\n```\n", "jpg", {"html": {"width": 800}}),
+    ]
+    assert got == want
+    # The folder holds one file for each of the 4 different requests.
+    stored = sorted(os.listdir(tmp_path / "out" / "a"))
+    assert stored == sorted({os.path.basename(url) for url in urls})
+
+
 @pytest.fixture
 def www(tmp_path):
     """Serve the files in tmp_path/www over HTTP on this machine. Yield the folder and its URL."""
