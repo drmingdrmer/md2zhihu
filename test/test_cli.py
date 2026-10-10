@@ -82,6 +82,23 @@ bad_args = {
     ),
 }
 
+# Outputs that are another input, or the same file as another output, as name: (md2zhihu arguments, the error message).
+# The working directory holds a.md, b.md, ax.md, a2.md and the folders a/ and b/.
+# ah.md is a hard link and as.md is a symlink to b.md, and b2.md is a hard link to a2.md.
+alias_args = {
+    "other-input": (["a.md", "ax.md", "-o", "{title}x.md"], "a.md converts to ax.md, which is the input ax.md"),
+    "hard-link-to-input": (["a.md", "b.md", "-o", "{title}h.md"], "a.md converts to ah.md, which is the input b.md"),
+    "symlink-to-input": (["a.md", "b.md", "-o", "{title}s.md"], "a.md converts to as.md, which is the input b.md"),
+    "dot-dot": (
+        ["a.md", "b.md", "-o", "{title}/../alias.md"],
+        "a.md converts to a/../alias.md and b.md converts to b/../alias.md, which is the same file",
+    ),
+    "hard-linked-outputs": (
+        ["a.md", "b.md", "-o", "{title}2.md"],
+        "a.md converts to a2.md and b.md converts to b2.md, which is the same file",
+    ),
+}
+
 # The rule that the references in a front matter or a --refs file break.
 refs_rule = "must be a mapping of names to URLs, or a list of such mappings"
 
@@ -182,6 +199,33 @@ def test_bad_argument(name, tmp_path, monkeypatch, capsys, restore_logger):
     assert err == usage_error(want)
     # md2zhihu found the bad argument before it wrote anything.
     assert sorted(os.listdir(tmp_path)) == ["a.md", "b.md", "docs"]
+
+
+def folder_content(folder):
+    """Return what `folder` holds, as name: the bytes of a file, or None for a folder."""
+    return {p.name: None if p.is_dir() else p.read_bytes() for p in folder.iterdir()}
+
+
+@pytest.mark.parametrize("name", sorted(alias_args))
+def test_output_alias(name, tmp_path, monkeypatch, capsys, restore_logger):
+    args, want = alias_args[name]
+    monkeypatch.chdir(tmp_path)
+    for fn in ["a.md", "b.md", "ax.md", "a2.md"]:
+        (tmp_path / fn).write_text("# " + fn + "\n")
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    os.link("b.md", "ah.md")
+    os.symlink("b.md", "as.md")
+    os.link("a2.md", "b2.md")
+    before = folder_content(tmp_path)
+
+    code, err = run_failing(monkeypatch, capsys, args)
+
+    assert code == 2
+    assert err == usage_error(want)
+    # md2zhihu found the alias before it wrote anything, so every input keeps its content.
+    after = folder_content(tmp_path)
+    assert after == before
 
 
 @pytest.mark.parametrize("name", sorted(bad_shapes))

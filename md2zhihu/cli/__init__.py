@@ -123,17 +123,47 @@ def new_asset_repo(parser: argparse.ArgumentParser, url: Optional[str], branch: 
     parser.error(mask_url_credential(f"{given}: {reason}"))
 
 
+def file_identity(path: str) -> tuple:
+    """
+    Return a key that two paths of one file share: the device and inode of an existing file, which its links share,
+    or else the path with symlinks and ".." resolved.
+    """
+    if not os.path.exists(path):
+        return (os.path.realpath(path),)
+    st = os.stat(path)
+    return (st.st_dev, st.st_ino)
+
+
 def check_md_outputs(parser: argparse.ArgumentParser, confs: List[Config]) -> None:
-    """Exit with a usage error if an input converts to an existing folder, or two inputs convert to the same markdown file."""
-    src_by_output: Dict[str, str] = {}
+    """
+    Exit with a usage error if an input converts to an existing folder, to another input,
+    or to the same markdown file as another input does.
+    md2zhihu writes an output before it reads the next input, so such an output would replace an input or an output.
+    """
+    src_by_file = {file_identity(conf.src_path): conf.src_path for conf in confs}
+    conf_by_output: Dict[tuple, Config] = {}
     for conf in confs:
         output = conf.md_output_path
         if os.path.isdir(output):
             rule = '-o PATH is a folder only when it ends with "/"'
             parser.error(f"{conf.src_path} converts to {output}, which is a folder; {rule}")
-        if output in src_by_output:
-            parser.error(f"{src_by_output[output]} and {conf.src_path} both convert to {output}")
-        src_by_output[output] = conf.src_path
+
+        output_file = file_identity(output)
+        src = src_by_file.get(output_file)
+        # An input may convert to itself: md2zhihu reads it before it writes the output.
+        is_other_input = src is not None and output_file != file_identity(conf.src_path)
+        if is_other_input:
+            parser.error(f"{conf.src_path} converts to {output}, which is the input {src}")
+
+        other = conf_by_output.get(output_file)
+        if other is not None:
+            if other.md_output_path == output:
+                parser.error(f"{other.src_path} and {conf.src_path} both convert to {output}")
+            parser.error(
+                f"{other.src_path} converts to {other.md_output_path} and {conf.src_path} converts to {output},"
+                " which is the same file"
+            )
+        conf_by_output[output_file] = conf
 
 
 def main():
