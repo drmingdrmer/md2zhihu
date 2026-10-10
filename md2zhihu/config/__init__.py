@@ -119,7 +119,6 @@ class Config(object):
         self.article_name = trim_fn.rsplit(".", 1)[0]
 
         self.asset_output_dir = pjoin(asset_output_dir, self.article_name)
-        self.rel_dir = os.path.relpath(self.asset_output_dir, self.output_dir)
 
         assert self.md_output_path is not None
 
@@ -132,9 +131,13 @@ class Config(object):
             self.md_output_base = os.path.split(os.path.abspath(self.md_output_path))[0]
 
         if asset_repo is None:
-            self.asset_repo = LocalRepo(self.md_output_path, self.output_dir)
+            # The URL of an asset is its path from the markdown, so that it does not depend on output_dir.
+            self.asset_repo = LocalRepo(self.md_output_path, self.asset_output_dir)
+            self.rel_dir = ""
         else:
+            # The repo holds output_dir, so the URL of an asset has the path of the asset in output_dir.
             self.asset_repo = asset_repo
+            self.rel_dir = os.path.relpath(self.asset_output_dir, self.output_dir)
 
     def img_url(self, fn):
         url = self.asset_repo.path_pattern.format(path=pjoin(self.rel_dir, fn))

@@ -226,6 +226,21 @@ def test_output(tmp_path, monkeypatch, capsys, restore_logger):
     )
 
 
+def test_asset_output_dir_only(tmp_path, monkeypatch, restore_logger):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.md").write_text("![](x.png)\n")
+    (tmp_path / "src" / "x.png").write_bytes(b"png")
+    monkeypatch.setattr(sys, "argv", ["md2zhihu", "src/a.md", "-o", "posts/", "--asset-output-dir", "res"])
+
+    md2zhihu.main()
+
+    # The image URL is the path from the markdown to the image. bff139fa05ac583f is from an md5 of the image.
+    assert (tmp_path / "posts" / "a.md").read_text() == "![](../res/a/bff139fa05ac583f-x.png)\n\n\n"
+    # Without --repo, md2zhihu writes nothing in --output-dir, so it does not create the default _md2.
+    assert sorted(os.listdir(tmp_path)) == ["posts", "res", "src"]
+
+
 def test_verbose_output(tmp_path, monkeypatch, capsys, restore_logger):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text("# a\n")

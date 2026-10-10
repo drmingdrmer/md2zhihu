@@ -56,7 +56,6 @@ def use_color(stream) -> bool:
 
 
 def convert_md(parser_config, conf):
-    os.makedirs(conf.output_dir, exist_ok=True)
     os.makedirs(conf.asset_output_dir, exist_ok=True)
     os.makedirs(conf.md_output_base, exist_ok=True)
 

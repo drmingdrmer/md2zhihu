@@ -111,13 +111,13 @@ class TestMd2zhihu(unittest.TestCase):
 
     def test_md_output_title(self):
         cases = [
-            ("out/{title}.md", "out/simple.md", "{path}"),
-            ("out/{title}/index.md", "out/simple/index.md", "../{path}"),
-            ("out/{title}/", "out/simple/simple.md", "../{path}"),
+            ("out/{title}.md", "out/simple.md", "simple/x.jpg"),
+            ("out/{title}/index.md", "out/simple/index.md", "x.jpg"),
+            ("out/{title}/", "out/simple/simple.md", "x.jpg"),
         ]
 
         for c in cases:
-            md_output, want_path, want_pattern = c
+            md_output, want_path, want_url = c
             dd(c)
             conf = md2zhihu.Config(
                 "src/2021-06-11-simple.md",
@@ -127,7 +127,7 @@ class TestMd2zhihu(unittest.TestCase):
                 md_output_path=md_output,
             )
             self.assertEqual(want_path, conf.md_output_path)
-            self.assertEqual(want_pattern, conf.asset_repo.path_pattern)
+            self.assertEqual(want_url, conf.img_url("x.jpg"))
 
     def test_broken_link(self):
         d = "test/data/broken-link"
