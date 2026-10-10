@@ -3,11 +3,13 @@ import os
 import re
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from k3fs import fread
 
 from ..asset import store_linked_file
 from ..config import Config
+from ..errors import EmbedCycleError
 from ..errors import MissingFileError
 from ..renderer import MDRender
 from ..renderer import RenderNode
@@ -40,10 +42,15 @@ class ParserConfig(object):
 
 
 class Article(object):
-    def __init__(self, parser_config: ParserConfig, conf: Config, md_text: str):
+    def __init__(self, parser_config: ParserConfig, conf: Config, md_text: str, embedders: Tuple[str, ...] = ()):
+        """
+        `embedders` holds the paths of the markdown files that embed this one, outermost first.
+        """
         self.parser_config = parser_config
 
         self.conf = conf
+
+        self.embedders = embedders
 
         # init
 
@@ -124,16 +131,21 @@ class Article(object):
             article_path = self.conf.relpath_from_cwd(child["src"])
             if not os.path.exists(article_path):
                 raise MissingFileError(f"embedded markdown not found: {article_path!r}, used in {self.conf.src_path!r}")
+
+            chain = self.embedders + (self.conf.src_path,)
+            # realpath() gives one path for a file that other paths also name, such as a symlink to it.
+            embedding = {os.path.realpath(p) for p in chain}
+            if os.path.realpath(article_path) in embedding:
+                names = [repr(p) for p in chain + (article_path,)]
+                raise EmbedCycleError("markdown embeds itself: " + " -> ".join(names))
+
             md_text = fread(article_path)
 
-            # save and restore parent src_path
+            # The embedded article reads its own path, such as for the images in it, and the parent keeps its config.
+            child_conf = copy.copy(self.conf)
+            child_conf.src_path = article_path
 
-            old = self.conf.src_path
-            self.conf.src_path = article_path
-
-            article = Article(self.parser_config, self.conf, md_text)
-
-            self.conf.src_path = old
+            article = Article(self.parser_config, child_conf, md_text, embedders=chain)
 
             # rebase urls in embedded article
 

@@ -24,6 +24,8 @@ import urllib3
 
 import md2zhihu
 from md2zhihu.errors import DownloadError
+from md2zhihu.errors import EmbedCycleError
+from md2zhihu.errors import MissingFileError
 
 this_base = os.path.dirname(os.path.abspath(__file__))
 test_data = os.path.join(this_base, "data")
@@ -113,6 +115,20 @@ warn_cases = {
     "warn-shortcut": ("[x]", []),
     "warn-defined": ("[ok][]\n\n[ok]: http://ok", []),
     "warn-emphasis-text": ("[*foo*][bar]", ["[*foo*][bar]"]),
+}
+
+# Markdown files that embed themselves, as name: ({path: content}, the error message).
+# md2zhihu reads src/a.md, and a content of None makes the path a symlink to src/a.md.
+embed_cycles = {
+    "direct": ({"src/a.md": "![](a.md)\n"}, "markdown embeds itself: 'src/a.md' -> 'src/a.md'"),
+    "indirect": (
+        {"src/a.md": "![](sub/b.md)\n", "src/sub/b.md": "![](../a.md)\n"},
+        "markdown embeds itself: 'src/a.md' -> 'src/sub/b.md' -> 'src/a.md'",
+    ),
+    "symlink": (
+        {"src/a.md": "![](link.md)\n", "src/link.md": None},
+        "markdown embeds itself: 'src/a.md' -> 'src/link.md'",
+    ),
 }
 
 # References whose URL has angle brackets or whose title has escapes, as name: (markdown, the lines that zhihu renders).
@@ -331,6 +347,49 @@ def test_reference_definition(name, tmp_path, monkeypatch):
     lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
 
     assert lines == want
+
+
+@pytest.mark.parametrize("name", sorted(embed_cycles))
+def test_embed_cycle(name, tmp_path, monkeypatch):
+    files, want = embed_cycles[name]
+    monkeypatch.chdir(tmp_path)
+    for path, content in files.items():
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        if content is None:
+            os.symlink("a.md", path)
+        else:
+            (tmp_path / path).write_text(content)
+    conf = md2zhihu.Config("src/a.md", "zhihu", "out", "out", md_output_path="out/")
+
+    with pytest.raises(EmbedCycleError) as e:
+        md2zhihu.Article(md2zhihu.ParserConfig(True, [r"[.]md$"]), conf, files["src/a.md"])
+
+    assert str(e.value) == want
+
+
+def test_embed_failed_child(tmp_path, monkeypatch):
+    (tmp_path / "src" / "sub").mkdir(parents=True)
+    (tmp_path / "src" / "sub" / "b.md").write_text("![](nope.md)\n")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("src/a.md", "zhihu", "out", "out", md_output_path="out/")
+
+    with pytest.raises(MissingFileError) as e:
+        md2zhihu.Article(md2zhihu.ParserConfig(True, [r"[.]md$"]), conf, "![](sub/b.md)\n")
+
+    assert str(e.value) == "embedded markdown not found: 'src/sub/nope.md', used in 'src/sub/b.md'"
+    # The embedded article read its path from its own config, so the config of src/a.md keeps its path.
+    assert conf.src_path == "src/a.md"
+
+
+def test_embed_same_file_twice(tmp_path, monkeypatch):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "b.md").write_text("b\n")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("src/a.md", "zhihu", "out", "out", md_output_path="out/")
+
+    article = md2zhihu.Article(md2zhihu.ParserConfig(True, [r"[.]md$"]), conf, "![](b.md)\n\n![](b.md)\n")
+
+    assert article.render() == ["b", "", "b", "", "", ""]
 
 
 def test_render_twice(tmp_path, monkeypatch):

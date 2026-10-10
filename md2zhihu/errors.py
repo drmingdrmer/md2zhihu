@@ -22,3 +22,7 @@ class DownloadError(UserError, RuntimeError):
 
 class FormatError(UserError, ValueError):
     """A file that md2zhihu reads has a shape that it can not use, such as front matter whose "refs" is a number."""
+
+
+class EmbedCycleError(UserError, ValueError):
+    """A markdown embeds itself, directly or through other markdown files."""
