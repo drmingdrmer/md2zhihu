@@ -1,3 +1,4 @@
+import re
 from typing import List
 from typing import Optional
 
@@ -8,6 +9,9 @@ from ..utils import longest_backtick_run
 from ..utils import msg
 from ..utils import strip_paragraph_end
 from .dispatch import render_with_features
+
+# The characters that end the URL of a link or an image in markdown: the ASCII control characters and the space.
+url_breakers = re.compile(r"[\x00-\x20\x7f]")
 
 
 class MDRender(object):
@@ -105,7 +109,8 @@ class MDRender(object):
 
         if typ == "image":
             title = link_title(n["title"])
-            return ["![{alt}]({src}{title})".format(alt=n["alt"], src=n["src"], title=title)]
+            src = link_destination(n["src"])
+            return ["![{alt}]({src}{title})".format(alt=n["alt"], src=src, title=title)]
 
         if typ == "list":
             lines = self.render(rnode)
@@ -148,7 +153,7 @@ class MDRender(object):
         if typ == "link":
             lines = self.render(rnode)
             lines[0] = "[" + lines[0]
-            lines[-1] = lines[-1] + "](" + n["link"] + link_title(n["title"]) + ")"
+            lines[-1] = lines[-1] + "](" + link_destination(n["link"]) + link_title(n["title"]) + ")"
 
             return lines
 
@@ -201,3 +206,30 @@ def link_title(title: Optional[str]) -> str:
         return ""
     escaped = title.replace("\\", "\\\\").replace('"', '\\"')
     return ' "' + escaped + '"'
+
+
+def link_destination(url: str) -> str:
+    """
+    Return `url` as written as the destination of a link or an image, which a markdown parser reads to its end.
+    Each space or control character is percent-encoded, and so is each parenthesis, if they do not pair up, such as in "x).png".
+    """
+    url = url_breakers.sub(percent_encode, url)
+
+    depth = 0
+    for c in url:
+        if c == "(":
+            depth += 1
+        if c == ")":
+            depth -= 1
+        if depth < 0:
+            break
+
+    if depth == 0:
+        return url
+    return url.replace("(", "%28").replace(")", "%29")
+
+
+def percent_encode(m: re.Match[str]) -> str:
+    """Return the character that `m` matches as a percent-encoded byte, such as "%20" for a space."""
+    code = ord(m.group(0))
+    return "%{:02X}".format(code)

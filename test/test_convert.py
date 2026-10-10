@@ -117,6 +117,27 @@ warn_cases = {
     "warn-emphasis-text": ("[*foo*][bar]", ["[*foo*][bar]"]),
 }
 
+# Local images, as name: (file name, its URL in the markdown, the name of its copy after the md5, the URL of the copy after the md5).
+# The copy's name has "-" for a character that breaks a URL, and the copy's URL keeps the query or the fragment.
+local_images = {
+    "svg-fragment": ("icons.svg", "icons.svg#home", "icons.svg", "icons.svg#home"),
+    "query": ("x.png", "x.png?v=2", "x.png", "x.png?v=2"),
+    "space": ("my logo.png", "<my logo.png>", "my-logo.png", "my-logo.png"),
+    "percent": ("100%.png", "100%25.png", "100-.png", "100-.png"),
+    "encoded-hash": ("C#.png", "C%23.png", "C-.png", "C-.png"),
+    "unmatched-parenthesis": ("x).png", "<x).png>", "x).png", "x%29.png"),
+}
+
+# URLs, as (URL, the URL as md2zhihu writes it in a link or an image).
+link_destinations = [
+    ("a/x.png", "a/x.png"),
+    ("https://en.wikipedia.org/wiki/Foo_(bar)", "https://en.wikipedia.org/wiki/Foo_(bar)"),
+    ("a/x).png", "a/x%29.png"),
+    ("a/(x.png", "a/%28x.png"),
+    (")(", "%29%28"),
+    ("my dir/x.png", "my%20dir/x.png"),
+]
+
 # Markdown files that embed themselves, as name: ({path: content}, the error message).
 # md2zhihu reads src/a.md, and a content of None makes the path a symlink to src/a.md.
 embed_cycles = {
@@ -311,6 +332,31 @@ def test_linked_file(tmp_path, monkeypatch):
     assert lines[0] == "[paper](a/" + stored + ")"
 
 
+@pytest.mark.parametrize("name", sorted(local_images))
+def test_local_image(name, tmp_path, monkeypatch):
+    fn, url, stored, stored_url = local_images[name]
+    (tmp_path / fn).write_bytes(b"img")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "![](" + url + ")\n").render()
+
+    content_md5 = hashlib.md5(b"img").hexdigest()[:16]
+    assert os.listdir("out/a") == [content_md5 + "-" + stored]
+    assert (tmp_path / "out" / "a" / (content_md5 + "-" + stored)).read_bytes() == b"img"
+    # A markdown parser reads the whole URL of the copy back from the output.
+    ast, _, _ = md2zhihu.parser.mistune3.parse("\n".join(lines), {}, True)
+    image = ast[0]["children"][0]
+    assert image["src"] == "a/" + content_md5 + "-" + stored_url
+
+
+@pytest.mark.parametrize("url, want", link_destinations)
+def test_link_destination(url, want):
+    got = md2zhihu.renderer.md_render.link_destination(url)
+    assert got == want
+
+
 def test_reference_to_linked_file(tmp_path, monkeypatch):
     (tmp_path / "paper 1.pdf").write_bytes(b"pdf")
     monkeypatch.chdir(tmp_path)
@@ -379,6 +425,18 @@ def test_embed_failed_child(tmp_path, monkeypatch):
     assert str(e.value) == "embedded markdown not found: 'src/sub/nope.md', used in 'src/sub/b.md'"
     # The embedded article read its path from its own config, so the config of src/a.md keeps its path.
     assert conf.src_path == "src/a.md"
+
+
+def test_embed_encoded_path(tmp_path, monkeypatch):
+    # mistune percent-encodes the URL, and md2zhihu matches the --embed regex with the path and opens it.
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "子 文档.md").write_text("b\n")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("src/a.md", "zhihu", "out", "out", md_output_path="out/")
+
+    article = md2zhihu.Article(md2zhihu.ParserConfig(True, [r"子 文档[.]md$"]), conf, "![](<子 文档.md>)\n")
+
+    assert article.render() == ["b", "", "", ""]
 
 
 def test_embed_same_file_twice(tmp_path, monkeypatch):

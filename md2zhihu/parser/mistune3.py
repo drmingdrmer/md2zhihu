@@ -9,7 +9,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
-from urllib.parse import unquote
 
 import mistune
 from mistune.block_parser import BlockParser
@@ -394,14 +393,8 @@ def adapt_token(tok: Token) -> ASTNode:
 
 def adapt_image(tok: Token) -> ASTNode:
     attrs = tok["attrs"]
-
-    src = attrs["url"]
-    is_remote = re.match(r"https?://", src) is not None
-    if not is_remote:
-        # mistune 3 percent-encodes a URL, but md2zhihu opens a local image by its path, such as "图片/a.png".
-        src = unquote(src)
-
-    return {"type": "image", "src": src, "alt": tok["alt"], "title": attrs.get("title")}
+    # As for a link, "src" is the URL that mistune 3 percent-encodes, such as "%E5%9B%BE%E7%89%87/a.png" for "图片/a.png".
+    return {"type": "image", "src": attrs["url"], "alt": tok["alt"], "title": attrs.get("title")}
 
 
 def adapt_block_code(tok: Token) -> ASTNode:

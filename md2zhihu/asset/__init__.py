@@ -73,13 +73,23 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
 
         return None
 
-    src = mdrender.conf.relpath_from_cwd(src)
-    if not os.path.exists(src):
-        raise MissingFileError(f"image not found: {src!r}, used in {mdrender.conf.src_path!r}")
+    # The URL of a local image may end with a query or a fragment, such as "#home" of an SVG, which its path does not have.
+    path, _, fragment = src.partition("#")
+    path, _, query = path.partition("?")
+    # mistune percent-encodes the URL, such as "图片/a.png" to "%E5%9B%BE%E7%89%87/a.png".
+    path = unquote(path)
+    path = mdrender.conf.relpath_from_cwd(path)
+    if not os.path.exists(path):
+        raise MissingFileError(f"image not found: {path!r}, used in {mdrender.conf.src_path!r}")
 
-    fn = copy_to_asset_dir(mdrender.conf, src)
+    fn = copy_to_asset_dir(mdrender.conf, path)
 
-    n["src"] = mdrender.conf.img_url(fn)
+    url = mdrender.conf.img_url(fn)
+    if query != "":
+        url += "?" + query
+    if fragment != "":
+        url += "#" + fragment
+    n["src"] = url
 
     # Transform ast node but does not render, leave the task to default image
     # renderer.

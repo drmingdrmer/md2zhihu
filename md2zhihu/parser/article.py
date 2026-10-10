@@ -4,6 +4,7 @@ import re
 from typing import List
 from typing import Optional
 from typing import Tuple
+from urllib.parse import unquote
 
 from k3fs import fread
 
@@ -124,11 +125,13 @@ class Article(object):
             #   'title': None,
             #   'type': 'image'},
 
-            if not regex_search_any(self.parser_config.embed_patterns, child["src"]):
+            # mistune percent-encodes the URL, such as "子文档.md", but md2zhihu matches and opens the path.
+            src = unquote(child["src"])
+            if not regex_search_any(self.parser_config.embed_patterns, src):
                 children.append(n)
                 continue
 
-            article_path = self.conf.relpath_from_cwd(child["src"])
+            article_path = self.conf.relpath_from_cwd(src)
             if not os.path.exists(article_path):
                 raise MissingFileError(f"embedded markdown not found: {article_path!r}, used in {self.conf.src_path!r}")
 
