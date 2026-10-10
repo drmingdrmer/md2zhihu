@@ -20,7 +20,7 @@ inline math in codespan `$$ ||X{\vec {\beta }}-Y||^{2} $$`
 ![](simple/18b61671112f3aeb-slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
-例如 [slim](https://github.com/openacid/slim) 这个项目按天统计的 star 数:
+例如 [slim](https://github.com/openacid/slim "slim") 这个项目按天统计的 star 数:
 
 ![](simple/18b61671112f3aeb-slim.jpg)
 
@@ -31,7 +31,7 @@ inline math in codespan `$$ ||X{\vec {\beta }}-Y||^{2} $$`
 | 1,000 | rand u32: [0, 1000] | x | 824 byte | 6 bit/elt | 18% |
 | 1,000,000 | rand u32: [0, 1000,000] | x | 702 KB | 5 bit/elt | 15% |
 | 1,000,000 | IPv4 DB | 2 MB | 2 MB | 16 bit/elt | 50% |
-| 600 | [slim](https://github.com/openacid/slim) star count | 602 byte | 832 byte | 10 bit/elt | 26% |
+| 600 | [slim](https://github.com/openacid/slim "slim") star count | 602 byte | 832 byte | 10 bit/elt | 26% |
 {/table}
 
 在达到gzip同等压缩率的前提下, 构建 slimarray 和 访问的性能也非常高:
@@ -54,7 +54,7 @@ inline math in codespan `$$ ||X{\vec {\beta }}-Y||^{2} $$`
 # 找到趋势函数
 
 寻找这样一条曲线就使用线性回归,
-例如在 [slimarray](https://github.com/openacid/slimarray) 中使用2次曲线 `f(x) = β₁ + β₂x + β₃x²`, 所要做的就是确定每个βᵢ的值,
+例如在 [slimarray](https://github.com/openacid/slimarray "slimarray") 中使用2次曲线 `f(x) = β₁ + β₂x + β₃x²`, 所要做的就是确定每个βᵢ的值,
 以使得`f(xⱼ) - yⱼ`的均方差最小. xⱼ是数组下标0, 1, 2...; yⱼ是数组中每个元素的值.
 
 {tex_block:imgtag}

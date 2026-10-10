@@ -102,7 +102,10 @@ alias_args = {
 # The rule that the references in a front matter or a --refs file break.
 refs_rule = "must be a mapping of names to URLs, or a list of such mappings"
 
-# Front matter and --refs files of a shape that md2zhihu can not read, as name: (a.md, refs.yaml, the error message).
+# The rule that the value of a reference breaks.
+ref_value_rule = 'must be a URL and an optional title, such as https://grpc.io "gRPC"'
+
+# Front matter and --refs files that md2zhihu can not read, as name: (a.md, refs.yaml, the error message).
 # md2zhihu converts a.md with "--refs refs.yaml".
 bad_shapes = {
     "refs-number": ("---\nrefs: 3\n---\n", "", "refs in the front matter of a.md: " + refs_rule),
@@ -113,6 +116,12 @@ bad_shapes = {
     ),
     "refs-file-list": ("# a\n", "- x\n", "refs.yaml: must be a mapping"),
     "universal-text": ("# a\n", "universal: http://a\n", "universal in refs.yaml: " + refs_rule),
+    "refs-empty-value": ('---\nrefs: {r: ""}\n---\n', "", "refs in the front matter of a.md: r: " + ref_value_rule),
+    "universal-unquoted-title": (
+        "# a\n",
+        "universal:\n  - r: https://a.com A\n",
+        "universal in refs.yaml: r: " + ref_value_rule,
+    ),
 }
 
 # --embed flags before an input, as (md2zhihu arguments, the parsed regexes).

@@ -37,7 +37,7 @@ func main() {
 Image should be processed:
 ![](transparent/18b61671112f3aeb-slim.jpg)
 
-Reference link [slim](https://github.com/openacid/slim) should pass through unchanged.
+Reference link [slim](https://github.com/openacid/slim "slim") should pass through unchanged.
 
 
 

@@ -16,4 +16,4 @@ Reference:
 - slim : [https://github.com/openacid/slim](https://github.com/openacid/slim)
 
 
-[slim]:  https://github.com/openacid/slim
+[slim]: https://github.com/openacid/slim

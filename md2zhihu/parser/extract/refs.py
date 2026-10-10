@@ -7,6 +7,7 @@ from k3fs import fread
 from ...config import Config
 from ...errors import FormatError
 from ...types import RefDict
+from ..mistune3 import parse_ref
 
 
 def load_external_refs(conf: Config) -> RefDict:
@@ -36,6 +37,7 @@ def mapping_in(value: Any, where: str) -> Dict[str, Any]:
 def refs_in(value: Any, where: str) -> RefDict:
     """
     Return the references that YAML loaded as `value`: a mapping of names to URLs, or a list of such mappings.
+    A URL may have a title, as in a link reference definition, such as `https://grpc.io "gRPC"`.
     Raise FormatError, which names `where`, for any other value.
     """
     if value is None:
@@ -51,7 +53,11 @@ def refs_in(value: Any, where: str) -> RefDict:
 
     refs: RefDict = {}
     for m in mappings:
-        refs.update(m)
+        for name, definition in m.items():
+            ref = parse_ref(definition)
+            if ref is None:
+                raise FormatError(f'{where}: {name}: must be a URL and an optional title, such as https://grpc.io "gRPC"')
+            refs[name] = ref
     return refs
 
 

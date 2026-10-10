@@ -1,4 +1,4 @@
-A reference defined in a refs file: [protobuf](https://github.com/protocolbuffers/protobuf).
+A reference defined in a refs file: [protobuf](https://github.com/protocolbuffers/protobuf "protobuf").
 
 
 

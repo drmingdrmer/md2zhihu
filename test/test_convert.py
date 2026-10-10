@@ -114,6 +114,60 @@ warn_cases = {
     "warn-emphasis-text": ("[*foo*][bar]", ["[*foo*][bar]"]),
 }
 
+# References whose URL has angle brackets or whose title has escapes, as name: (markdown, the lines that zhihu renders).
+# A link gets the URL as mistune writes it, percent-encoded, and the title; the reference list shows the URL as written.
+ref_definitions = {
+    "image-angle-brackets": (
+        '![logo][img]\n\n[img]: <https://example.com/logo.png> "Logo"\n',
+        ['![logo](https://example.com/logo.png "Logo")', "", "", ""],
+    ),
+    "space-in-url": (
+        "[x][r]\n\n[r]: <no such.pdf>\n",
+        [
+            "[x](no%20such.pdf)",
+            "",
+            "",
+            "",
+            "Reference:",
+            "",
+            "- r : [no such.pdf](no%20such.pdf)",
+            "",
+            "",
+            "[r]: no%20such.pdf",
+        ],
+    ),
+    "title-escapes": (
+        "[a][t]\n\n" + r'[t]: https://a.com "say \"hi\" \\ now"',
+        [
+            r'[a](https://a.com "say \"hi\" \\ now")',
+            "",
+            "",
+            "",
+            "Reference:",
+            "",
+            r'- say "hi" \ now : [https://a.com](https://a.com)',
+            "",
+            "",
+            r'[t]: https://a.com "say \"hi\" \\ now"',
+        ],
+    ),
+    "front-matter": (
+        '---\nrefs:\n  - r: <no such.pdf> "Paper"\n---\n[x][r]\n',
+        [
+            '[x](no%20such.pdf "Paper")',
+            "",
+            "",
+            "",
+            "Reference:",
+            "",
+            "- Paper : [no such.pdf](no%20such.pdf)",
+            "",
+            "",
+            '[r]: no%20such.pdf "Paper"',
+        ],
+    ),
+}
+
 
 def fake_convert(input_typ, content, output_typ, opt=None):
     """
@@ -238,6 +292,44 @@ def test_linked_file(tmp_path, monkeypatch):
     assert os.listdir("out/a") == [stored]
     assert (tmp_path / "out" / "a" / stored).read_bytes() == b"pdf"
     assert lines[0] == "[paper](a/" + stored + ")"
+
+
+def test_reference_to_linked_file(tmp_path, monkeypatch):
+    (tmp_path / "paper 1.pdf").write_bytes(b"pdf")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+    md_text = '[paper][r]\n\n[r]: <paper 1.pdf> "Paper"\n'
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
+
+    # As for an inline link, md2zhihu copies the file and points the link, the list and the definition at the copy.
+    url = "a/" + hashlib.md5(b"pdf").hexdigest()[:16] + "-paper-1.pdf"
+    assert (tmp_path / "out" / url).read_bytes() == b"pdf"
+    want = [
+        f'[paper]({url} "Paper")',
+        "",
+        "",
+        "",
+        "Reference:",
+        "",
+        f"- Paper : [{url}]({url})",
+        "",
+        "",
+        f'[r]: {url} "Paper"',
+    ]
+    assert lines == want
+
+
+@pytest.mark.parametrize("name", sorted(ref_definitions))
+def test_reference_definition(name, tmp_path, monkeypatch):
+    md_text, want = ref_definitions[name]
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
+
+    assert lines == want
 
 
 def request_convert(input_typ, content, output_typ, opt=None):

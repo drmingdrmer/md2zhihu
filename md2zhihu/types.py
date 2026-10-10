@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -15,8 +16,20 @@ from typing_extensions import TypeAlias
 ASTNode: TypeAlias = Dict[str, Any]
 ASTNodes: TypeAlias = List[ASTNode]
 
-# Reference dictionary: {ref_id: url}
-RefDict: TypeAlias = Dict[str, str]
+
+@dataclass
+class Ref:
+    """
+    A link reference definition, such as `[grpc]: https://grpc.io "gRPC"`.
+    `url` is percent-encoded, as mistune writes the URL of a link, and `title` is None without a title.
+    """
+
+    url: str
+    title: Optional[str] = None
+
+
+# Reference dictionary: {ref_id: Ref}
+RefDict: TypeAlias = Dict[str, Ref]
 
 # Feature handler type for MDRender
 # Returns list of rendered lines, or None if not handled

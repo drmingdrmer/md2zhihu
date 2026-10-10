@@ -20,5 +20,5 @@ Reference:
 - fm : [https://text.example.com/fm](https://text.example.com/fm)
 
 
-[dup]:  https://example.com/first
-[fm]:  https://text.example.com/fm
+[dup]: https://example.com/first
+[fm]: https://text.example.com/fm

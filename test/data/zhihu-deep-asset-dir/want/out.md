@@ -33,7 +33,7 @@ inline math in codespan `$$ ||X{\vec {\beta }}-Y||^{2} $$`
 ![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/foo/bar/simple/18b61671112f3aeb-slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
-例如 [slim](https://github.com/openacid/slim) 这个项目按天统计的 star 数:
+例如 [slim](https://github.com/openacid/slim "slim") 这个项目按天统计的 star 数:
 
 ![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@my_branch_deep/foo/bar/simple/18b61671112f3aeb-slim.jpg)
 
@@ -74,7 +74,7 @@ inline math in codespan `$$ ||X{\vec {\beta }}-Y||^{2} $$`
 </tr>
 <tr class="even">
 <td style="text-align: right;">600</td>
-<td style="text-align: left;"><a href="https://github.com/openacid/slim">slim</a> star count</td>
+<td style="text-align: left;"><a href="https://github.com/openacid/slim" title="slim">slim</a> star count</td>
 <td style="text-align: right;">602 byte</td>
 <td style="text-align: left;">832 byte</td>
 <td style="text-align: right;">10 bit/elt</td>
@@ -102,7 +102,7 @@ inline math in codespan `$$ ||X{\vec {\beta }}-Y||^{2} $$`
 # 找到趋势函数
 
 寻找这样一条曲线就使用线性回归,
-例如在 [slimarray](https://github.com/openacid/slimarray) 中使用2次曲线 `f(x) = β₁ + β₂x + β₃x²`, 所要做的就是确定每个βᵢ的值,
+例如在 [slimarray](https://github.com/openacid/slimarray "slimarray") 中使用2次曲线 `f(x) = β₁ + β₂x + β₃x²`, 所要做的就是确定每个βᵢ的值,
 以使得`f(xⱼ) - yⱼ`的均方差最小. xⱼ是数组下标0, 1, 2...; yⱼ是数组中每个元素的值.
 
 <img src="https://www.zhihu.com/equation?tex=%20X%20%3D%20%5Cbegin%7Bbmatrix%7D%201%20%20%20%20%20%20%26%20x_1%20%20%20%20%26%20x_1%5E2%20%5C%5C%201%20%20%20%20%20%20%26%20x_2%20%20%20%20%26%20x_2%5E2%20%5C%5C%20%5Cvdots%20%26%20%5Cvdots%20%26%20%5Cvdots%20%20%20%20%5C%5C%201%20%20%20%20%20%20%26%20x_n%20%20%20%20%26%20x_n%5E2%20%5Cend%7Bbmatrix%7D%20%2C%20%20%5Cvec%7B%5Cbeta%7D%20%3D%20%5Cbegin%7Bbmatrix%7D%20%5Cbeta_1%20%5C%5C%20%5Cbeta_2%20%5C%5C%20%5Cbeta_3%20%5C%5C%20%5Cend%7Bbmatrix%7D%20%2C%20%20Y%20%3D%20%5Cbegin%7Bbmatrix%7D%20y_1%20%5C%5C%20y_2%20%5C%5C%20%5Cvdots%20%5C%5C%20y_n%20%5Cend%7Bbmatrix%7D%20%5C%5C" alt=" X = \begin{bmatrix} 1      & x_1    & x_1^2 \\ 1      & x_2    & x_2^2 \\ \vdots & \vdots & \vdots    \\ 1      & x_n    & x_n^2 \end{bmatrix} ,  \vec{\beta} = \begin{bmatrix} \beta_1 \\ \beta_2 \\ \beta_3 \\ \end{bmatrix} ,  Y = \begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_n \end{bmatrix} \\" class="ee_img tr_noresize" eeimg="1">

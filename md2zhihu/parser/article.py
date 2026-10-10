@@ -10,6 +10,7 @@ from ..config import Config
 from ..errors import MissingFileError
 from ..renderer import MDRender
 from ..renderer import RenderNode
+from ..types import Ref
 from ..types import RefDict
 from ..utils import add_paragraph_end
 from ..utils import warn
@@ -17,6 +18,7 @@ from . import mistune3
 from .extract.front_matter import FrontMatter
 from .extract.front_matter import extract_front_matter
 from .extract.refs import load_external_refs
+from .output import render_ref_definitions
 from .output import render_ref_list
 from .transform.rebase import rebase_url
 from .transform.rebase import rebase_url_in_ast
@@ -145,9 +147,9 @@ class Article(object):
             # update used_refs
 
             used = {}
-            for k, v in article.used_refs.items():
-                v = v.strip()
-                used[k] = rebase_url(child_base, parent_base, v)
+            for k, ref in article.used_refs.items():
+                url = rebase_url(child_base, parent_base, ref.url)
+                used[k] = Ref(url, ref.title)
 
             used_refs.update(used)
 
@@ -184,7 +186,7 @@ class Article(object):
                 yield "content", node["type"], "\n".join(output_lines)
 
         used_refs = self.stored_refs()
-        ref_lines = ["[{id}]: {d}".format(id=ref_id, d=used_refs[ref_id]) for ref_id in sorted(used_refs)]
+        ref_lines = render_ref_definitions(used_refs)
 
         yield "ref_def", "", "\n".join(ref_lines)
 
@@ -208,7 +210,7 @@ class Article(object):
 
         output_lines.append("")
 
-        ref_lines = ["[{id}]: {d}".format(id=ref_id, d=used_refs[ref_id]) for ref_id in sorted(used_refs)]
+        ref_lines = render_ref_definitions(used_refs)
         output_lines.extend(ref_lines)
 
         return output_lines
@@ -222,11 +224,9 @@ class Article(object):
         assert self.used_refs is not None
 
         refs: RefDict = {}
-        for ref_id, definition in self.used_refs.items():
-            # A definition is a URL and an optional title, as render_ref_list() reads it.
-            url = definition.split()[0]
-            stored_url = store_linked_file(self.conf, url)
-            refs[ref_id] = definition.replace(url, stored_url, 1)
+        for ref_id, ref in self.used_refs.items():
+            stored_url = store_linked_file(self.conf, ref.url)
+            refs[ref_id] = Ref(stored_url, ref.title)
         return refs
 
 

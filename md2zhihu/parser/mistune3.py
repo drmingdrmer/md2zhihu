@@ -15,13 +15,18 @@ import mistune
 from mistune.block_parser import BlockParser
 from mistune.core import BlockState
 from mistune.core import InlineState
+from mistune.helpers import parse_link_href
+from mistune.helpers import parse_link_title
+from mistune.helpers import unescape_char
 from mistune.inline_parser import InlineParser
 from mistune.plugins.table import table_in_list
 from mistune.plugins.table import table_in_quote
+from mistune.util import escape_url
 from mistune.util import unikey
 
 from ..types import ASTNode
 from ..types import ASTNodes
+from ..types import Ref
 from ..types import RefDict
 
 # A mistune 3 token.
@@ -60,7 +65,6 @@ def new_markdown() -> mistune.Markdown:
         renderer="ast",
         plugins=["strikethrough", "table", table_in_list, table_in_quote],
     )
-    md.block.register("ref_link", None, parse_ref_link)
     md.inline.register("escape", None, parse_escape)
     md.inline.register("link", None, parse_link)
     md.inline.register("math", r"\$", parse_math)
@@ -75,7 +79,7 @@ def parse(text: str, refs: RefDict, populate_reference: bool) -> Tuple[ASTNodes,
     """
     Parse markdown with mistune 3 into the AST that md2zhihu renders.
 
-    `refs` maps md2zhihu's name of each reference from outside the text to its value, such as `https://a.com "title"`.
+    `refs` maps md2zhihu's name of each reference from outside the text to its definition.
     A definition in the text wins over the reference of the same name.
     With `populate_reference` False, a link to a reference keeps its form, such as `[text][name]`.
 
@@ -95,47 +99,43 @@ def parse(text: str, refs: RefDict, populate_reference: bool) -> Tuple[ASTNodes,
     return adapt(tokens), state.env["used_refs"], state.env["undefined_refs"]
 
 
-def add_refs(ref_links: Dict[str, Dict[str, str]], refs: RefDict) -> None:
+def add_refs(ref_links: Dict[str, Dict[str, Any]], refs: RefDict) -> None:
     """
     Add md2zhihu's references to mistune 3's `ref_links`, so that mistune resolves them.
     A name that the text defines keeps the definition in the text.
     """
 
-    for name, value in refs.items():
+    for name, ref in refs.items():
         key = unikey(name)
         if key not in ref_links:
-            ref_links[key] = new_ref_link(name, value)
+            # mistune upper-cases its key, so its entry keeps the name as written in "label", as for a definition in the text.
+            ref_links[key] = {"url": ref.url, "title": ref.title, "label": name}
 
 
-def new_ref_link(name: str, value: str) -> Dict[str, str]:
+def parse_ref(value: str) -> Optional[Ref]:
     """
-    Build mistune 3's entry of the reference `name`, whose value is a URL and an optional title.
-    mistune upper-cases its key, so the entry also keeps md2zhihu's name and value, which the output lists.
-    """
-
-    return {"url": value.split()[0], "name": name, "value": value}
-
-
-def parse_ref_link(block: BlockParser, m: re.Match[str], state: BlockState) -> Optional[int]:
-    """
-    Run mistune's rule for a link reference definition, which reads one only where CommonMark allows it:
-    not in code, and not in a paragraph. As in CommonMark, the first definition of a name wins.
-    Keep a definition as md2zhihu's reference: its name, and the text after "]:" as its value.
+    Parse `value` as the text after "]:" of a link reference definition: a URL and an optional title,
+    such as `https://a.com "A"` or `<a b.pdf>`. Return None if `value` is not one, such as an empty text.
+    The result is what mistune keeps of such a definition in the text.
     """
 
-    name = m.group("reflink_1")
-    key = unikey(name)
-    defined = key in state.env["ref_links"]
-    end = block.parse_ref_link(m, state)
-    if defined or key not in state.env["ref_links"]:
-        # The line is not a definition, such as a line of a paragraph, or an earlier definition has the name.
-        return end
+    url, url_end = parse_link_href(value, 0, block=True)
+    if url is None:
+        return None
+    assert url_end is not None
 
-    assert end is not None
-    # A definition may span lines, such as one with its URL on the next line, but its value is one line.
-    value = state.src[m.end() : end].rstrip("\n").replace("\n", " ")
-    state.env["ref_links"][key] = new_ref_link(name, value)
-    return end
+    title, title_end = parse_link_title(value, url_end, len(value))
+    end = url_end
+    if title_end is not None:
+        end = title_end
+    if value[end:].strip() != "":
+        return None
+
+    if title == "":
+        title = None
+    url = unescape_char(url)
+    url = escape_url(url)
+    return Ref(url, title)
 
 
 def parse_escape(inline: InlineParser, m: re.Match[str], state: InlineState) -> int:
@@ -182,7 +182,7 @@ def use_ref(state: InlineState, index: int, tail: str) -> None:
     """
 
     ref = state.env["ref_links"][state.tokens[index]["ref"]]
-    state.env["used_refs"][ref["name"]] = ref["value"]
+    state.env["used_refs"][ref["label"]] = Ref(ref["url"], ref.get("title"))
     if not state.env["populate_reference"]:
         # The text keeps its tokens, so that md2zhihu converts the math in it, such as in "[$x$][name]".
         opening = {"type": "text", "raw": "["}

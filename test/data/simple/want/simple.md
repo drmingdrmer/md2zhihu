@@ -17,14 +17,14 @@ inline math in codespan $$ ||X{\vec {\beta }}-Y||^{2} $$
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/18b61671112f3aeb-slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
-例如 [slim](https://github.com/openacid/slim) 这个项目按天统计的 star 数:
+例如 [slim](https://github.com/openacid/slim "slim") 这个项目按天统计的 star 数:
 
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/18b61671112f3aeb-slim.jpg)
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/18b61671112f3aeb-slim.jpg)
 
 我们可以利用数据分布的特点, 将整体数据的大小压缩到**几分之一**.
 
-![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/DatasizeDataSetgzipsizeslimarrys-c13589aafb458a8f.jpg)
+![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/DatasizeDataSetgzipsizeslimarrys-7e3fcca07ea8c4b2.jpg)
 
 在达到gzip同等压缩率的前提下, 构建 slimarray 和 访问的性能也非常高:
 
@@ -46,7 +46,7 @@ inline math in codespan $$ ||X{\vec {\beta }}-Y||^{2} $$
 # 找到趋势函数
 
 寻找这样一条曲线就使用线性回归,
-例如在 [slimarray](https://github.com/openacid/slimarray) 中使用2次曲线 f(x) = β₁ + β₂x + β₃x², 所要做的就是确定每个βᵢ的值,
+例如在 [slimarray](https://github.com/openacid/slimarray "slimarray") 中使用2次曲线 f(x) = β₁ + β₂x + β₃x², 所要做的就是确定每个βᵢ的值,
 以使得f(xⱼ) - yⱼ的均方差最小. xⱼ是数组下标0, 1, 2...; yⱼ是数组中每个元素的值.
 
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/X=beginbmatrix1x_1x_121x_2x_22vd-45bfb90b1f20d8c1.jpg)

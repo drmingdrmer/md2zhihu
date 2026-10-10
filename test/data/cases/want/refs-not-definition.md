@@ -18,7 +18,7 @@ A text footnote: Paxos is safe[^1].
 
 [^1]: This holds only with a majority quorum.
 
-A definition after the code blocks: [bar](https://example.com/bar).
+A definition after the code blocks: [bar](https://example.com/bar "Bar").
 
 
 
@@ -27,4 +27,4 @@ Reference:
 - Bar : [https://example.com/bar](https://example.com/bar)
 
 
-[bar]:  https://example.com/bar "Bar"
+[bar]: https://example.com/bar "Bar"

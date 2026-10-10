@@ -7,4 +7,4 @@ Reference:
 - foo : [https://a.com/foo](https://a.com/foo)
 
 
-[foo]:  https://a.com/foo
+[foo]: https://a.com/foo
