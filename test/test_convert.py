@@ -450,6 +450,33 @@ def test_embed_same_file_twice(tmp_path, monkeypatch):
     assert article.render() == ["b", "", "b", "", "", ""]
 
 
+@pytest.mark.parametrize("start", [99, 100, 999])
+def test_ordered_list_start(start, tmp_path):
+    # Each block of the first item starts at the column of its text, such as column 5 after "100. ".
+    pad = " " * len(f"{start}. ")
+    first_item = [
+        f"{start}. first",
+        "",
+        pad + "continuation",
+        "",
+        pad + "- nested",
+        "",
+        pad + "```",
+        pad + "code",
+        pad + "```",
+    ]
+    md_text = "\n".join(first_item) + f"\n\n{start + 1}. next\n"
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", out_dir, out_dir, md_output_path=out_dir + "/")
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
+
+    # The output parses to the same list: two items, the first with a paragraph, a nested list and code after its text.
+    want, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
+    got, _, _ = md2zhihu.parser.mistune3.parse("\n".join(lines), {}, True)
+    assert got == want
+
+
 def test_render_twice(tmp_path, monkeypatch):
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "x.png").write_bytes(b"png")

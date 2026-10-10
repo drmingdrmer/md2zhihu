@@ -130,11 +130,11 @@ class MDRender(object):
                 if start is None:
                     start = 1
                 # A markdown parser numbers the items from the first number and ignores the others.
-                # Up to 99, the marker is 4 characters wide, as indent() indents the later lines of the item.
                 head = (str(start) + ".").ljust(3) + " "
 
             lines[0] = head + lines[0]
-            lines = lines[0:1] + [indent(x) for x in lines[1:]]
+            # The later lines of the item start at the column of its text, such as column 5 after "100. ".
+            lines = lines[0:1] + [indent(x, len(head)) for x in lines[1:]]
             return lines
 
         if typ == "block_text":

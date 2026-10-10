@@ -44,10 +44,11 @@ def mask_url_credential(s: str) -> str:
     return re.sub(r"(https?://)[^/@\s]+@", r"\1***@", s)
 
 
-def indent(line: str) -> str:
+def indent(line: str, width: int = 4) -> str:
+    """Indent `line` by `width` spaces, or return it as it is if it is empty."""
     if line == "":
         return ""
-    return "    " + line
+    return " " * width + line
 
 
 def escape(s: str, quote: bool = True) -> str:
