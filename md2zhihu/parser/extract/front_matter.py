@@ -4,9 +4,8 @@ from typing import Dict
 from typing import Optional
 from typing import Tuple
 
-import yaml
-
 from ...types import RefDict
+from .refs import load_yaml
 from .refs import mapping_in
 from .refs import refs_in
 
@@ -16,9 +15,10 @@ class FrontMatter(object):
     The font matter is the yaml enclosed between `---` at the top of a markdown.
     """
 
-    def __init__(self, front_matter_text: str) -> None:
+    def __init__(self, front_matter_text: str, src_path: str = "the markdown") -> None:
+        """Raise FormatError, which names `src_path`, if the front matter is not valid YAML."""
         self.text: str = front_matter_text
-        self.data: Dict[str, Any] = yaml.safe_load(front_matter_text)
+        self.data: Dict[str, Any] = load_yaml(front_matter_text, "the front matter of " + src_path)
 
     def get_refs(self, platform: str, src_path: str = "the markdown") -> RefDict:
         """
@@ -44,12 +44,12 @@ class FrontMatter(object):
         return dic
 
 
-def extract_front_matter(cont: str) -> Tuple[str, Optional[FrontMatter]]:
+def extract_front_matter(cont: str, src_path: str = "the markdown") -> Tuple[str, Optional[FrontMatter]]:
     meta: Optional[FrontMatter] = None
     m = re.match(r"^ *--- *\n(.*?)\n---\n", cont, flags=re.DOTALL | re.UNICODE)
     if m:
         cont = cont[m.end() :]
         meta_text = m.groups()[0].strip()
-        meta = FrontMatter(meta_text)
+        meta = FrontMatter(meta_text, src_path)
 
     return cont, meta

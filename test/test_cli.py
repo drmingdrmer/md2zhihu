@@ -41,6 +41,7 @@ bad_args = {
     "unknown-placeholder": (["a.md", "-o", "out/{name}.md"], "-o out/{name}.md: " + placeholder_rule),
     "positional-placeholder": (["a.md", "-o", "out/{0}.md"], "-o out/{0}.md: " + placeholder_rule),
     "single-brace": (["a.md", "-o", "out/{"], "-o out/{: " + placeholder_rule),
+    "bad-embed-regex": (["a.md", "--embed", "["], "--embed [: unterminated character set at position 0"),
     "protected-branch": (
         ["a.md", "-r", "git@github.com:x/y.git@main"],
         "--repo git@github.com:x/y.git@main: Cannot force push to protected branch: main. Use a different branch name.",
@@ -106,7 +107,7 @@ refs_rule = "must be a mapping of names to URLs, or a list of such mappings"
 ref_value_rule = 'must be a URL and an optional title, such as https://grpc.io "gRPC"'
 
 # Front matter and --refs files that md2zhihu can not read, as name: (a.md, refs.yaml, the error message).
-# md2zhihu converts a.md with "--refs refs.yaml".
+# md2zhihu converts a.md with "--refs refs.yaml", and refs.yaml is missing for None.
 bad_shapes = {
     "refs-number": ("---\nrefs: 3\n---\n", "", "refs in the front matter of a.md: " + refs_rule),
     "platform-refs-list": (
@@ -117,6 +118,17 @@ bad_shapes = {
     "refs-file-list": ("# a\n", "- x\n", "refs.yaml: must be a mapping"),
     "universal-text": ("# a\n", "universal: http://a\n", "universal in refs.yaml: " + refs_rule),
     "refs-empty-value": ('---\nrefs: {r: ""}\n---\n', "", "refs in the front matter of a.md: r: " + ref_value_rule),
+    "front-matter-syntax": (
+        "---\nrefs: [\n---\n",
+        "",
+        "the front matter of a.md: line 1, column 8: expected the node content, but found '<stream end>'",
+    ),
+    "refs-file-syntax": (
+        "# a\n",
+        "universal: [\n",
+        "refs.yaml: line 2, column 1: expected the node content, but found '<stream end>'",
+    ),
+    "missing-refs-file": ("# a\n", None, "refs file not found: 'refs.yaml'"),
     "universal-unquoted-title": (
         "# a\n",
         "universal:\n  - r: https://a.com A\n",
@@ -242,12 +254,15 @@ def test_bad_shape(name, tmp_path, monkeypatch, capsys, restore_logger):
     md, refs_yaml, want = bad_shapes[name]
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text(md)
-    (tmp_path / "refs.yaml").write_text(refs_yaml)
+    if refs_yaml is not None:
+        (tmp_path / "refs.yaml").write_text(refs_yaml)
 
-    code, err = run_failing(monkeypatch, capsys, ["a.md", "--refs", "refs.yaml"])
+    # md2zhihu converts a.md in place, so a.md shows whether it failed before it wrote the output.
+    code, err = run_failing(monkeypatch, capsys, ["a.md", "--refs", "refs.yaml", "-o", "a.md"])
 
     assert code == 1
     assert err == "md2zhihu: error: " + want + "\n"
+    assert (tmp_path / "a.md").read_text() == md
 
 
 def test_repo_without_remote(tmp_path, monkeypatch, capsys, restore_logger):

@@ -73,7 +73,7 @@ class Article(object):
 
         # extract article meta
 
-        self.md_text, self.front_matter = extract_front_matter(self.md_text)
+        self.md_text, self.front_matter = extract_front_matter(self.md_text, conf.src_path)
 
         # build refs
 

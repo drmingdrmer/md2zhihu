@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import re
 import subprocess
 import sys
 from typing import Dict
@@ -88,6 +89,15 @@ def check_md_output(parser: argparse.ArgumentParser, md_output: str) -> None:
     except (KeyError, IndexError, ValueError):
         rule = "the only placeholder is {title}, and a brace in a name must be doubled, as {{ or }}"
         parser.error(f"-o {md_output}: {rule}")
+
+
+def check_embed_patterns(parser: argparse.ArgumentParser, patterns: List[str]) -> None:
+    """Exit with a usage error if an --embed pattern is not a regex."""
+    for pattern in patterns:
+        try:
+            re.compile(pattern)
+        except re.error as e:
+            parser.error(f"--embed {pattern}: {e}")
 
 
 def check_asset_output_dir(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
@@ -208,6 +218,7 @@ def run():
 
     check_src_paths(parser, args.src_path)
     check_md_output(parser, args.md_output)
+    check_embed_patterns(parser, args.embed)
     check_asset_output_dir(parser, args)
     asset_repo = new_asset_repo(parser, args.repo, args.branch)
 
