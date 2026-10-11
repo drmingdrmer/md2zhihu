@@ -1,6 +1,7 @@
 from typing import List
 from urllib.parse import unquote
 
+from ..renderer.md_render import escape_text
 from ..renderer.md_render import link_destination
 from ..renderer.md_render import link_title
 from ..types import RefDict
@@ -17,11 +18,13 @@ def render_ref_list(refs: RefDict, platform: str) -> List[str]:
         url = link_destination(ref.url)
         # mistune percent-encodes a URL, such as "图片" to "%E5%9B%BE%E7%89%87", but the text shows it as written.
         url_text = unquote(ref.url)
+        url_text = escape_text(url_text)
 
         if ref.title is None:
+            # A name is a label as written, such as "foo\!", but mistune removes the backslash escapes from a title.
             txt = ref_id
         else:
-            txt = ref.title
+            txt = escape_text(ref.title)
 
         ref_lines.append("- {id} : [{url_text}]({url})".format(id=txt, url_text=url_text, url=url))
 

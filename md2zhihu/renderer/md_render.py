@@ -51,6 +51,11 @@ delimiters = [".", ")"]
 # or with the backticks of a code span that md2zhihu writes with fewer backticks than the source.
 literal_markers = re.compile(r"\\.|[*`]")
 
+# A char of plain text that starts inline markdown where md2zhihu writes the text, such as the text of an autolink
+# or the title of a reference: a backslash escape, a code span, an emphasis, a link, md2zhihu's math, a strikethrough,
+# or inline HTML.
+text_specials = re.compile(r"[\\`*_\[\]$~<]")
+
 
 class MDRender(object):
     # platform specific renderer
@@ -315,6 +320,26 @@ def escape_marker(m: re.Match[str]) -> str:
     if s == "`":
         return "&#96;"
     return "\\" + s
+
+
+def escape_text(text: str) -> str:
+    r"""
+    Return the plain text `text` as markdown that shows it, with each char of `text_specials` escaped,
+    such as "a\_b" for "a_b".
+    An "&" is kept, because mistune keeps a character reference in the title of a link as written, such as "&amp;".
+    """
+    return text_specials.sub(escape_text_char, text)
+
+
+def escape_text_char(m: re.Match[str]) -> str:
+    r"""
+    Return the match of `text_specials` escaped, such as "\_" for "_".
+    A "`" is written as "&#96;", because in the text of a link mistune starts a code span at "\`" too.
+    """
+    c = m.group(0)
+    if c == "`":
+        return "&#96;"
+    return "\\" + c
 
 
 def emphasis_marker(rnode) -> str:

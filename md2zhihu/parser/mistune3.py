@@ -24,6 +24,7 @@ from mistune.plugins.table import table_in_quote
 from mistune.util import escape_url
 from mistune.util import unikey
 
+from ..renderer.md_render import escape_text
 from ..types import ASTNode
 from ..types import ASTNodes
 from ..types import Ref
@@ -53,10 +54,6 @@ code_span = re.compile(r"(`+)[\s\S]*?\1")
 
 # A line of only "$$", which opens math on the lines after it.
 math_opening_line = r"^ {0,3}\$\$[ \t]*$"
-
-# A char in the text of an autolink that starts inline markdown where md2zhihu writes the text, in "[...]":
-# a backslash escape, a code span, an emphasis, a link, md2zhihu's math or a strikethrough.
-autolink_specials = re.compile(r"[\\`*_\[\]$~]")
 
 
 def new_markdown() -> mistune.Markdown:
@@ -269,19 +266,7 @@ def escape_autolink_text(tokens: List[Token]) -> None:
         if tok["type"] != "link":
             continue
         text = tok["children"][0]
-        text["raw"] = autolink_specials.sub(escape_autolink_char, text["raw"])
-
-
-def escape_autolink_char(m: re.Match[str]) -> str:
-    r"""
-    Return the match of `autolink_specials` escaped, such as "\_" for "_".
-    A "`" is written as "&#96;", because in the text of a link mistune starts a code span at "\`" too.
-    """
-
-    c = m.group(0)
-    if c == "`":
-        return "&#96;"
-    return "\\" + c
+        text["raw"] = escape_text(text["raw"])
 
 
 def parse_math(inline: InlineParser, m: re.Match[str], state: InlineState) -> Optional[int]:
