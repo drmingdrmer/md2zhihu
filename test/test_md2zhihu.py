@@ -1,16 +1,18 @@
+import filecmp
 import glob
 import os
 import re
+import shutil
 import unittest
 
 import k3fs
 import k3git
 import k3proc
 import k3ut
+import pytest
 import skimage
 import skimage.io
 from k3handy import cmdx
-from k3handy import pabs
 from k3handy import pjoin
 from skimage.metrics import structural_similarity
 
@@ -34,6 +36,11 @@ class TestMd2zhihu(unittest.TestCase):
 
     def tearDown(self):
         self._clean()
+
+    @pytest.fixture(autouse=True)
+    def _tmp_path(self, tmp_path):
+        # A unittest method takes no pytest fixture as an argument, so each test reads its own folder from here.
+        self.tmp_path = str(tmp_path)
 
     def test_asset_repo(self):
         for url in (
@@ -445,7 +452,7 @@ class TestMd2zhihu(unittest.TestCase):
         cmdx("md2zhihu", "simple.md", "--md-output", "out.md", "--output-dir", ".", cwd=d)
 
         cmp_md(self, pjoin(want_dir, "out.md"), pjoin(d, "out.md"))
-        cmp_all_images(self, d, want_dir)
+        cmp_all_images(self, want_dir, d)
 
         cmdx("git", "clean", "-dxf", cwd=d)
 
@@ -481,7 +488,7 @@ class TestMd2zhihu(unittest.TestCase):
         )
 
         cmp_md(self, pjoin(want_dir, "out.md"), pjoin(d, "out.md"))
-        cmp_all_images(self, d, want_dir)
+        cmp_all_images(self, want_dir, d)
 
         # clone pushed branch and check its content
 
@@ -537,7 +544,7 @@ class TestMd2zhihu(unittest.TestCase):
         )
 
         cmp_md(self, pjoin(want_dir, "out.md"), pjoin(d, "out.md"))
-        cmp_all_images(self, d, want_dir)
+        cmp_all_images(self, want_dir, d)
 
         # clone pushed branch and check its content
 
@@ -723,6 +730,36 @@ class TestMd2zhihu(unittest.TestCase):
     def test_transparent(self):
         self._test_platform_no_push("transparent", "transparent.md", ["-p", "transparent"])
 
+    def test_cmp_all_images(self):
+        tmp = self.tmp_path
+
+        # An image that is missing in a subfolder fails the comparison.
+        os.makedirs(pjoin(tmp, "want", "nested"))
+        os.makedirs(pjoin(tmp, "got"))
+        k3fs.fwrite(tmp, "want", "nested", "missing.png", "")
+        with self.assertRaises(AssertionError) as e:
+            cmp_all_images(self, pjoin(tmp, "want"), pjoin(tmp, "got"))
+        got = str(e.exception)
+        self.assertIn("'nested/missing.png'", got)
+
+        # Images of two sizes fail the comparison, and both files stay as they are.
+        big = "test/data/zhihu/src/assets/slim.jpg"
+        small = "test/data/zhihu/want/simple/digraphRnodeshape=plaintextrankd-64adfb3ac6b25dd2.jpg"
+        os.makedirs(pjoin(tmp, "big"))
+        os.makedirs(pjoin(tmp, "small"))
+        shutil.copyfile(big, pjoin(tmp, "big", "x.jpg"))
+        shutil.copyfile(small, pjoin(tmp, "small", "x.jpg"))
+        with self.assertRaises(AssertionError) as e:
+            cmp_all_images(self, pjoin(tmp, "big"), pjoin(tmp, "small"))
+        got = str(e.exception)
+        want = f"{tmp}/small/x.jpg has the shape (131, 203, 3), but {tmp}/big/x.jpg has (400, 1024, 3)"
+        self.assertEqual(want, got)
+
+        big_kept = filecmp.cmp(big, pjoin(tmp, "big", "x.jpg"), shallow=False)
+        small_kept = filecmp.cmp(small, pjoin(tmp, "small", "x.jpg"), shallow=False)
+        self.assertTrue(big_kept)
+        self.assertTrue(small_kept)
+
     def _test_platform(self, platform_type, args):
         d = "test/data/{}".format(platform_type)
         got_dir = "dst"
@@ -770,8 +807,8 @@ class TestMd2zhihu(unittest.TestCase):
         got_dir = "dst"
         want_dir = "want"
 
-        # Derive asset directory from filename (remove extension)
-        asset_name = fn.rsplit(".", 1)[0]
+        # The asset folder has the name of the article: the file name without the extension and a date prefix.
+        asset_name = re.sub(r"^\d\d\d\d-\d\d-\d\d-", "", fn.rsplit(".", 1)[0])
         got_asset_dir = pjoin("dst", asset_name)
         want_asset_dir = pjoin("want", asset_name)
 
@@ -802,38 +839,33 @@ def cmp_md(t, want_path, got_path):
 
 
 def cmp_all_images(t, want_dir, got_dir):
-    contains_all_images(t, want_dir, got_dir)
-    contains_all_images(t, got_dir, want_dir)
+    """
+    Check that the two folders and their subfolders hold images of the same paths, and that each two images look alike.
+    md2zhihu creates the folder of the images it writes, so got_dir must exist,
+    but git keeps no empty folder, so want_dir is missing when no image is expected.
+    """
+    t.assertTrue(os.path.isdir(got_dir), got_dir + ": no such folder")
+    want = image_paths(want_dir)
+    got = image_paths(got_dir)
+    t.assertEqual(want, got)
 
-
-def contains_all_images(t, want_dir, got_dir):
-    want_dir = pabs(want_dir)
-    got_dir = pabs(got_dir)
-
-    for img in glob.glob(want_dir + "**/*", recursive=True):
-        if img.split(".")[-1] not in ("jpg", "png"):
-            continue
-
-        sub = img[len(want_dir) :]
-        b = got_dir + sub
-
-        sim = cmp_image(img, b)
+    for path in want:
+        sim = cmp_image(pjoin(want_dir, path), pjoin(got_dir, path))
         t.assertGreater(sim, 0.68)
+
+
+def image_paths(folder):
+    """Return the paths of the images in `folder` and in its subfolders, relative to `folder`, sorted."""
+    paths = glob.glob("**/*", root_dir=folder, recursive=True)
+    return sorted(p for p in paths if p.split(".")[-1] in ("jpg", "png"))
 
 
 def cmp_image(want, got):
     da = skimage.io.imread(want)
     db = skimage.io.imread(got)
+    # Resizing one image would hide a change of its size, so the two must have one size.
     if da.shape != db.shape:
-        k3proc.command_ex(
-            "convert",
-            # height then width
-            "-resize",
-            "%dx%d!" % (da.shape[1], da.shape[0]),
-            got,
-            got,
-        )
-        db = skimage.io.imread(got)
+        raise AssertionError(f"{got} has the shape {db.shape}, but {want} has {da.shape}")
 
     img1 = skimage.img_as_float(da)
     img2 = skimage.img_as_float(db)
