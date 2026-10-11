@@ -255,6 +255,20 @@ encoded_destinations = {
     471: "[link](foo%29:)\n",
 }
 
+# Emphases that start or end a strong emphasis or an emphasis, as markdown: the markdown that md2zhihu writes.
+nested_emphases = {
+    # A "_" after "b" would touch the letter "c" and close nothing, so the outer emphasis takes "_".
+    "_*b*c_\n": "_*b*c_\n",
+    "_a*b*_\n": "_a*b*_\n",
+    "_*强调*文字_\n": "_*强调*文字_\n",
+    # A strong emphasis keeps "**", so the inner emphasis keeps "*", which still closes before a letter.
+    "__*b*c__\n": "***b*c**\n",
+    # With "*", the markers would join into "***x***", an emphasis that holds a strong emphasis.
+    "**_x_**\n": "**_x_**\n",
+    # With "*", the markers would join into "****x****", two strong emphases.
+    "*__*x*__*\n": "***_x_***\n",
+}
+
 # A backslash escape or a character reference in markdown text, each of which writes one char, such as "\*" or "&#96;".
 char_escape = re.compile(r"\\[!-/:-@\[-`{-~]|&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]*);")
 
@@ -897,6 +911,19 @@ def test_example_encoded_destination(number, tmp_path):
     got = write_example(md_text, tmp_path)
 
     assert got == encoded_destinations[number]
+
+
+@pytest.mark.parametrize("md_text", sorted(nested_emphases))
+def test_nested_emphasis(md_text, tmp_path):
+    got_md = write_example(md_text, tmp_path)
+
+    assert got_md == nested_emphases[md_text]
+
+    want, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
+    got, _, _ = md2zhihu.parser.mistune3.parse(got_md, {}, True)
+    want = plain_text(want)
+    got = plain_text(got)
+    assert got == want
 
 
 def write_example(md_text, tmp_path):

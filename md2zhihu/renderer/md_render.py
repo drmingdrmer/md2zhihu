@@ -319,28 +319,77 @@ def escape_marker(m: re.Match[str]) -> str:
 
 def emphasis_marker(rnode) -> str:
     """
-    Return the char that marks the emphasis `rnode`: "_" if it starts or ends an emphasis marked with "*", else "*".
-    With "*" for both, their markers would join into a run such as "**", which a parser can read as a strong emphasis,
-    such as "**foo**" for "*_foo_*".
+    Return the char that marks the emphasis `rnode`: "_" if it starts or ends a strong emphasis or an emphasis marked
+    with "*", else "*".
+    With "*" for both, their markers would join into one run, which a parser reads another way:
+    "**foo**" for "*_foo_*" is a strong emphasis, and "***x***" for "**_x_**" is an emphasis that holds a strong emphasis.
+    But "_" opens or closes nothing next to a letter or digit, such as the "_" after "b" in "*_b_c*" for "_*b*c_".
+    So an emphasis whose other marker touches one takes "*", and its parent emphasis takes "_".
     """
-    parent = rnode.parent
-    if parent is None or parent.node["type"] != "emphasis":
+    if touches_letter(rnode):
         return "*"
 
-    # mistune leaves an empty text where it uses up a run of markers, such as on both sides of "_foo_" in "*_foo_*".
+    if touches_parent_marker(rnode):
+        parent = rnode.parent
+        if parent.node["type"] == "emphasis" and emphasis_marker(parent) == "_":
+            return "*"
+        return "_"
+
+    for n in inline_children(rnode.node):
+        if n["type"] == "emphasis" and touches_letter(rnode.new_child(n)):
+            return "_"
+    return "*"
+
+
+def touches_parent_marker(rnode) -> bool:
+    """
+    Return whether the node `rnode` starts or ends its parent, a strong emphasis or an emphasis.
+    """
+    parent = rnode.parent
+    if parent is None or parent.node["type"] not in ("strong", "emphasis"):
+        return False
+
+    siblings = inline_children(parent.node)
+    return siblings[0] is rnode.node or siblings[-1] is rnode.node
+
+
+def touches_letter(rnode) -> bool:
+    """
+    Return whether the node `rnode` starts or ends its parent, a strong emphasis or an emphasis, but not both,
+    and its other end touches a letter or digit, such as the end of "*b*" in "_*b*c_".
+    Only a text is checked, because md2zhihu writes each other node with a mark at each end, such as "`" or "[",
+    except a code span or inline math that a platform such as weibo writes as plain text.
+    """
+    if not touches_parent_marker(rnode):
+        return False
+
+    siblings = inline_children(rnode.parent.node)
+    if len(siblings) == 1:
+        return False
+
+    if siblings[0] is rnode.node:
+        neighbor = siblings[1]
+        side = 0
+    else:
+        neighbor = siblings[-2]
+        side = -1
+
+    if neighbor["type"] != "text":
+        return False
+    return neighbor["text"][side].isalnum()
+
+
+def inline_children(node) -> List[dict]:
+    """
+    Return the children of `node` without the empty texts,
+    which mistune leaves where it uses up a run of markers, such as on both sides of "_foo_" in "*_foo_*".
+    """
     children = []
-    for n in parent.node["children"]:
+    for n in node["children"]:
         is_empty_text = n["type"] == "text" and n["text"] == ""
         if not is_empty_text:
             children.append(n)
-
-    touches_parent_marker = children[0] is rnode.node or children[-1] is rnode.node
-    if not touches_parent_marker:
-        return "*"
-
-    if emphasis_marker(parent) == "_":
-        return "*"
-    return "_"
+    return children
 
 
 def end_block_in_tight_item(lines: List[str]) -> List[str]:
