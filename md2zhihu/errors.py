@@ -21,7 +21,7 @@ class PushError(UserError, RuntimeError):
 
 
 class DownloadError(UserError, RuntimeError):
-    """--download can not download an image, such as for a 404 status or a stalled server."""
+    """md2zhihu can not download an image, for --download or for math from zhihu.com, such as for a 404 status or a stalled server."""
 
 
 class FormatError(UserError, ValueError):

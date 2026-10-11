@@ -1,5 +1,6 @@
 import json
 import os
+import urllib.error
 from typing import Any
 from typing import List
 from typing import Optional
@@ -8,6 +9,7 @@ import k3down2
 
 from ..asset import save_image_to_asset_dir
 from ..asset import save_linked_file_to_asset_dir
+from ..errors import DownloadError
 from ..errors import MissingToolError
 from ..renderer import MDRender
 from ..renderer import RenderNode
@@ -42,13 +44,19 @@ def typ_text_to_jpg(mdrender: "MDRender", typ: str, txt: str, opt: Optional[dict
 def k3down2_convert(mdrender: "MDRender", typ: str, txt: str, output_typ: str, opt: Optional[dict] = None) -> Any:
     """
     Return what k3down2 converts `txt` of type `typ` to.
-    Raise MissingToolError if the program that k3down2 runs is not on PATH, such as dot for graphviz.
+    Raise MissingToolError if the program that k3down2 runs is not on PATH, such as dot for graphviz,
+    and DownloadError if k3down2 can not download an image, such as the image of math from zhihu.com.
     """
     try:
         return k3down2.convert(typ, txt, output_typ, opt=opt)
     except FileNotFoundError as e:
         reason = f"needs {e.filename!r}, which is not on PATH"
         raise MissingToolError(f"rendering {typ} in {mdrender.conf.src_path!r} {reason}") from e
+    except (urllib.error.URLError, TimeoutError) as e:
+        # urlopen() raises URLError for a failed connection or an HTTP error, and TimeoutError for a stalled read.
+        cause = getattr(e, "reason", e)
+        reason = f"can not download its image: {cause}"
+        raise DownloadError(f"rendering {typ} in {mdrender.conf.src_path!r} {reason}") from e
 
 
 def conversion_key(typ: str, opt: Optional[dict]) -> str:
