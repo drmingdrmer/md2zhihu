@@ -285,6 +285,15 @@ nested_emphases = {
     "*__*x*__*\n": "***_x_***\n",
 }
 
+# Emphases in an emphasis next to a code span or math that the platform writes as plain text,
+# as (platform, markdown): the markdown that md2zhihu writes.
+plain_text_neighbors = {
+    ("simple", "_*b*`c`_\n"): "_*b*c_\n",
+    ("weibo", "_*b*`c`_\n"): "_*b*c_\n",
+    ("weibo", "_`c`*b*_\n"): "_c*b*_\n",
+    ("weibo", "_*b*$x$_\n"): "_*b*x_\n",
+}
+
 # A backslash escape or a character reference in markdown text, each of which writes one char, such as "\*" or "&#96;".
 char_escape = re.compile(r"\\[!-/:-@\[-`{-~]|&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]*);")
 
@@ -942,13 +951,39 @@ def test_nested_emphasis(md_text, tmp_path):
     assert got == want
 
 
-def write_example(md_text, tmp_path):
+@pytest.mark.parametrize("platform, md_text", sorted(plain_text_neighbors))
+def test_emphasis_next_to_plain_text(platform, md_text, tmp_path):
+    got = write_example(md_text, tmp_path, platform)
+
+    assert got == plain_text_neighbors[(platform, md_text)]
+
+
+def test_emphasis_neighbor_converted_once(tmp_path, monkeypatch):
+    # md2zhihu renders the math after the inner emphasis early, to read the char next to its marker,
+    # and reuses that render, so that it converts the math once.
+    monkeypatch.chdir(tmp_path)
+    requests = []
+
+    def convert(input_typ, content, output_typ, opt=None):
+        requests.append((input_typ, content, output_typ))
+        return fake_convert(input_typ, content, output_typ, opt)
+
+    monkeypatch.setattr(k3down2, "convert", convert)
+    conf = md2zhihu.Config("a.md", "simple", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+
+    md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "_*b*$x$_\n").render()
+
+    assert requests == [("tex_inline", "x", "jpg")]
+
+
+def write_example(md_text, tmp_path, platform="null"):
     """
-    Convert md_text with platform "null", and return the markdown that md2zhihu writes,
+    Convert md_text with `platform`, and return the markdown that md2zhihu writes,
     without the list of the used references that Article.render() appends.
     """
     out_dir = str(tmp_path)
-    conf = md2zhihu.Config("example.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
+    conf = md2zhihu.Config("example.md", platform, out_dir, out_dir, md_output_path=out_dir + "/")
     article = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text)
     mdr = md2zhihu.MDRender(conf, features=conf.features)
     root = md2zhihu.RenderNode({"type": "ROOT", "children": article.ast})

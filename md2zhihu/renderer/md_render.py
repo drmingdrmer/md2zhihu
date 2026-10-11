@@ -231,7 +231,7 @@ class MDRender(object):
 
         if typ == "emphasis":
             lines = self.render(rnode)
-            char = emphasis_marker(rnode)
+            char = emphasis_marker(self, rnode)
             lines[0] = char + lines[0]
             lines[-1] = lines[-1] + char
             return lines
@@ -248,10 +248,22 @@ class MDRender(object):
         rst = []
         for n in rnode.node["children"]:
             child = rnode.new_child(n)
-            lines = self.render_node(child)
+            lines = self.render_child(child)
             rst.extend(lines)
 
         return rst
+
+    def render_child(self, rnode) -> List[str]:
+        """
+        Return the lines of `rnode`, and keep them in its parent, so that render() renders it once,
+        because rendering can write a file, such as the image of math.
+        touches_letter() renders the node next to an emphasis this way before render() reaches it.
+        """
+        cache = rnode.parent.child_lines
+        key = id(rnode.node)
+        if key not in cache:
+            cache[key] = self.render_node(rnode)
+        return cache[key]
 
     def render_tight_item(self, rnode) -> List[str]:
         """
@@ -342,7 +354,7 @@ def escape_text_char(m: re.Match[str]) -> str:
     return "\\" + c
 
 
-def emphasis_marker(rnode) -> str:
+def emphasis_marker(mdrender, rnode) -> str:
     """
     Return the char that marks the emphasis `rnode`: "_" if it starts or ends a strong emphasis or an emphasis marked
     with "*", else "*".
@@ -351,17 +363,17 @@ def emphasis_marker(rnode) -> str:
     But "_" opens or closes nothing next to a letter or digit, such as the "_" after "b" in "*_b_c*" for "_*b*c_".
     So an emphasis whose other marker touches one takes "*", and its parent emphasis takes "_".
     """
-    if touches_letter(rnode):
+    if touches_letter(mdrender, rnode):
         return "*"
 
     if touches_parent_marker(rnode):
         parent = rnode.parent
-        if parent.node["type"] == "emphasis" and emphasis_marker(parent) == "_":
+        if parent.node["type"] == "emphasis" and emphasis_marker(mdrender, parent) == "_":
             return "*"
         return "_"
 
     for n in inline_children(rnode.node):
-        if n["type"] == "emphasis" and touches_letter(rnode.new_child(n)):
+        if n["type"] == "emphasis" and touches_letter(mdrender, rnode.new_child(n)):
             return "_"
     return "*"
 
@@ -378,12 +390,12 @@ def touches_parent_marker(rnode) -> bool:
     return siblings[0] is rnode.node or siblings[-1] is rnode.node
 
 
-def touches_letter(rnode) -> bool:
+def touches_letter(mdrender, rnode) -> bool:
     """
     Return whether the node `rnode` starts or ends its parent, a strong emphasis or an emphasis, but not both,
     and its other end touches a letter or digit, such as the end of "*b*" in "_*b*c_".
-    Only a text is checked, because md2zhihu writes each other node with a mark at each end, such as "`" or "[",
-    except a code span or inline math that a platform such as weibo writes as plain text.
+    The node next to it is rendered to find the char, because a platform can write a node as plain text,
+    such as a code span on weibo.
     """
     if not touches_parent_marker(rnode):
         return False
@@ -399,9 +411,15 @@ def touches_letter(rnode) -> bool:
         neighbor = siblings[-2]
         side = -1
 
-    if neighbor["type"] != "text":
+    # A strong emphasis or an emphasis starts and ends with its marker, and rendering it early could render `rnode` again.
+    if neighbor["type"] in ("strong", "emphasis"):
         return False
-    return neighbor["text"][side].isalnum()
+
+    lines = mdrender.render_child(rnode.parent.new_child(neighbor))
+    text = "".join(lines)
+    if text == "":
+        return False
+    return text[side].isalnum()
 
 
 def inline_children(node) -> List[dict]:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Dict
+from typing import List
 from typing import Optional
 
 from ..types import ASTNode
@@ -21,6 +23,9 @@ class RenderNode(object):
 
         # parent RenderNode
         self.parent: Optional[RenderNode] = parent
+
+        # The lines of each child that MDRender.render_child() renders, by the id of its node.
+        self.child_lines: Dict[int, List[str]] = {}
 
     def new_child(self, n: ASTNode) -> RenderNode:
         c = RenderNode(n, parent=self)
