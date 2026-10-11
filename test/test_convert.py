@@ -354,6 +354,29 @@ def test_linked_files_of_one_name(tmp_path, monkeypatch):
     assert lines[0] == "[old](a/x.pdf) [copy](a/x.pdf)"
 
 
+def test_linked_file_in_table(tmp_path, monkeypatch):
+    for folder, content in [("old", b"1"), ("new", b"2")]:
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "x.pdf").write_bytes(content)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(k3down2, "convert", fake_convert)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+    parser_config = md2zhihu.ParserConfig(True, [])
+
+    # zhihu converts a table to html, and a link in it points at the copy of the file, as a link outside a table does.
+    lines = md2zhihu.Article(parser_config, conf, "| file |\n| --- |\n| [old](old/x.pdf) |\n").render()
+    assert lines == ["{table:html}| file |", "| --- |", "| [old](a/x.pdf) |", "{/table}", "", "", ""]
+    assert (tmp_path / "out" / "a" / "x.pdf").read_bytes() == b"1"
+
+    # A link in a table and a link outside it are checked against each other for files of one name.
+    md_text = "[old](old/x.pdf)\n\n| file |\n| --- |\n| [new](new/x.pdf) |\n"
+    with pytest.raises(NameClashError) as e:
+        md2zhihu.Article(parser_config, conf, md_text).render()
+    want = "linked files 'old/x.pdf' and 'new/x.pdf' differ, but both would be copied to 'out/a/x.pdf', used in 'a.md'"
+    assert str(e.value) == want
+
+
 @pytest.mark.parametrize("name", sorted(local_images))
 def test_local_image(name, tmp_path, monkeypatch):
     fn, url, stored, stored_url = local_images[name]

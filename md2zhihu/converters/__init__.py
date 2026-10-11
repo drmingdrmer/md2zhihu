@@ -6,6 +6,7 @@ from typing import Optional
 import k3down2
 
 from ..asset import save_image_to_asset_dir
+from ..asset import save_linked_file_to_asset_dir
 from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..utils import asset_fn
@@ -123,6 +124,8 @@ def math_inline_to_plaintext(mdrender, rnode):
 def table_to_barehtml(mdrender, rnode) -> List[str]:
     # create a markdown render to recursively deal with images etc.
     mdr = MDRender(mdrender.conf, features=importer_features)
+    # The links in the table and the links outside it are copied in one conversion, which finds two files of one name.
+    mdr.linked_files = mdrender.linked_files
 
     md = mdr.render_node(rnode)
     md = "\n".join(md)
@@ -152,9 +155,10 @@ def table_to_jpg(mdrender, rnode):
     )
 
 
-# Importer is only used to copy local image to output dir and update image urls.
+# Importer is only used to copy local images and linked files to output dir and update their urls.
 # This is used to deal with partial renderers, e.g., table_to_barehtml,
 # which is not handled by universal image importer, but need to import the image when rendering a table with images.
 importer_features = dict(
     image=save_image_to_asset_dir,
+    link=save_linked_file_to_asset_dir,
 )
