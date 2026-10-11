@@ -217,7 +217,6 @@ meaning_examples = [*range(76, 116), *range(159, 182), *range(216, 288), *range(
 
 # The examples above whose meaning md2zhihu changes, as number: what changes.
 meaning_changes = {
-    181: "a block quote that holds only a reference definition is dropped",
     241: "the blank line after a code block in a list item makes the tight list loose",
     263: "the blank line after a heading in a list item makes the tight list loose",
     264: "a list after a list of another bullet char becomes part of it",

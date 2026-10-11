@@ -147,6 +147,9 @@ class MDRender(object):
         if typ == "block_quote":
             lines = self.render(rnode)
             lines = strip_paragraph_end(lines)
+            # A quote without a block, such as one that holds only a reference definition, still needs its ">".
+            if len(lines) == 0:
+                return [">", ""]
             lines = ["> " + x for x in lines]
             return lines + [""]
 
