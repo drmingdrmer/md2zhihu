@@ -213,7 +213,7 @@ with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") 
 
 # The CommonMark examples about code, emphasis, links and lists, by number: the sections "Indented code blocks",
 # "Fenced code blocks", "Link reference definitions", "List items", "Lists", "Code spans",
-# "Emphasis and strong emphasis" and "Links".
+# "Emphasis and strong emphasis", "Links" and "Autolinks".
 # And 19, 40, 56, 62 and 201, whose paragraph has a line that would start a block where md2zhihu writes it.
 # And 31, whose list item holds a thematic break.
 meaning_examples = [
@@ -229,17 +229,15 @@ meaning_examples = [
     *range(314, 331),
     *range(331, 459),
     *range(459, 543),
+    *range(565, 584),
 ]
 
 # The examples above whose meaning md2zhihu changes, as number: what changes.
 meaning_changes = {
-    327: "the backtick in the text of an autolink pairs with a later backtick",
     330: "the literal backtick before a code span pairs with the backtick of the code span",
     469: "the URL is written percent-encoded, as encoded_destinations shows",
     470: "the URL is written percent-encoded, as encoded_destinations shows",
     471: "the URL is written percent-encoded, as encoded_destinations shows",
-    497: 'the "](" in the text of an autolink ends the link text',
-    509: 'the "][" in the text of an autolink ends the link text',
 }
 
 # The examples above whose URL has an unpaired "(" or ")", as number: the markdown that md2zhihu writes.

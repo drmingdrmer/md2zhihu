@@ -53,6 +53,10 @@ code_span = re.compile(r"(`+)[\s\S]*?\1")
 # A line of only "$$", which opens math on the lines after it.
 math_opening_line = r"^ {0,3}\$\$[ \t]*$"
 
+# A char in the text of an autolink that starts inline markdown where md2zhihu writes the text, in "[...]":
+# a backslash escape, a code span, an emphasis, a link, md2zhihu's math or a strikethrough.
+autolink_specials = re.compile(r"[\\`*_\[\]$~]")
+
 
 def new_markdown() -> mistune.Markdown:
     """
@@ -66,6 +70,8 @@ def new_markdown() -> mistune.Markdown:
     )
     md.inline.register("escape", None, parse_escape)
     md.inline.register("link", None, parse_link)
+    md.inline.register("auto_link", None, parse_auto_link)
+    md.inline.register("auto_email", None, parse_auto_email)
     md.inline.register("math", r"\$", parse_math)
     md.block.register("math_lines", math_opening_line, parse_math_lines)
     md.block.insert_rule(md.block.block_quote_rules, "math_lines")
@@ -215,6 +221,54 @@ def closing_bracket(src: str, pos: int) -> int:
         if c == "]":
             depth -= 1
         pos += 1
+
+
+def parse_auto_link(inline: InlineParser, m: re.Match[str], state: InlineState) -> int:
+    """
+    Run mistune's rule of an autolink, such as "<http://a.com/x_y>", and keep the text of the link as markdown.
+    """
+
+    count = len(state.tokens)
+    end = inline.parse_auto_link(m, state)
+    escape_autolink_text(state.tokens[count:])
+    return end
+
+
+def parse_auto_email(inline: InlineParser, m: re.Match[str], state: InlineState) -> int:
+    """
+    Run mistune's rule of an email autolink, such as "<a_b@c.com>", and keep the text of the link as markdown.
+    """
+
+    count = len(state.tokens)
+    end = inline.parse_auto_email(m, state)
+    escape_autolink_text(state.tokens[count:])
+    return end
+
+
+def escape_autolink_text(tokens: List[Token]) -> None:
+    r"""
+    Escape each char that starts inline markdown in the text of each link in `tokens`, such as "_" in "http://a.com/x_y".
+    mistune keeps the text of an autolink as plain chars, but md2zhihu keeps every other text as written,
+    and writes an autolink as a link, such as "[http://a.com/x\_y](http://a.com/x_y)".
+    """
+
+    for tok in tokens:
+        if tok["type"] != "link":
+            continue
+        text = tok["children"][0]
+        text["raw"] = autolink_specials.sub(escape_autolink_char, text["raw"])
+
+
+def escape_autolink_char(m: re.Match[str]) -> str:
+    r"""
+    Return the match of `autolink_specials` escaped, such as "\_" for "_".
+    A "`" is written as "&#96;", because in the text of a link mistune starts a code span at "\`" too.
+    """
+
+    c = m.group(0)
+    if c == "`":
+        return "&#96;"
+    return "\\" + c
 
 
 def parse_math(inline: InlineParser, m: re.Match[str], state: InlineState) -> Optional[int]:
