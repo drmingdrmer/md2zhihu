@@ -21,6 +21,10 @@ block_closing_line = re.compile(r" *(?:`{3,}|#{1,6}(?: .*)?|(?:- *){3,}|(?:\* *)
 # The quote markers, with their indent, at the start of a line in a quote, such as "    > >" in "    > > a".
 quote_markers = re.compile(r" *>(?: *>)*")
 
+# The two markers of the items of an unordered list, and of an ordered list after its number.
+bullets = ["-", "*"]
+delimiters = [".", ")"]
+
 
 class MDRender(object):
     # platform specific renderer
@@ -136,14 +140,17 @@ class MDRender(object):
             else:
                 lines = self.render(rnode)
 
-            head = "-   "
+            # A list right after a list of the same kind takes the other marker, or a markdown parser joins the two lists.
+            marker = lists_before(parent) % 2
+
+            head = bullets[marker] + "   "
             if parent.node["ordered"]:
                 # mistune gives the number of the first item only when it is not 1.
                 start = parent.node["start"]
                 if start is None:
                     start = 1
                 # A markdown parser numbers the items from the first number and ignores the others.
-                head = (str(start) + ".").ljust(3) + " "
+                head = (str(start) + delimiters[marker]).ljust(3) + " "
 
             lines[0] = head + lines[0]
             # The later lines of the item start at the column of its text, such as column 5 after "100. ".
@@ -230,6 +237,24 @@ class MDRender(object):
 
     def msg(self, *args):
         msg(*args)
+
+
+def lists_before(rnode) -> int:
+    """
+    Return how many lists of the kind of the list `rnode`, ordered or not, come right before it among its siblings.
+    """
+    if rnode.parent is None:
+        return 0
+
+    siblings = rnode.parent.node["children"]
+    i = next(k for k, n in enumerate(siblings) if n is rnode.node)
+    count = 0
+    for n in reversed(siblings[:i]):
+        same_kind = n["type"] == "list" and n["ordered"] == rnode.node["ordered"]
+        if not same_kind:
+            break
+        count += 1
+    return count
 
 
 def end_block_in_tight_item(lines: List[str]) -> List[str]:

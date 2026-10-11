@@ -24,7 +24,7 @@ Bullets:
 
 -   star
 
--   plus
+*   plus
 
 -   minus
 

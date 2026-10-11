@@ -217,8 +217,6 @@ meaning_examples = [*range(76, 116), *range(159, 182), *range(216, 288), *range(
 
 # The examples above whose meaning md2zhihu changes, as number: what changes.
 meaning_changes = {
-    264: "a list after a list of another bullet char becomes part of it",
-    265: "a list after a list of another delimiter becomes part of it",
     273: 'the continuation line "- e" of a paragraph in a list item becomes a nested list',
     327: "the backtick in the text of an autolink pairs with a later backtick",
     330: "the literal backtick before a code span pairs with the backtick of the code span",
