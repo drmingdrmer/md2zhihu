@@ -163,7 +163,8 @@ embed_ref_links = {
 
 # References whose URL has angle brackets or whose title has escapes, as name: (markdown, the lines that zhihu renders).
 # A link gets the URL as mistune writes it, percent-encoded, and the title; the reference list shows the URL as written.
-# The reference list escapes each char of the URL and the title that would start inline markdown, such as "\*".
+# The reference list escapes each char of the URL and the title that would start inline markdown, such as "\*",
+# and a block marker that starts the title, such as "\#".
 ref_definitions = {
     "image-angle-brackets": (
         '![logo][img]\n\n[img]: <https://example.com/logo.png> "Logo"\n',
@@ -212,6 +213,28 @@ ref_definitions = {
             "",
             "",
             '[r]: https://a.com/_x_/%5Bb%5D "a *b* `c` <T>"',
+        ],
+    ),
+    "title-block-marker": (
+        '[a][r1] [b][r2] [c][r3]\n\n[r1]: https://a.com/1 "1. Intro"\n[r2]: https://a.com/2 "# x"\n'
+        '[r3]: https://a.com/3 "    x"\n',
+        [
+            '[a](https://a.com/1 "1. Intro") [b](https://a.com/2 "# x") [c](https://a.com/3 "    x")',
+            "",
+            "",
+            "",
+            "Reference:",
+            "",
+            r"- 1\. Intro : [https://a.com/1](https://a.com/1)",
+            "",
+            r"- \# x : [https://a.com/2](https://a.com/2)",
+            "",
+            "- x : [https://a.com/3](https://a.com/3)",
+            "",
+            "",
+            '[r1]: https://a.com/1 "1. Intro"',
+            '[r2]: https://a.com/2 "# x"',
+            '[r3]: https://a.com/3 "    x"',
         ],
     ),
     "front-matter": (

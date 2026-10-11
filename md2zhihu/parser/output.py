@@ -1,3 +1,4 @@
+import re
 from typing import List
 from urllib.parse import unquote
 
@@ -5,6 +6,10 @@ from ..renderer.md_render import escape_text
 from ..renderer.md_render import link_destination
 from ..renderer.md_render import link_title
 from ..types import RefDict
+
+# A block marker at the start of the text of a list item, which would start a block in the item:
+# an ATX heading, a quote, a bullet list or an ordered list, such as "# x", "> q", "- x" or "1. x".
+item_block_marker = re.compile(r"#{1,6}(?=[ \t]|$)|>|[-+*](?=[ \t]|$)|\d{1,9}[.)](?=[ \t]|$)")
 
 
 # TODO: move to renderer module?
@@ -25,6 +30,7 @@ def render_ref_list(refs: RefDict, platform: str) -> List[str]:
             txt = ref_id
         else:
             txt = escape_text(ref.title)
+        txt = escape_item_start(txt)
 
         ref_lines.append("- {id} : [{url_text}]({url})".format(id=txt, url_text=url_text, url=url))
 
@@ -33,6 +39,20 @@ def render_ref_list(refs: RefDict, platform: str) -> List[str]:
             ref_lines.append("")
 
     return ref_lines
+
+
+def escape_item_start(text: str) -> str:
+    r"""
+    Return the text of a list item without the spaces at its start, and with a backslash before the last char
+    of a block marker at its start, such as "\# x" for "# x" or "1\. Intro" for "1. Intro".
+    Right after "- ", 4 spaces would start a code block, and a block marker would start its block in the item.
+    """
+    text = text.lstrip(" \t")
+    m = item_block_marker.match(text)
+    if m is None:
+        return text
+    end = m.end()
+    return text[: end - 1] + "\\" + text[end - 1 :]
 
 
 def render_ref_definitions(refs: RefDict) -> List[str]:
