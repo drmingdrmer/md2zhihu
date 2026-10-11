@@ -47,7 +47,7 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
 
     src: str = n["src"]
     if re.match(r"https?://", src):
-        if not mdrender.conf.download:
+        if not mdrender.conf.options.download:
             return None
 
         fn = src.split("/")[-1].split("#")[0].split("?")[0]

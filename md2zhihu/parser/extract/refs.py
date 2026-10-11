@@ -14,14 +14,14 @@ from ..mistune3 import parse_ref
 
 def load_external_refs(conf: Config) -> RefDict:
     refs: RefDict = {}
-    for ref_path in conf.ref_files:
+    for ref_path in conf.options.ref_files:
         if not os.path.isfile(ref_path):
             raise MissingFileError(f"refs file not found: {ref_path!r}")
         fcont = fread(ref_path)
         loaded = load_yaml(fcont, ref_path)
         y = mapping_in(loaded, ref_path)
         refs.update(refs_in(y.get("universal"), "universal in " + ref_path))
-        refs.update(refs_in(y.get(conf.platform), conf.platform + " in " + ref_path))
+        refs.update(refs_in(y.get(conf.options.platform), conf.options.platform + " in " + ref_path))
 
     return refs
 

@@ -6,6 +6,7 @@ from .cli import main
 from .config import AssetRepo
 from .config import Config
 from .config import LocalRepo
+from .config import Options
 from .converters import block_code_graphviz_to_jpg
 from .converters import block_code_mermaid_to_jpg
 from .converters import block_code_to_fixwidth_jpg

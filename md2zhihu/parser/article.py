@@ -81,7 +81,7 @@ class Article(object):
 
         self.refs.update(load_external_refs(self.conf))
         if self.front_matter is not None:
-            self.refs.update(self.front_matter.get_refs(conf.platform, conf.src_path))
+            self.refs.update(self.front_matter.get_refs(conf.options.platform, conf.src_path))
 
         # parse to ast and clean up
 
@@ -154,8 +154,7 @@ class Article(object):
             md_text = fread(article_path)
 
             # The embedded article reads its own path, such as for the images in it, and the parent keeps its config.
-            child_conf = copy.copy(self.conf)
-            child_conf.src_path = article_path
+            child_conf = Config.from_options(article_path, self.conf.options)
 
             article = Article(self.parser_config, child_conf, md_text, embedders=chain)
 
@@ -229,13 +228,13 @@ class Article(object):
         }
         output_lines = mdr.render(RenderNode(root_node))
 
-        if self.conf.keep_meta and self.front_matter is not None:
+        if self.conf.options.keep_meta and self.front_matter is not None:
             output_lines = ["---", self.front_matter.text, "---"] + output_lines
 
         output_lines.append("")
 
         used_refs = self.stored_refs(mdr.linked_files)
-        ref_list = render_ref_list(used_refs, self.conf.platform)
+        ref_list = render_ref_list(used_refs, self.conf.options.platform)
         output_lines.extend(ref_list)
 
         output_lines.append("")

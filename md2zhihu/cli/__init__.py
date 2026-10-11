@@ -12,6 +12,7 @@ from k3fs import fread
 
 from ..config import AssetRepo
 from ..config import Config
+from ..config import Options
 from ..errors import UserError
 from ..parser import Article
 from ..parser import ParserConfig
@@ -234,24 +235,28 @@ def run():
     if asset_repo is not None:
         debug("--repo: ", asset_repo.url, ", branch ", asset_repo.branch)
 
+    # A repeated flag that is not given, such as --refs, is None.
+    ref_files = args.refs or []
+    rewrite = args.rewrite or []
+
+    options = Options(
+        platform=args.platform,
+        output_dir=args.output_dir,
+        asset_output_dir=args.asset_output_dir,
+        md_output=args.md_output,
+        asset_repo=asset_repo,
+        code_width=args.code_width,
+        plain_code_width=args.plain_code_width,
+        keep_meta=args.keep_front_matter,
+        ref_files=ref_files,
+        jekyll=args.jekyll,
+        rewrite=rewrite,
+        download=args.download,
+    )
+
     confs = []
     for path in args.src_path:
-        #  TODO Config should accept only two arguments: the path and a args
-        conf = Config(
-            path,
-            args.platform,
-            args.output_dir,
-            args.asset_output_dir,
-            asset_repo=asset_repo,
-            md_output_path=args.md_output,
-            code_width=args.code_width,
-            plain_code_width=args.plain_code_width,
-            keep_meta=args.keep_front_matter,
-            ref_files=args.refs,
-            jekyll=args.jekyll,
-            rewrite=args.rewrite,
-            download=args.download,
-        )
+        conf = Config.from_options(path, options)
         confs.append(conf)
 
     check_md_outputs(parser, confs)
@@ -272,7 +277,7 @@ def run():
         conf.push(args, stat)
         msg(
             "pushed ",
-            conf.output_dir,
+            options.output_dir,
             " to ",
             conf.asset_repo.url,
             ", branch ",
