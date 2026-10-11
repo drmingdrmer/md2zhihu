@@ -136,6 +136,15 @@ bad_shapes = {
     ),
 }
 
+# Markdown that needs a program to render, as name: (a.md, the error message when no program is on PATH).
+missing_tools = {
+    "graphviz": (
+        "```graphviz\ndigraph G { a -> b }\n```\n",
+        "rendering graphviz in 'a.md' needs 'dot', which is not on PATH",
+    ),
+    "table": ("| a | b |\n| - | - |\n| 1 | 2 |\n", "rendering table in 'a.md' needs 'pandoc', which is not on PATH"),
+}
+
 # --embed flags before an input, as (md2zhihu arguments, the parsed regexes).
 # Each flag takes one regex, so "a.md" stays the input.
 embed_args = [
@@ -263,6 +272,20 @@ def test_bad_shape(name, tmp_path, monkeypatch, capsys):
     assert code == 1
     assert err == "md2zhihu: error: " + want + "\n"
     assert (tmp_path / "a.md").read_text() == md
+
+
+@pytest.mark.parametrize("name", sorted(missing_tools))
+def test_missing_tool(name, tmp_path, monkeypatch, capsys):
+    md, want = missing_tools[name]
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.md").write_text(md)
+    # The only folder on PATH holds no program.
+    monkeypatch.setenv("PATH", str(tmp_path))
+
+    code, err = run_failing(monkeypatch, capsys, ["a.md"])
+
+    assert code == 1
+    assert err == "md2zhihu: error: " + want + "\n"
 
 
 def test_repo_without_remote(tmp_path, monkeypatch, capsys):

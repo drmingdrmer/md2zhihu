@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any
 from typing import List
 from typing import Optional
 
@@ -7,6 +8,7 @@ import k3down2
 
 from ..asset import save_image_to_asset_dir
 from ..asset import save_linked_file_to_asset_dir
+from ..errors import MissingToolError
 from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..utils import asset_fn
@@ -29,12 +31,24 @@ def to_plaintext(mdrender, rnode):
 
 
 def typ_text_to_jpg(mdrender: "MDRender", typ: str, txt: str, opt: Optional[dict] = None) -> List[str]:
-    d = k3down2.convert(typ, txt, "jpg", opt=opt)
+    d = k3down2_convert(mdrender, typ, txt, "jpg", opt=opt)
     # One text can make different images, such as x in $x$ and in $$x$$, so the name also has the converter.
     fn = asset_fn(txt, "jpg", conversion_key(typ, opt))
     fwrite(mdrender.conf.asset_output_dir, fn, d)
 
     return [r"![]({})".format(mdrender.conf.img_url(fn)), ""]
+
+
+def k3down2_convert(mdrender: "MDRender", typ: str, txt: str, output_typ: str, opt: Optional[dict] = None) -> Any:
+    """
+    Return what k3down2 converts `txt` of type `typ` to.
+    Raise MissingToolError if the program that k3down2 runs is not on PATH, such as dot for graphviz.
+    """
+    try:
+        return k3down2.convert(typ, txt, output_typ, opt=opt)
+    except FileNotFoundError as e:
+        reason = f"needs {e.filename!r}, which is not on PATH"
+        raise MissingToolError(f"rendering {typ} in {mdrender.conf.src_path!r} {reason}") from e
 
 
 def conversion_key(typ: str, opt: Optional[dict]) -> str:
@@ -130,7 +144,7 @@ def table_to_barehtml(mdrender, rnode) -> List[str]:
     md = mdr.render_node(rnode)
     md = "\n".join(md)
 
-    table_html = k3down2.convert("table", md, "html")
+    table_html = k3down2_convert(mdrender, "table", md, "html")
     table_html = table_html.split("\n") + [""]
     return table_html
 

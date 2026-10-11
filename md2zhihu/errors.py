@@ -12,6 +12,10 @@ class MissingFileError(UserError, FileNotFoundError):
     """A file that the markdown uses does not exist, such as an image."""
 
 
+class MissingToolError(UserError, FileNotFoundError):
+    """A program that renders the markdown is not on PATH, such as dot for a graphviz block."""
+
+
 class PushError(UserError, RuntimeError):
     """git failed to push the output folder to the asset repo."""
 
