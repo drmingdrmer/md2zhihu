@@ -8,6 +8,7 @@ Run them with MD2ZHIHU_UPDATE_GOLDEN=1 to rewrite the golden files from the curr
 import copy
 import functools
 import hashlib
+import html
 import http.server
 import json
 import logging
@@ -234,7 +235,6 @@ meaning_examples = [
 
 # The examples above whose meaning md2zhihu changes, as number: what changes.
 meaning_changes = {
-    330: "the literal backtick before a code span pairs with the backtick of the code span",
     469: "the URL is written percent-encoded, as encoded_destinations shows",
     470: "the URL is written percent-encoded, as encoded_destinations shows",
     471: "the URL is written percent-encoded, as encoded_destinations shows",
@@ -248,8 +248,8 @@ encoded_destinations = {
     471: "[link](foo%29:)\n",
 }
 
-# A backslash escape in markdown: a backslash and the ASCII punctuation char after it, which the escape writes as a char.
-backslash_escape = re.compile(r"\\([!-/:-@\[-`{-~])")
+# A backslash escape or a character reference in markdown text, each of which writes one char, such as "\*" or "&#96;".
+char_escape = re.compile(r"\\[!-/:-@\[-`{-~]|&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]*);")
 
 
 def fake_convert(input_typ, content, output_typ, opt=None):
@@ -827,21 +827,30 @@ def test_examples_keep_meaning(tmp_path):
 def plain_text(nodes):
     """
     Return a copy of the AST `nodes` without the text differences that mean nothing:
-    each text has its backslash escapes decoded, such as "\\*" to "*", and an empty text is dropped.
-    The parser keeps the text as written, and md2zhihu escapes each "*" in text.
+    each text has its backslash escapes and character references decoded, such as "\\*" to "*" and "&#96;" to "`",
+    and an empty text is dropped.
+    The parser keeps the text as written, and md2zhihu escapes each "*" and "`" in text.
     mistune leaves an empty text where it uses up a run of emphasis markers, such as on both sides of "_foo_" in "*_foo_*".
     """
     rst = []
     for n in nodes:
         n = dict(n)
         if n["type"] == "text":
-            n["text"] = backslash_escape.sub(r"\1", n["text"])
+            n["text"] = char_escape.sub(decode_char, n["text"])
             if n["text"] == "":
                 continue
         if "children" in n:
             n["children"] = plain_text(n["children"])
         rst.append(n)
     return rst
+
+
+def decode_char(m):
+    """Return the char that the match of `char_escape` writes, such as "*" for "\\*" or "`" for "&#96;"."""
+    s = m.group(0)
+    if s.startswith("\\"):
+        return s[1:]
+    return html.unescape(s)
 
 
 @pytest.mark.parametrize("number", sorted(encoded_destinations))

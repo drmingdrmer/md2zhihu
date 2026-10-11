@@ -46,9 +46,10 @@ paragraph_breaker = re.compile(
 bullets = ["-", "+"]
 delimiters = [".", ")"]
 
-# A backslash escape in text, which is written as it is, or a "*" without one, which md2zhihu escapes.
-# Such a "*" is a char of the text, but where md2zhihu writes it, it could pair with md2zhihu's emphasis markers.
-literal_markers = re.compile(r"\\.|\*")
+# A backslash escape in text, which is written as it is, or a "*" or "`" without one, which md2zhihu escapes.
+# Such a "*" or "`" is a char of the text, but where md2zhihu writes it, it could pair with md2zhihu's emphasis markers,
+# or with the backticks of a code span that md2zhihu writes with fewer backticks than the source.
+literal_markers = re.compile(r"\\.|[*`]")
 
 
 class MDRender(object):
@@ -304,10 +305,15 @@ def lists_before(rnode) -> int:
 
 
 def escape_marker(m: re.Match[str]) -> str:
-    """Return the match of `literal_markers`: a backslash escape as it is, or a "*" with a backslash before it."""
+    r"""
+    Return the match of `literal_markers`: a backslash escape as it is, a "*" with a backslash before it,
+    or a "`" as "&#96;", because in the text of a link mistune starts a code span at "\`" too.
+    """
     s = m.group(0)
     if s.startswith("\\"):
         return s
+    if s == "`":
+        return "&#96;"
     return "\\" + s
 
 

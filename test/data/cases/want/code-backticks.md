@@ -20,6 +20,8 @@ A code span that starts with a backtick: `` `a ``.
 
 A code span with two spaces on each side: `  a  `.
 
+A backtick before a code span of two backticks: &#96;foo`bar`.
+
 The last paragraph stays a paragraph.
 
 
