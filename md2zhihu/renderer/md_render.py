@@ -3,6 +3,9 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from mistune.helpers import BLOCK_TAGS
+from mistune.helpers import PRE_TAGS
+
 from ..utils import add_paragraph_end
 from ..utils import code_fence
 from ..utils import indent
@@ -20,6 +23,23 @@ block_closing_line = re.compile(r" *(?:`{3,}|#{1,6}(?: .*)?|(?:- *){3,}|(?:\* *)
 
 # The quote markers, with their indent, at the start of a line in a quote, such as "    > >" in "    > > a".
 quote_markers = re.compile(r" *>(?: *>)*")
+
+# The start of a line that, after a line of a paragraph, starts a block or underlines the paragraph as a heading.
+# It also matches a few lines that start no block, such as "+ " of an empty item, which only get an indent they do not need.
+paragraph_breaker = re.compile(
+    r" {0,3}(?:"
+    r"[=-]+ *$"  # a setext heading underline
+    r"|(?:[-*_] *){3,}$"  # a thematic break
+    r"|#{1,6}(?: |$)"  # an ATX heading
+    r"|`{3,}|~{3,}"  # a code fence
+    r"|>"  # a quote
+    r"|[-+*] "  # an item of an unordered list
+    r"|0*1[.)] "  # an item of an ordered list, which only 1 starts after a paragraph line
+    r"|\|?[ :]*-[-| :]*$"  # the delimiter row of a table
+    r"|<(?:!|\?|/?(?:" + "|".join(BLOCK_TAGS + PRE_TAGS) + r")(?:[ \t/>]|$))"  # an HTML block
+    r")",
+    re.IGNORECASE,
+)
 
 # The two markers of the items of an unordered list, and of an ordered list after its number.
 bullets = ["-", "*"]
@@ -62,7 +82,7 @@ class MDRender(object):
 
         if typ == "paragraph":
             lines = self.render(rnode)
-            return "".join(lines).split("\n") + [""]
+            return paragraph_lines(lines) + [""]
 
         if typ == "text":
             return [n["text"]]
@@ -159,7 +179,7 @@ class MDRender(object):
 
         if typ == "block_text":
             lines = self.render(rnode)
-            return "".join(lines).split("\n")
+            return paragraph_lines(lines)
 
         if typ == "block_quote":
             lines = self.render(rnode)
@@ -237,6 +257,21 @@ class MDRender(object):
 
     def msg(self, *args):
         msg(*args)
+
+
+def paragraph_lines(parts: List[str]) -> List[str]:
+    """
+    Join the rendered parts of a paragraph and split them into lines.
+    A line after the first that would start a block, such as "# a" or "---", is indented by 4 spaces,
+    because no block starts after 4 spaces in a paragraph.
+    """
+    lines = "".join(parts).split("\n")
+    rst = lines[:1]
+    for line in lines[1:]:
+        if paragraph_breaker.match(line):
+            line = indent(line)
+        rst.append(line)
+    return rst
 
 
 def lists_before(rnode) -> int:

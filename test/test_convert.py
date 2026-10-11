@@ -213,11 +213,22 @@ with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") 
 
 # The CommonMark examples about code, links and lists, by number: the sections "Indented code blocks",
 # "Fenced code blocks", "Link reference definitions", "List items", "Lists", "Code spans" and "Links".
-meaning_examples = [*range(76, 116), *range(159, 182), *range(216, 288), *range(314, 331), *range(459, 543)]
+# And 19, 40, 56, 62 and 201, whose paragraph has a line that would start a block where md2zhihu writes it.
+meaning_examples = [
+    19,
+    40,
+    56,
+    62,
+    *range(76, 116),
+    *range(159, 182),
+    201,
+    *range(216, 288),
+    *range(314, 331),
+    *range(459, 543),
+]
 
 # The examples above whose meaning md2zhihu changes, as number: what changes.
 meaning_changes = {
-    273: 'the continuation line "- e" of a paragraph in a list item becomes a nested list',
     327: "the backtick in the text of an autolink pairs with a later backtick",
     330: "the literal backtick before a code span pairs with the backtick of the code span",
     469: "the URL is written percent-encoded, as encoded_destinations shows",
