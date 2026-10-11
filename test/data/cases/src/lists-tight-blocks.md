@@ -13,6 +13,8 @@ A tight list stays tight:
   text after the quote
 - # heading
   text after the heading
+- text before a thematic break:
+  ***
 - nested list:
   - nested item
 - last item

@@ -214,8 +214,10 @@ with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") 
 # The CommonMark examples about code, links and lists, by number: the sections "Indented code blocks",
 # "Fenced code blocks", "Link reference definitions", "List items", "Lists", "Code spans" and "Links".
 # And 19, 40, 56, 62 and 201, whose paragraph has a line that would start a block where md2zhihu writes it.
+# And 31, whose list item holds a thematic break.
 meaning_examples = [
     19,
+    31,
     40,
     56,
     62,

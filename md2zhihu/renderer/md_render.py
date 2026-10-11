@@ -42,7 +42,8 @@ paragraph_breaker = re.compile(
 )
 
 # The two markers of the items of an unordered list, and of an ordered list after its number.
-bullets = ["-", "*"]
+# The other bullet char is "+", because with "*" an item that holds a thematic break, "*   ***", is a thematic break.
+bullets = ["-", "+"]
 delimiters = [".", ")"]
 
 
@@ -78,6 +79,10 @@ class MDRender(object):
         # default renderers:
 
         if typ == "thematic_break":
+            # In a list item, "---" after a paragraph line underlines a heading, and "-   ---" is a thematic break of its own.
+            in_item = rnode.parent is not None and rnode.parent.node["type"] == "list_item"
+            if in_item:
+                return ["***", ""]
             return ["---", ""]
 
         if typ == "paragraph":
