@@ -166,8 +166,8 @@ There are two ways to get the converted markdown files:
 MaxOS
 
 ```sh
-# For rendering table to html
-brew install pandoc imagemagick node
+# For rendering table to html, and graphviz to images
+brew install pandoc graphviz node
 npm install -g @mermaid-js/mermaid-cli
 pip install md2zhihu
 # For rendering mermaid, code blocks, tables and math to images

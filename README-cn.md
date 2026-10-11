@@ -139,8 +139,8 @@ jobs:
 MaxOS
 
 ```sh
-# 用于将表格渲染为 HTML
-brew install pandoc imagemagick node
+# 用于将表格渲染为 HTML，以及将 graphviz 渲染为图片
+brew install pandoc graphviz node
 npm install -g @mermaid-js/mermaid-cli
 pip install md2zhihu
 # 用于将 mermaid、代码块、表格和公式渲染为图片
