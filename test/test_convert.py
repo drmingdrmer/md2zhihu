@@ -207,6 +207,43 @@ ref_definitions = {
     ),
 }
 
+# The inputs of the examples of mistune's test fixtures, as name: markdown.
+with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") as f:
+    robust_examples = json.load(f)
+
+# The CommonMark examples about code, links and lists, by number: the sections "Indented code blocks",
+# "Fenced code blocks", "Link reference definitions", "List items", "Lists", "Code spans" and "Links".
+meaning_examples = [*range(76, 116), *range(159, 182), *range(216, 288), *range(314, 331), *range(459, 543)]
+
+# The examples above whose meaning md2zhihu changes, as number: what changes.
+meaning_changes = {
+    181: "a block quote that holds only a reference definition is dropped",
+    241: "the blank line after a code block in a list item makes the tight list loose",
+    263: "the blank line after a heading in a list item makes the tight list loose",
+    264: "a list after a list of another bullet char becomes part of it",
+    265: "a list after a list of another delimiter becomes part of it",
+    273: 'the continuation line "- e" of a paragraph in a list item becomes a nested list',
+    279: "the blank line after a code block in a list item makes the tight list loose",
+    280: "the blank line after a nested list makes the tight list loose",
+    281: "the blank line after a block quote in a list item makes the tight list loose",
+    282: "the blank lines after a block quote and a code block in a list item make the tight list loose",
+    327: "the backtick in the text of an autolink pairs with a later backtick",
+    330: "the literal backtick before a code span pairs with the backtick of the code span",
+    469: "the URL is written percent-encoded, as encoded_destinations shows",
+    470: "the URL is written percent-encoded, as encoded_destinations shows",
+    471: "the URL is written percent-encoded, as encoded_destinations shows",
+    497: 'the "](" in the text of an autolink ends the link text',
+    509: 'the "][" in the text of an autolink ends the link text',
+}
+
+# The examples above whose URL has an unpaired "(" or ")", as number: the markdown that md2zhihu writes.
+# md2zhihu percent-encodes each parenthesis, so that the written link parses back as one link.
+encoded_destinations = {
+    469: "[link](foo%28and%28bar%29)\n",
+    470: "[link](foo%28and%28bar%29)\n",
+    471: "[link](foo%29:)\n",
+}
+
 
 def fake_convert(input_typ, content, output_typ, opt=None):
     """
@@ -744,14 +781,12 @@ def test_unknown_node_type(tmp_path):
 
 def test_examples_convert(tmp_path):
     # Platform "null" has no features, so only the parser and MDRender run.
-    with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") as f:
-        examples = json.load(f)
     out_dir = str(tmp_path)
     conf = md2zhihu.Config("example.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
     parser_config = md2zhihu.ParserConfig(True, [])
 
     got = {}
-    for example_id, md_text in examples.items():
+    for example_id, md_text in robust_examples.items():
         # MDRender raises TypeError for a node type that it does not know.
         try:
             article = md2zhihu.Article(parser_config, conf, md_text)
@@ -760,3 +795,44 @@ def test_examples_convert(tmp_path):
             got[example_id] = type(e).__name__
 
     assert got == {}
+
+
+def test_examples_keep_meaning(tmp_path):
+    """
+    The markdown that md2zhihu writes for an example parses to the AST of the example:
+    the same code text, link destinations and titles, and list nesting.
+    The ASTs are compared instead of the texts, because md2zhihu rewrites the whitespace that decides the nesting.
+    """
+    changed = []
+    for number in meaning_examples:
+        md_text = robust_examples["commonmark-%d" % number]
+        want, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
+        got_md = write_example(md_text, tmp_path)
+        got, _, _ = md2zhihu.parser.mistune3.parse(got_md, {}, True)
+        if got != want:
+            changed.append(number)
+
+    assert changed == sorted(meaning_changes)
+
+
+@pytest.mark.parametrize("number", sorted(encoded_destinations))
+def test_example_encoded_destination(number, tmp_path):
+    md_text = robust_examples["commonmark-%d" % number]
+
+    got = write_example(md_text, tmp_path)
+
+    assert got == encoded_destinations[number]
+
+
+def write_example(md_text, tmp_path):
+    """
+    Convert md_text with platform "null", and return the markdown that md2zhihu writes,
+    without the list of the used references that Article.render() appends.
+    """
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("example.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
+    article = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text)
+    mdr = md2zhihu.MDRender(conf, features=conf.features)
+    root = md2zhihu.RenderNode({"type": "ROOT", "children": article.ast})
+    lines = mdr.render(root)
+    return "\n".join(lines)
