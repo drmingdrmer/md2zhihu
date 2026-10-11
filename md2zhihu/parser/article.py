@@ -65,13 +65,7 @@ class Article(object):
         # A definition in the text wins over one of them, as mistune3.parse reads the text.
         self.refs = {}
 
-        # References used in this markdown
-        self.used_refs = None
-
         self.front_matter: Optional[FrontMatter] = None
-
-        # Parsed AST of the markdown
-        self.ast = None
 
         # extract article meta
 
@@ -85,6 +79,7 @@ class Article(object):
 
         # parse to ast and clean up
 
+        # The AST of the markdown, and the references used in it.
         self.ast, self.used_refs, undefined_refs = mistune3.parse(
             self.md_text, self.refs, self.parser_config.populate_reference
         )
@@ -97,7 +92,7 @@ class Article(object):
     def parse_embed(self):
         # Import here to avoid circular dependency
 
-        used_refs = {}
+        used_refs: RefDict = {}
         self.ast = self.embed(self.ast, used_refs)
         self.used_refs.update(used_refs)
 
@@ -250,9 +245,6 @@ class Article(object):
         as every platform does for a link.
         `linked_files` is the `MDRender.linked_files` of the conversion that renders the references.
         """
-        # __init__ sets the used references when it parses the markdown.
-        assert self.used_refs is not None
-
         refs: RefDict = {}
         for ref_id, ref in self.used_refs.items():
             stored_url = store_linked_file(self.conf, ref.url, linked_files)

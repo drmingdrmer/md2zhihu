@@ -80,8 +80,8 @@ class MDRender(object):
             }
             lines = self.render(rnode)
             aligns = [alignmap[x["align"]] for x in n["children"]]
-            aligns = "| " + " | ".join(aligns) + " |"
-            return ["| " + " | ".join(lines) + " |", aligns]
+            align_line = "| " + " | ".join(aligns) + " |"
+            return ["| " + " | ".join(lines) + " |", align_line]
 
         if typ == "table_cell":
             lines = self.render(rnode)

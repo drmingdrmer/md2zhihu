@@ -1,3 +1,5 @@
+from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
 
@@ -17,6 +19,7 @@ from ..converters import math_inline_to_plaintext
 from ..converters import table_to_barehtml
 from ..converters import table_to_jpg
 from ..converters import to_plaintext
+from ..types import Features
 from ..utils import escape
 from ..utils import strip_paragraph_end
 
@@ -78,12 +81,12 @@ def weibo_specific(mdrender, rnode) -> Optional[List[str]]:
     return None
 
 
-transparent_features = dict(
+transparent_features: Features = dict(
     image=save_image_to_asset_dir,
     link=save_linked_file_to_asset_dir,
 )
 
-simple_features = dict(
+simple_features: Features = dict(
     image=save_image_to_asset_dir,
     link=save_linked_file_to_asset_dir,
     math_block=math_block_to_jpg,
@@ -100,10 +103,10 @@ simple_features = dict(
     ),
 )
 
-weibo_features = {"*": weibo_specific}
+weibo_features: Features = {"*": weibo_specific}
 
 
-wechat_features = dict(
+wechat_features: Features = dict(
     image=save_image_to_asset_dir,
     link=save_linked_file_to_asset_dir,
     math_block=math_block_to_imgtag,
@@ -119,7 +122,7 @@ wechat_features = dict(
     ),
 )
 
-zhihu_features = dict(
+zhihu_features: Features = dict(
     image=save_image_to_asset_dir,
     link=save_linked_file_to_asset_dir,
     math_block=math_block_to_imgtag,
@@ -135,7 +138,7 @@ zhihu_features = dict(
 #  Github supports:
 #  - latex math
 #  - mermaid
-github_features = dict(
+github_features: Features = dict(
     image=save_image_to_asset_dir,
     link=save_linked_file_to_asset_dir,
     math_block=math_block_join_dolar_when_nested,
@@ -147,7 +150,7 @@ github_features = dict(
 )
 
 #  jekyll theme: minimal mistake
-minimal_mistake_features = dict(
+minimal_mistake_features: Features = dict(
     image=save_image_to_asset_dir,
     link=save_linked_file_to_asset_dir,
     block_code=dict(
@@ -193,7 +196,7 @@ all_features = dict(
     ),
 )
 
-platform_feature_dict = {
+platform_feature_dict: Dict[str, Features] = {
     "zhihu": zhihu_features,
     "github": github_features,
     "wechat": wechat_features,
@@ -205,12 +208,12 @@ platform_feature_dict = {
 
 
 def rules_to_features(rules):
-    features = {}
+    features: Dict[str, Any] = {}
     for r in rules:
         rs, act = r.split(":")
         rs = rs.split("/")
 
-        f = all_features
+        f: Dict[str, Any] = all_features
         rst = features
         for typ in rs[:-1]:
             f = f[typ]

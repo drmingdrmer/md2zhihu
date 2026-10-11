@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import List
 from typing import Optional
+from typing import Union
 
 from k3handy import pjoin
 
@@ -132,7 +133,7 @@ class Config(object):
         conf._set_input(src_path, options)
         return conf
 
-    def _set_input(self, src_path, options):
+    def _set_input(self, src_path: str, options: Options) -> None:
         """Keep `options`, and derive from them the paths of the input `src_path`."""
         self.options = options
         self.features: dict = platform_feature_dict.get(options.platform, dict())
@@ -153,9 +154,9 @@ class Config(object):
 
         fn = os.path.split(self.src_path)[-1]
 
-        trim_fn = re.match(r"\d\d\d\d-\d\d-\d\d-(.*)", fn)
-        if trim_fn:
-            trim_fn = trim_fn.groups()[0]
+        dated = re.match(r"\d\d\d\d-\d\d-\d\d-(.*)", fn)
+        if dated:
+            trim_fn = dated.groups()[0]
         else:
             trim_fn = fn
 
@@ -174,6 +175,7 @@ class Config(object):
         else:
             self.md_output_base = os.path.split(os.path.abspath(self.md_output_path))[0]
 
+        self.asset_repo: Union[LocalRepo, AssetRepo]
         if options.asset_repo is None:
             # The URL of an asset is its path from the markdown, so that it does not depend on output_dir.
             self.asset_repo = LocalRepo(self.md_output_path, self.asset_output_dir)
