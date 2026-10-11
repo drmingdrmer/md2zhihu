@@ -1,8 +1,8 @@
 In bash, $$ is the PID.
 
-Second paragraph, with *emphasis
+Second paragraph, with \*emphasis
 
-Third paragraph*.
+Third paragraph\*.
 
 # Heading
 

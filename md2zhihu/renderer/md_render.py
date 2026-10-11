@@ -46,6 +46,10 @@ paragraph_breaker = re.compile(
 bullets = ["-", "+"]
 delimiters = [".", ")"]
 
+# A backslash escape in text, which is written as it is, or a "*" without one, which md2zhihu escapes.
+# Such a "*" is a char of the text, but where md2zhihu writes it, it could pair with md2zhihu's emphasis markers.
+literal_markers = re.compile(r"\\.|\*")
+
 
 class MDRender(object):
     # platform specific renderer
@@ -90,7 +94,8 @@ class MDRender(object):
             return paragraph_lines(lines) + [""]
 
         if typ == "text":
-            return [n["text"]]
+            text = literal_markers.sub(escape_marker, n["text"])
+            return [text]
 
         if typ == "strong":
             lines = self.render(rnode)
@@ -220,8 +225,9 @@ class MDRender(object):
 
         if typ == "emphasis":
             lines = self.render(rnode)
-            lines[0] = "*" + lines[0]
-            lines[-1] = lines[-1] + "*"
+            char = emphasis_marker(rnode)
+            lines[0] = char + lines[0]
+            lines[-1] = lines[-1] + char
             return lines
 
         if typ == "inline_html":
@@ -295,6 +301,40 @@ def lists_before(rnode) -> int:
             break
         count += 1
     return count
+
+
+def escape_marker(m: re.Match[str]) -> str:
+    """Return the match of `literal_markers`: a backslash escape as it is, or a "*" with a backslash before it."""
+    s = m.group(0)
+    if s.startswith("\\"):
+        return s
+    return "\\" + s
+
+
+def emphasis_marker(rnode) -> str:
+    """
+    Return the char that marks the emphasis `rnode`: "_" if it starts or ends an emphasis marked with "*", else "*".
+    With "*" for both, their markers would join into a run such as "**", which a parser can read as a strong emphasis,
+    such as "**foo**" for "*_foo_*".
+    """
+    parent = rnode.parent
+    if parent is None or parent.node["type"] != "emphasis":
+        return "*"
+
+    # mistune leaves an empty text where it uses up a run of markers, such as on both sides of "_foo_" in "*_foo_*".
+    children = []
+    for n in parent.node["children"]:
+        is_empty_text = n["type"] == "text" and n["text"] == ""
+        if not is_empty_text:
+            children.append(n)
+
+    touches_parent_marker = children[0] is rnode.node or children[-1] is rnode.node
+    if not touches_parent_marker:
+        return "*"
+
+    if emphasis_marker(parent) == "_":
+        return "*"
+    return "_"
 
 
 def end_block_in_tight_item(lines: List[str]) -> List[str]:

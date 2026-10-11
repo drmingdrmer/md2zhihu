@@ -211,8 +211,9 @@ ref_definitions = {
 with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") as f:
     robust_examples = json.load(f)
 
-# The CommonMark examples about code, links and lists, by number: the sections "Indented code blocks",
-# "Fenced code blocks", "Link reference definitions", "List items", "Lists", "Code spans" and "Links".
+# The CommonMark examples about code, emphasis, links and lists, by number: the sections "Indented code blocks",
+# "Fenced code blocks", "Link reference definitions", "List items", "Lists", "Code spans",
+# "Emphasis and strong emphasis" and "Links".
 # And 19, 40, 56, 62 and 201, whose paragraph has a line that would start a block where md2zhihu writes it.
 # And 31, whose list item holds a thematic break.
 meaning_examples = [
@@ -226,6 +227,7 @@ meaning_examples = [
     201,
     *range(216, 288),
     *range(314, 331),
+    *range(331, 459),
     *range(459, 543),
 ]
 
@@ -247,6 +249,9 @@ encoded_destinations = {
     470: "[link](foo%28and%28bar%29)\n",
     471: "[link](foo%29:)\n",
 }
+
+# A backslash escape in markdown: a backslash and the ASCII punctuation char after it, which the escape writes as a char.
+backslash_escape = re.compile(r"\\([!-/:-@\[-`{-~])")
 
 
 def fake_convert(input_typ, content, output_typ, opt=None):
@@ -804,7 +809,7 @@ def test_examples_convert(tmp_path):
 def test_examples_keep_meaning(tmp_path):
     """
     The markdown that md2zhihu writes for an example parses to the AST of the example:
-    the same code text, link destinations and titles, and list nesting.
+    the same code text, emphasis, link destinations and titles, and list nesting.
     The ASTs are compared instead of the texts, because md2zhihu rewrites the whitespace that decides the nesting.
     """
     changed = []
@@ -813,10 +818,32 @@ def test_examples_keep_meaning(tmp_path):
         want, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
         got_md = write_example(md_text, tmp_path)
         got, _, _ = md2zhihu.parser.mistune3.parse(got_md, {}, True)
+        want = plain_text(want)
+        got = plain_text(got)
         if got != want:
             changed.append(number)
 
     assert changed == sorted(meaning_changes)
+
+
+def plain_text(nodes):
+    """
+    Return a copy of the AST `nodes` without the text differences that mean nothing:
+    each text has its backslash escapes decoded, such as "\\*" to "*", and an empty text is dropped.
+    The parser keeps the text as written, and md2zhihu escapes each "*" in text.
+    mistune leaves an empty text where it uses up a run of emphasis markers, such as on both sides of "_foo_" in "*_foo_*".
+    """
+    rst = []
+    for n in nodes:
+        n = dict(n)
+        if n["type"] == "text":
+            n["text"] = backslash_escape.sub(r"\1", n["text"])
+            if n["text"] == "":
+                continue
+        if "children" in n:
+            n["children"] = plain_text(n["children"])
+        rst.append(n)
+    return rst
 
 
 @pytest.mark.parametrize("number", sorted(encoded_destinations))
