@@ -72,24 +72,68 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    # The action pulls its image before each run, so the image of this commit reaches it through this registry.
+    services:
+      registry:
+        image: registry:3
+        ports:
+          - 5000:5000
+
     steps:
     - uses: actions/checkout@v7
 
+    - name: Build the image of this commit
+      run: |
+        docker build -t md2zhihu:test .
+        # In the container, git pushes the images to a local repo instead of github.com.
+        # The action mounts only the workspace, so the local repo is in it.
+        git init -q --bare remotes/md2test.git
+        docker build -t localhost:5000/md2zhihu:test - <<EOF
+        FROM md2zhihu:test
+        RUN git config --system url.$PWD/remotes/md2test.git.pushInsteadOf git@github.com:drmingdrmer/md2test.git
+        EOF
+        docker push localhost:5000/md2zhihu:test
+
+    - name: Make origin push to a local repo
+      run: |
+        git init -q --bare remotes/origin.git
+        # The checkout is shallow, so the local repo receives a commit without its parents.
+        git -C remotes/origin.git config receive.shallowUpdate true
+        git remote set-url --push origin "$PWD/remotes/origin.git"
+
     - name: Convert a markdown with the action in this commit
+      id: convert
       uses: ./
-      env:
-        GITHUB_USERNAME: ${{ github.repository_owner }}
-        GITHUB_TOKEN: ${{ secrets.MD2TEST_TOKEN }}
       with:
+        image: localhost:5000/md2zhihu:test
         # "**" stands for the two folders test/data/, which it matches only with bash's globstar option.
         pattern: '**/transparent/src/transparent.md'
+        # Without GITHUB_TOKEN, md2zhihu pushes to git@github.com:drmingdrmer/md2test.git, which goes to the local repo.
         asset_repo: https://github.com/drmingdrmer/md2test.git
         asset_branch: action_test
-        output_branch: ''
+        output_branch: action_test_output
 
     - name: Check the output
       run: |
+        # Print each command, so that a failed check shows the values it compared.
+        set -x
+        want=test/data/action/want
+
         # The images in the converted markdown load from the asset repo.
-        grep -F 'https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@action_test/transparent/' _md2zhihu/transparent.md
+        diff -u $want/transparent.md _md2zhihu/transparent.md
         # The runner user owns the output, so later steps can change it.
         test -O _md2zhihu/transparent.md
+
+        # The asset branch holds exactly the images that md2zhihu wrote to _md2.
+        git clone -q --branch action_test remotes/md2test.git "$RUNNER_TEMP/md2test"
+        diff -r --exclude=.git _md2 "$RUNNER_TEMP/md2test"
+        git -C "$RUNNER_TEMP/md2test" ls-files | diff -u $want/assets.txt -
+
+        # The output branch is one commit that adds the converted markdown to the checked-out commit.
+        branch=action_test_output
+        test "$(git -C remotes/origin.git for-each-ref --format='%(refname)')" = refs/heads/$branch
+        test "$(git -C remotes/origin.git rev-parse $branch^)" = "$GITHUB_SHA"
+        test "$(git -C remotes/origin.git log -1 --format=%s $branch)" = "md2zhihu built"
+        test "$(git -C remotes/origin.git diff --name-only "$GITHUB_SHA" $branch)" = _md2zhihu/transparent.md
+        git -C remotes/origin.git show $branch:_md2zhihu/transparent.md | diff -u $want/transparent.md -
+        test "${{ steps.convert.outputs.converted_branch }}" = "https://github.com/${{ github.repository }}/tree/$branch"

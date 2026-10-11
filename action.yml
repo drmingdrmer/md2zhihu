@@ -65,6 +65,14 @@ inputs:
     required: true
     default: '${{ github.ref_name }}-md2zhihu'
 
+  image:
+    description: |-
+      The docker image that runs md2zhihu. The action pulls it from its registry before each run.
+      Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.18`, to keep using that release.
+
+    required: false
+    default: 'ghcr.io/drmingdrmer/md2zhihu:latest'
+
 outputs:
   converted_branch:
     description: "The url of the branch of converted markdowns"
@@ -89,7 +97,7 @@ runs:
           --user "$(id -u):$(id -g)" \
           -v "$PWD:$PWD" -w "$PWD" \
           -e GITHUB_USERNAME -e GITHUB_TOKEN \
-          ghcr.io/drmingdrmer/md2zhihu:latest \
+          '${{ inputs.image }}' \
           md2zhihu \
           --repo '${{ inputs.asset_repo }}@${{ inputs.asset_branch }}' \
           --code-width 600 \

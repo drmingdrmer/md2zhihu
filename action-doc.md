@@ -59,3 +59,11 @@
 
     **required**: True
     **default**: `${{ github.ref_name }}-md2zhihu`
+
+-   `image`:
+
+    The docker image that runs md2zhihu. The action pulls it from its registry before each run.
+    Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.18`, to keep using that release.
+
+    **required**: False
+    **default**: `ghcr.io/drmingdrmer/md2zhihu:latest`
