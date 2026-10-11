@@ -373,6 +373,17 @@ def test_local_image(name, tmp_path, monkeypatch):
     assert image["src"] == "a/" + content_md5 + "-" + stored_url
 
 
+@pytest.mark.parametrize("url", ["data:image/png;base64,iVBORw0KGgo=", "//example.com/x.png"])
+def test_image_url_as_written(url, tmp_path):
+    # md2zhihu copies local images only: a data: URI holds the image itself, and "//example.com/x.png" is on the web.
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", out_dir, out_dir, md_output_path=out_dir + "/")
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "![](" + url + ")\n").render()
+
+    assert lines == ["![](" + url + ")", "", "", ""]
+
+
 @pytest.mark.parametrize("url, want", link_destinations)
 def test_link_destination(url, want):
     got = md2zhihu.renderer.md_render.link_destination(url)

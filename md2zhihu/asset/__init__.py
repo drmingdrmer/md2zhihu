@@ -76,6 +76,12 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
 
         return None
 
+    # Another URL with a scheme or a host stays as written, such as a "data:" URI, which holds the image itself.
+    parts = urlsplit(src)
+    is_path = parts.scheme == "" and parts.netloc == ""
+    if not is_path:
+        return None
+
     # The URL of a local image may end with a query or a fragment, such as "#home" of an SVG, which its path does not have.
     path, _, fragment = src.partition("#")
     path, _, query = path.partition("?")
