@@ -1,0 +1,5 @@
+{
+  "dst/simple/18b61671112f3aeb-slim.jpg": "md5 18b61671112f3aebf1a9d8d5bbe9596e",
+  "dst/simple/digraphRnodeshape=plaintextrankd-64adfb3ac6b25dd2.jpg": "{graphviz:jpg}digraph R {\nnode [shape=plaintext]\nrankdir=LR\nX0X0 [ label=\"0-0\"]\nX0X0 -> X1X0 [ color=\"#aaaadd\"]\nX0X0 -> X2X3 [ color=\"#aaaadd\"]\n}\n{/graphviz}",
+  "dst/simple/graphLRAHardedge--LinktextBRound-c3f417acad149464.jpg": "{mermaid:jpg}graph LR\n    A[Hard edge] -->|Link text| B(Round edge)\n    B --> C{Decision}\n    C -->|One| D[Result one]\n    C -->|Two| E[Result two]\n{/mermaid}"
+}

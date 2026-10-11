@@ -212,13 +212,44 @@ def fake_convert(input_typ, content, output_typ, opt=None):
     """
     Replace ``k3down2.convert``, which needs a browser or LaTeX tools.
 
-    An image holds the converter's input, and its file name has an md5 of that input.
-    Any other output shows the input in a marker.
-    So a golden file changes when the text that md2zhihu passes to a converter changes.
+    The output shows the whole request in a marker: the converter, its options if any, and its input,
+    such as `{code:jpg {"html": {"width": 600}}}print(1){/code}`. An image holds the marker as bytes.
+    So two different requests make two different images, and a golden file changes when md2zhihu passes another request.
     """
+    request = input_typ + ":" + output_typ
+    if opt is not None:
+        opt = copy.deepcopy(opt)
+        has_asset_base = "asset_base" in opt.get("html", {})
+        if has_asset_base:
+            # The absolute path of the folder of the markdown, which differs between runs.
+            opt["html"]["asset_base"] = os.path.relpath(opt["html"]["asset_base"])
+        request += " " + json.dumps(opt, sort_keys=True)
+
+    marker = "{%s}%s{/%s}" % (request, content, input_typ)
     if output_typ == "jpg":
-        return content.encode("utf-8")
-    return "{%s:%s}%s{/%s}" % (input_typ, output_typ, content, input_typ)
+        return marker.encode("utf-8")
+    return marker
+
+
+def file_contents(folder):
+    """
+    Return each file under `folder`, as its path relative to `folder`: its content.
+    As git does, a file with a NUL byte counts as binary, such as a copied image, and its content shows as an md5 of it.
+    """
+    contents = {}
+    for root, _, names in os.walk(folder):
+        for name in names:
+            path = os.path.join(root, name)
+            with open(path, "rb") as f:
+                data = f.read()
+
+            rel = os.path.relpath(path, folder)
+            is_binary = b"\0" in data
+            if is_binary:
+                contents[rel] = "md5 " + hashlib.md5(data).hexdigest()
+            else:
+                contents[rel] = data.decode("utf-8")
+    return contents
 
 
 def check_golden(golden_path, got):
@@ -242,6 +273,7 @@ def test_e2e_conversion(name, tmp_path, monkeypatch):
     shutil.copytree(os.path.join(test_data, case, "src"), tmp_path / case / "src")
 
     monkeypatch.chdir(tmp_path / work_dir)
+    inputs = file_contents(".")
     monkeypatch.setattr(sys, "argv", ["md2zhihu"] + args)
     monkeypatch.setattr(k3down2, "convert", fake_convert)
     md2zhihu.main()
@@ -249,6 +281,14 @@ def test_e2e_conversion(name, tmp_path, monkeypatch):
     with open(result_path, encoding="utf-8") as f:
         got = f.read()
     check_golden(os.path.join(golden_base, "e2e", name + ".md"), got)
+
+    # Every other file that md2zhihu writes, such as an image, with its content.
+    assets = {}
+    for path, content in file_contents(".").items():
+        if path not in inputs and path != result_path:
+            assets[path] = content
+    got_assets = json.dumps(assets, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    check_golden(os.path.join(golden_base, "e2e", name + ".assets.json"), got_assets)
 
 
 @pytest.mark.parametrize("name", case_names)
@@ -568,15 +608,10 @@ def test_render_twice(tmp_path, monkeypatch):
     assert vars(conf) == conf_attrs
 
 
-def request_convert(input_typ, content, output_typ, opt=None):
-    """Replace ``k3down2.convert``: an image holds the whole request, so that two different requests make different images."""
-    return json.dumps([input_typ, content, output_typ, opt]).encode("utf-8")
-
-
 def test_each_conversion_has_its_own_image(tmp_path, monkeypatch):
     # $x$ and $$x$$ convert x with two converters, and two runs convert one code block at two widths into one folder.
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(k3down2, "convert", request_convert)
+    monkeypatch.setattr(k3down2, "convert", fake_convert)
     md_text = "inline $x$.\n\n$$x$$\n\n```\ncode\n```\n"
 
     urls = []
@@ -588,17 +623,48 @@ def test_each_conversion_has_its_own_image(tmp_path, monkeypatch):
 
     got = [(tmp_path / "out" / url).read_bytes() for url in urls]
     want = [
-        request_convert("tex_inline", "x", "jpg"),
-        request_convert("tex_block", "x", "jpg"),
-        request_convert("code", "```\ncode\n```\n", "jpg", {"html": {"width": 600}}),
-        request_convert("tex_inline", "x", "jpg"),
-        request_convert("tex_block", "x", "jpg"),
-        request_convert("code", "```\ncode\n```\n", "jpg", {"html": {"width": 800}}),
+        fake_convert("tex_inline", "x", "jpg"),
+        fake_convert("tex_block", "x", "jpg"),
+        fake_convert("code", "```\ncode\n```\n", "jpg", {"html": {"width": 600}}),
+        fake_convert("tex_inline", "x", "jpg"),
+        fake_convert("tex_block", "x", "jpg"),
+        fake_convert("code", "```\ncode\n```\n", "jpg", {"html": {"width": 800}}),
     ]
     assert got == want
     # The folder holds one file for each of the 4 different requests.
     stored = sorted(os.listdir(tmp_path / "out" / "a"))
     assert stored == sorted({os.path.basename(url) for url in urls})
+
+
+def test_repeated_conversion(tmp_path, monkeypatch):
+    # Two code blocks of one text make one request twice, and share its image.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(k3down2, "convert", fake_convert)
+    conf = md2zhihu.Config("a.md", "simple", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "```\nx\n```\n\n```\nx\n```\n").render()
+
+    img = "a/x-48733fc970b587af.jpg"
+    assert lines == [f"![]({img})", "", f"![]({img})", "", "", ""]
+    assert file_contents("out") == {img: '{code:jpg {"html": {"width": 1000}}}```\nx\n```\n{/code}'}
+
+
+def test_converter_failure(tmp_path, monkeypatch):
+    # A failed conversion stops md2zhihu before it writes an image, or a markdown that would refer to the image.
+    def convert(input_typ, content, output_typ, opt=None):
+        raise RuntimeError("mermaid: parse error")
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.md").write_text("```mermaid\ngraph\n```\n")
+    monkeypatch.setattr(k3down2, "convert", convert)
+    monkeypatch.setattr(sys, "argv", ["md2zhihu", "a.md"])
+
+    with pytest.raises(RuntimeError) as e:
+        md2zhihu.main()
+
+    assert str(e.value) == "mermaid: parse error"
+    assert file_contents(tmp_path) == {"a.md": "```mermaid\ngraph\n```\n"}
 
 
 @pytest.fixture
