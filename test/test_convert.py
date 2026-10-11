@@ -237,6 +237,21 @@ ref_definitions = {
             '[r3]: https://a.com/3 "    x"',
         ],
     ),
+    "url-char-reference": (
+        "[x][r]\n\n[r]: https://a.com/?q=%26copy;\n",
+        [
+            "[x](https://a.com/?q=%26copy;)",
+            "",
+            "",
+            "",
+            "Reference:",
+            "",
+            r"- r : [https://a.com/?q=\&copy;](https://a.com/?q=%26copy;)",
+            "",
+            "",
+            "[r]: https://a.com/?q=%26copy;",
+        ],
+    ),
     "front-matter": (
         '---\nrefs:\n  - r: <no such.pdf> "Paper"\n---\n[x][r]\n',
         [
