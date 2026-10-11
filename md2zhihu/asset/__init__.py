@@ -1,8 +1,10 @@
+import filecmp
 import hashlib
 import os
 import re
 import shutil
 from typing import TYPE_CHECKING
+from typing import Dict
 from typing import List
 from typing import Optional
 from urllib.parse import unquote
@@ -14,6 +16,7 @@ from k3handy import to_bytes
 
 from ..errors import DownloadError
 from ..errors import MissingFileError
+from ..errors import NameClashError
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -99,15 +102,16 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
 def save_linked_file_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Optional[List[str]]:
     """Point a link to a local file at a copy of the file in the asset dir, and leave the rendering to the default renderer."""
     n = rnode.node
-    n["link"] = store_linked_file(mdrender.conf, n["link"])
+    n["link"] = store_linked_file(mdrender.conf, n["link"], mdrender.linked_files)
     return None
 
 
-def store_linked_file(conf: "Config", url: str) -> str:
+def store_linked_file(conf: "Config", url: str, linked_files: Dict[str, str]) -> str:
     """
     Copy the local file that the link URL `url` refers to into the asset dir, and return the URL of the copy.
     Return `url` as it is if it refers to no local file, such as a web page, a heading, a folder or a missing file,
     or if it refers to a markdown file.
+    `linked_files` maps the name of each copy that this conversion made to the path of its file, and gets the new copy.
     """
     parts = urlsplit(url)
     is_path = parts.scheme == "" and parts.netloc == "" and parts.query == ""
@@ -123,7 +127,21 @@ def store_linked_file(conf: "Config", url: str) -> str:
     if not os.path.isfile(path):
         return url
 
-    fn = copy_to_asset_dir(conf, path)
+    # A reader saves the file under the name in its URL, so the copy keeps the name, without the md5 prefix of an image.
+    fn = os.path.split(path)[1]
+    fn = unsafe_name_chars.sub("-", fn)
+    target = pjoin(conf.asset_output_dir, fn)
+
+    # Two files of one name, such as a/x.pdf and b/x.pdf, can share the copy only if they have the same content.
+    other = linked_files.setdefault(fn, path)
+    is_other_content = other != path and not filecmp.cmp(other, path, shallow=False)
+    if is_other_content:
+        raise NameClashError(
+            f"linked files {other!r} and {path!r} differ, but both would be copied to {target!r}, used in {conf.src_path!r}"
+        )
+
+    shutil.copyfile(path, target)
+
     stored_url = conf.img_url(fn)
     if parts.fragment != "":
         # Such as "#page=2" of a PDF.

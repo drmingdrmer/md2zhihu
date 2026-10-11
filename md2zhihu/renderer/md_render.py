@@ -1,4 +1,5 @@
 import re
+from typing import Dict
 from typing import List
 from typing import Optional
 
@@ -20,6 +21,8 @@ class MDRender(object):
     def __init__(self, conf, features: dict):
         self.conf = conf
         self.features = features
+        # The name of each copy that store_linked_file makes in this conversion, mapped to the path of the file that it copies.
+        self.linked_files: Dict[str, str] = {}
 
     def render_node(self, rnode):
         """

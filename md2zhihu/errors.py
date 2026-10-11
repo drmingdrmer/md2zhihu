@@ -26,3 +26,7 @@ class FormatError(UserError, ValueError):
 
 class EmbedCycleError(UserError, ValueError):
     """A markdown embeds itself, directly or through other markdown files."""
+
+
+class NameClashError(UserError, ValueError):
+    """Links refer to two local files that have different contents but would be copied to one file in the asset dir."""

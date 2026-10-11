@@ -1,6 +1,7 @@
 import copy
 import os
 import re
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -204,7 +205,7 @@ class Article(object):
                 output_lines = mdr.render(root_node)
                 yield "content", node["type"], "\n".join(output_lines)
 
-        used_refs = self.stored_refs()
+        used_refs = self.stored_refs(mdr.linked_files)
         ref_lines = render_ref_definitions(used_refs)
 
         yield "ref_def", "", "\n".join(ref_lines)
@@ -225,7 +226,7 @@ class Article(object):
 
         output_lines.append("")
 
-        used_refs = self.stored_refs()
+        used_refs = self.stored_refs(mdr.linked_files)
         ref_list = render_ref_list(used_refs, self.conf.platform)
         output_lines.extend(ref_list)
 
@@ -236,17 +237,18 @@ class Article(object):
 
         return output_lines
 
-    def stored_refs(self) -> RefDict:
+    def stored_refs(self, linked_files: Dict[str, str]) -> RefDict:
         """
         Return the used references, with the URL of a local file replaced by the URL of its copy in the asset dir,
         as every platform does for a link.
+        `linked_files` is the `MDRender.linked_files` of the conversion that renders the references.
         """
         # __init__ sets the used references when it parses the markdown.
         assert self.used_refs is not None
 
         refs: RefDict = {}
         for ref_id, ref in self.used_refs.items():
-            stored_url = store_linked_file(self.conf, ref.url)
+            stored_url = store_linked_file(self.conf, ref.url, linked_files)
             refs[ref_id] = Ref(stored_url, ref.title)
         return refs
 

@@ -26,6 +26,7 @@ import md2zhihu
 from md2zhihu.errors import DownloadError
 from md2zhihu.errors import EmbedCycleError
 from md2zhihu.errors import MissingFileError
+from md2zhihu.errors import NameClashError
 
 this_base = os.path.dirname(os.path.abspath(__file__))
 test_data = os.path.join(this_base, "data")
@@ -324,12 +325,33 @@ def test_linked_file(tmp_path, monkeypatch):
 
     lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "[paper](<paper 1.pdf>)").render()
 
-    # md2zhihu copies the file into the asset folder, with "-" for the space, and points the link at the copy.
-    content_md5 = hashlib.md5(b"pdf").hexdigest()[:16]
-    stored = content_md5 + "-paper-1.pdf"
+    # md2zhihu copies the file into the asset folder, under its name with "-" for the space, and points the link at the copy.
+    stored = "paper-1.pdf"
     assert os.listdir("out/a") == [stored]
     assert (tmp_path / "out" / "a" / stored).read_bytes() == b"pdf"
     assert lines[0] == "[paper](a/" + stored + ")"
+
+
+def test_linked_files_of_one_name(tmp_path, monkeypatch):
+    for folder, content in [("old", b"1"), ("new", b"2"), ("copy", b"1")]:
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "x.pdf").write_bytes(content)
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+    parser_config = md2zhihu.ParserConfig(True, [])
+
+    # Files of one name share one copy, so md2zhihu stops before a file of another content replaces the copy.
+    article = md2zhihu.Article(parser_config, conf, "[old](old/x.pdf) [new](new/x.pdf)\n")
+    with pytest.raises(NameClashError) as e:
+        article.render()
+    want = "linked files 'old/x.pdf' and 'new/x.pdf' differ, but both would be copied to 'out/a/x.pdf', used in 'a.md'"
+    assert str(e.value) == want
+    assert (tmp_path / "out" / "a" / "x.pdf").read_bytes() == b"1"
+
+    # Files of the same content share the copy.
+    lines = md2zhihu.Article(parser_config, conf, "[old](old/x.pdf) [copy](copy/x.pdf)\n").render()
+    assert lines[0] == "[old](a/x.pdf) [copy](a/x.pdf)"
 
 
 @pytest.mark.parametrize("name", sorted(local_images))
@@ -367,7 +389,7 @@ def test_reference_to_linked_file(tmp_path, monkeypatch):
     lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
 
     # As for an inline link, md2zhihu copies the file and points the link, the list and the definition at the copy.
-    url = "a/" + hashlib.md5(b"pdf").hexdigest()[:16] + "-paper-1.pdf"
+    url = "a/paper-1.pdf"
     assert (tmp_path / "out" / url).read_bytes() == b"pdf"
     want = [
         f'[paper]({url} "Paper")',
@@ -493,7 +515,7 @@ def test_render_twice(tmp_path, monkeypatch):
 
     # Each render copies the files again and points the image and the link at the copies.
     img = "a/" + hashlib.md5(b"png").hexdigest()[:16] + "-x.png"
-    pdf = "a/" + hashlib.md5(b"pdf").hexdigest()[:16] + "-f.pdf"
+    pdf = "a/f.pdf"
     text = f"![]({img}) [f]({pdf})"
     assert renders == [[text, "", "", ""], [text, "", "", ""]]
     want_chunks = [("content", "paragraph", text + "\n"), ("ref_def", "", "")]
