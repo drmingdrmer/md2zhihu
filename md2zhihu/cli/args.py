@@ -184,7 +184,7 @@ def create_parser() -> argparse.ArgumentParser:
         action="append",
         required=False,
         metavar="REGEX",
-        help='Replace an image "![](url)" whose url matches REGEX with the content of the markdown at url.'
+        help='Replace an image "![](url)" whose url matches REGEX with the content of the local markdown file at url.'
         ' Repeat it to give more than one regex. Default: "[.]md$".'
         ' Giving --embed replaces this default, so add --embed "[.]md$" to keep it.',
     )

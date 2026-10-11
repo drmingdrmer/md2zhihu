@@ -6,6 +6,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from urllib.parse import unquote
+from urllib.parse import urlsplit
 
 from k3fs import fread
 
@@ -129,6 +130,13 @@ class Article(object):
             # mistune percent-encodes the URL, such as "子文档.md", but md2zhihu matches and opens the path.
             src = unquote(child["src"])
             if not regex_search_any(self.parser_config.embed_patterns, src):
+                children.append(n)
+                continue
+
+            # md2zhihu embeds local markdown only, so a URL with a scheme or a host, such as "https://a.com/x.md", stays an image.
+            parts = urlsplit(child["src"])
+            is_path = parts.scheme == "" and parts.netloc == ""
+            if not is_path:
                 children.append(n)
                 continue
 

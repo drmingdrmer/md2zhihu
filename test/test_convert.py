@@ -472,6 +472,16 @@ def test_embed_same_file_twice(tmp_path, monkeypatch):
     assert article.render() == ["b", "", "b", "", "", ""]
 
 
+def test_embed_remote_url(tmp_path):
+    # md2zhihu embeds local markdown only, so the image of a markdown on the web stays as written.
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", out_dir, out_dir, md_output_path=out_dir + "/")
+
+    article = md2zhihu.Article(md2zhihu.ParserConfig(True, [r"[.]md$"]), conf, "![](https://example.com/readme.md)\n")
+
+    assert article.render() == ["![](https://example.com/readme.md)", "", "", ""]
+
+
 @pytest.mark.parametrize("start", [99, 100, 999])
 def test_ordered_list_start(start, tmp_path):
     # Each block of the first item starts at the column of its text, such as column 5 after "100. ".
