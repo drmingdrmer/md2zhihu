@@ -456,17 +456,17 @@ def test_commit_identity(name, tmp_path, monkeypatch):
     assert log.stdout == want + "\n"
 
 
-# Two ways to name the branch b of push_url, as name: (md2zhihu arguments, the --repo line of the commit message).
+# Two ways to name the branch b of push_url, as name: md2zhihu arguments.
 push_url = "https://someone:TOKEN@github.com/x/y.git"
 branch_args = {
-    "in-url": (["-r", push_url + "@b"], "repo: https://***@github.com/x/y.git@b"),
-    "flag": (["-r", push_url, "-b", "b"], "repo: https://***@github.com/x/y.git"),
+    "in-url": ["-r", push_url + "@b"],
+    "flag": ["-r", push_url, "-b", "b"],
 }
 
 
 @pytest.mark.parametrize("name", sorted(branch_args))
 def test_push(name, tmp_path, monkeypatch, capsys):
-    args, want_repo_line = branch_args[name]
+    args = branch_args[name]
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text("# a\n")
     bare = str(tmp_path / "assets.git")
@@ -489,4 +489,4 @@ def test_push(name, tmp_path, monkeypatch, capsys):
         ["git", "--git-dir", bare, "log", "-1", "--format=%B", "b"], capture_output=True, text=True, check=True
     )
     assert "TOKEN" not in log.stdout
-    assert "\n" + want_repo_line + "\n" in log.stdout
+    assert "\nasset_repo: https://***@github.com/x/y.git, branch b\n" in log.stdout

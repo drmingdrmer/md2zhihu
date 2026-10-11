@@ -16,6 +16,7 @@ from ..config import Options
 from ..errors import UserError
 from ..parser import Article
 from ..parser import ParserConfig
+from ..publish import push
 from ..utils import debug
 from ..utils import mask_url_credential
 from ..utils import msg
@@ -271,15 +272,15 @@ def run():
 
         stat.append([conf.src_path, conf.md_output_path])
 
-    if conf.asset_repo.is_local:
+    if options.asset_repo is None:
         msg("no --repo, so images are referenced by relative path")
     else:
-        conf.push(args, stat)
+        push(options, stat)
         msg(
             "pushed ",
             options.output_dir,
             " to ",
-            conf.asset_repo.url,
+            options.asset_repo.url,
             ", branch ",
-            conf.asset_repo.branch,
+            options.asset_repo.branch,
         )

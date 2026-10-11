@@ -81,6 +81,9 @@ class AssetRepo(object):
 
         self.path_pattern: str = ptn.format(user=user, repo=repo, branch=branch, path="{path}")
 
+    def __str__(self) -> str:
+        return f"{self.url}, branch {self.branch}"
+
     def parse_shortcut_repo_url(self, repo_url: str) -> str:
         """
         If repo_url is a shortcut specifying to use local git repo remote url,
