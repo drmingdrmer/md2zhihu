@@ -217,15 +217,9 @@ meaning_examples = [*range(76, 116), *range(159, 182), *range(216, 288), *range(
 
 # The examples above whose meaning md2zhihu changes, as number: what changes.
 meaning_changes = {
-    241: "the blank line after a code block in a list item makes the tight list loose",
-    263: "the blank line after a heading in a list item makes the tight list loose",
     264: "a list after a list of another bullet char becomes part of it",
     265: "a list after a list of another delimiter becomes part of it",
     273: 'the continuation line "- e" of a paragraph in a list item becomes a nested list',
-    279: "the blank line after a code block in a list item makes the tight list loose",
-    280: "the blank line after a nested list makes the tight list loose",
-    281: "the blank line after a block quote in a list item makes the tight list loose",
-    282: "the blank lines after a block quote and a code block in a list item make the tight list loose",
     327: "the backtick in the text of an autolink pairs with a later backtick",
     330: "the literal backtick before a code span pairs with the backtick of the code span",
     469: "the URL is written percent-encoded, as encoded_destinations shows",

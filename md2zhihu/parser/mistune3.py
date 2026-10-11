@@ -382,6 +382,10 @@ def adapt_token(tok: Token) -> ASTNode:
     for attr, field in attr_fields.get(typ, {}).items():
         node[field] = attrs.get(attr)
 
+    # Only a list has "tight": no blank line separates its items or the blocks in an item.
+    if "tight" in tok:
+        node["tight"] = tok["tight"]
+
     if "raw" in tok:
         node["text"] = tok["raw"]
 

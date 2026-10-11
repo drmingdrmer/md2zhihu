@@ -14,6 +14,13 @@ from .dispatch import render_with_features
 # The characters that end the URL of a link or an image in markdown: the ASCII control characters and the space.
 url_breakers = re.compile(r"[\x00-\x20\x7f]")
 
+# A line that closes its block, so that the next line starts a block without a blank line between them:
+# a code fence, an ATX heading or a thematic break.
+block_closing_line = re.compile(r" *(?:`{3,}|#{1,6}(?: .*)?|(?:- *){3,}|(?:\* *){3,}|(?:_ *){3,})")
+
+# The quote markers, with their indent, at the start of a line in a quote, such as "    > >" in "    > > a".
+quote_markers = re.compile(r" *>(?: *>)*")
+
 
 class MDRender(object):
     # platform specific renderer
@@ -120,11 +127,14 @@ class MDRender(object):
             return add_paragraph_end(lines)
 
         if typ == "list_item":
-            lines = self.render(rnode)
-
             # parent is a `list` node
             parent = rnode.parent
             assert parent.node["type"] == "list"
+
+            if parent.node["tight"]:
+                lines = self.render_tight_item(rnode)
+            else:
+                lines = self.render(rnode)
 
             head = "-   "
             if parent.node["ordered"]:
@@ -199,8 +209,50 @@ class MDRender(object):
 
         return rst
 
+    def render_tight_item(self, rnode) -> List[str]:
+        """
+        Render the blocks of an item of a tight list, in which a blank line between two blocks makes the list loose.
+        The last block needs no blank line after it, because the next item closes it.
+        """
+        children = rnode.node["children"]
+        rst = []
+        for n in children[:-1]:
+            lines = self.render_node(rnode.new_child(n))
+            rst.extend(end_block_in_tight_item(lines))
+
+        lines = self.render_node(rnode.new_child(children[-1]))
+        rst.extend(strip_paragraph_end(lines))
+
+        # An empty item still needs a line for its bullet.
+        if len(rst) == 0:
+            return [""]
+        return rst
+
     def msg(self, *args):
         msg(*args)
+
+
+def end_block_in_tight_item(lines: List[str]) -> List[str]:
+    """
+    Return the lines of a block in an item of a tight list, which another block of the item follows.
+    A block that its last line closes, such as a fenced code block, needs no blank line after it.
+    A quote ends with an empty quote line instead, such as ">", so that the next block does not continue its paragraph.
+    Any other block keeps the blank line after it, because the next block would continue it,
+    such as the paragraph of the image that a code block converts to.
+    """
+    stripped = strip_paragraph_end(lines)
+    if len(stripped) == 0:
+        return lines
+    last = stripped[-1]
+
+    if block_closing_line.fullmatch(last):
+        return stripped
+
+    quote = quote_markers.match(last)
+    if quote is not None:
+        return stripped + [quote.group(0)]
+
+    return lines
 
 
 def link_title(title: Optional[str]) -> str:
