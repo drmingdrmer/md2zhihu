@@ -9,6 +9,7 @@ from urllib.parse import unquote
 from urllib.parse import urlsplit
 
 from k3fs import fread
+from mistune.util import unikey
 
 from ..asset import store_linked_file
 from ..config import Config
@@ -45,15 +46,29 @@ class ParserConfig(object):
 
 
 class Article(object):
-    def __init__(self, parser_config: ParserConfig, conf: Config, md_text: str, embedders: Tuple[str, ...] = ()):
+    def __init__(
+        self,
+        parser_config: ParserConfig,
+        conf: Config,
+        md_text: str,
+        embedders: Tuple[str, ...] = (),
+        ref_names: Optional[Dict[str, Ref]] = None,
+    ):
         """
         `embedders` holds the paths of the markdown files that embed this one, outermost first.
+        `ref_names` maps the key of each reference name in the output, such as "R" for "r", as markdown matches names,
+        to its reference, whose path URL is from the working dir.
+        The articles that embed one another share it, so that each name stays one reference.
         """
         self.parser_config = parser_config
 
         self.conf = conf
 
         self.embedders = embedders
+
+        if ref_names is None:
+            ref_names = {}
+        self.ref_names = ref_names
 
         # init
 
@@ -81,13 +96,32 @@ class Article(object):
 
         # The AST of the markdown, and the references used in it.
         self.ast, self.used_refs, undefined_refs = mistune3.parse(
-            self.md_text, self.refs, self.parser_config.populate_reference
+            self.md_text, self.refs, self.parser_config.populate_reference, self.ref_name
         )
 
         for ref in undefined_refs:
             warn("undefined reference ", ref, " in ", repr(self.conf.src_path))
 
         self.parse_embed()
+
+    def ref_name(self, name: str, ref: Ref) -> str:
+        """
+        Return the name in the output of the reference `name` to `ref`: `name`, or a new one such as "r-2",
+        if another article of the output, such as the one that embeds this one, uses `name` for another reference.
+        """
+        # A path URL is compared from the working dir, because each article writes it from its own dir.
+        base = os.path.split(self.conf.src_path)[0]
+        url = rebase_url(base, os.curdir, ref.url)
+        key_ref = Ref(url, ref.title)
+
+        new_name = name
+        n = 1
+        while True:
+            registered = self.ref_names.setdefault(unikey(new_name), key_ref)
+            if registered == key_ref:
+                return new_name
+            n += 1
+            new_name = name + "-" + str(n)
 
     def parse_embed(self):
         # Import here to avoid circular dependency
@@ -151,7 +185,7 @@ class Article(object):
             # The embedded article reads its own path, such as for the images in it, and the parent keeps its config.
             child_conf = Config.from_options(article_path, self.conf.options)
 
-            article = Article(self.parser_config, child_conf, md_text, embedders=chain)
+            article = Article(self.parser_config, child_conf, md_text, embedders=chain, ref_names=self.ref_names)
 
             # rebase urls in embedded article
 

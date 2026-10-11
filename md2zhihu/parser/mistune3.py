@@ -5,6 +5,7 @@ This is the only module that knows mistune 3's token format.
 
 import re
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -80,19 +81,24 @@ def new_markdown() -> mistune.Markdown:
     return md
 
 
-def parse(text: str, refs: RefDict, populate_reference: bool) -> Tuple[ASTNodes, RefDict, List[str]]:
+def parse(
+    text: str, refs: RefDict, populate_reference: bool, ref_name: Optional[Callable[[str, Ref], str]] = None
+) -> Tuple[ASTNodes, RefDict, List[str]]:
     """
     Parse markdown with mistune 3 into the AST that md2zhihu renders.
 
     `refs` maps md2zhihu's name of each reference from outside the text to its definition.
     A definition in the text wins over the reference of the same name.
     With `populate_reference` False, a link to a reference keeps its form, such as `[text][name]`.
+    `ref_name` returns the name in the output of a used reference, from its name and its definition,
+    such as "r-2" for an "r" that the output already has for another reference. Without it, each name stays.
 
-    Return the AST, the references in `refs` that it uses, and the undefined references in it.
+    Return the AST, the references that it uses by their names in the output, and the undefined references in it.
     """
 
     state = BlockState()
     state.env["populate_reference"] = populate_reference
+    state.env["ref_name"] = ref_name
     state.env["used_refs"] = {}
     state.env["undefined_refs"] = []
 
@@ -182,13 +188,20 @@ def parse_link(inline: InlineParser, m: re.Match[str], state: InlineState) -> Op
 
 def use_ref(state: InlineState, index: int, tail: str) -> None:
     """
-    Record the reference that the link `state.tokens[index]` uses.
+    Record the reference that the link `state.tokens[index]` uses, by its name in the output.
     With populate_reference False, write the link as its source: "[", its text, and `tail`, such as "][name]".
+    A reference with another name in the output, such as "r-2", gets the tail "][r-2]" instead.
     """
 
     ref = state.env["ref_links"][state.tokens[index]["ref"]]
-    state.env["used_refs"][ref["label"]] = Ref(ref["url"], ref.get("title"))
+    used = Ref(ref["url"], ref.get("title"))
+    name = ref["label"]
+    if state.env["ref_name"] is not None:
+        name = state.env["ref_name"](name, used)
+    state.env["used_refs"][name] = used
     if not state.env["populate_reference"]:
+        if name != ref["label"]:
+            tail = "][" + name + "]"
         # The text keeps its tokens, so that md2zhihu converts the math in it, such as in "[$x$][name]".
         opening = {"type": "text", "raw": "["}
         closing = {"type": "text", "raw": tail}

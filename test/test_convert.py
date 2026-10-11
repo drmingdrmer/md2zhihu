@@ -154,6 +154,13 @@ embed_cycles = {
     ),
 }
 
+# The links of src/a.md and of src/sub/b.md that it embeds, as written with and without populating references.
+# Both define "r", for two URLs, so the "r" of b.md gets the name "r-2". Both "s" are ../s.pdf from src, so "s" keeps its name.
+embed_ref_links = {
+    True: ["[x](http://parent.example/) and [s](../s.pdf)", "", "[y](http://child.example/) and [s](../s.pdf)"],
+    False: ["[x][r] and [s][]", "", "[y][r-2] and [s][]"],
+}
+
 # References whose URL has angle brackets or whose title has escapes, as name: (markdown, the lines that zhihu renders).
 # A link gets the URL as mistune writes it, percent-encoded, and the title; the reference list shows the URL as written.
 ref_definitions = {
@@ -588,6 +595,36 @@ def test_embed_same_file_twice(tmp_path, monkeypatch):
     article = md2zhihu.Article(md2zhihu.ParserConfig(True, [r"[.]md$"]), conf, "![](b.md)\n\n![](b.md)\n")
 
     assert article.render() == ["b", "", "b", "", "", ""]
+
+
+@pytest.mark.parametrize("populate", sorted(embed_ref_links))
+def test_embed_ref_name_clash(populate, tmp_path, monkeypatch):
+    (tmp_path / "src" / "sub").mkdir(parents=True)
+    (tmp_path / "src" / "sub" / "b.md").write_text("[y][r] and [s][]\n\n[r]: http://child.example/\n[s]: ../../s.pdf\n")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("src/a.md", "zhihu", "out", "out", md_output_path="out/")
+    md_text = "[x][r] and [s][]\n\n![](sub/b.md)\n\n[r]: http://parent.example/\n[s]: ../s.pdf\n"
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(populate, [r"[.]md$"]), conf, md_text).render()
+
+    want = embed_ref_links[populate] + [
+        "",
+        "",
+        "",
+        "Reference:",
+        "",
+        "- r : [http://parent.example/](http://parent.example/)",
+        "",
+        "- r-2 : [http://child.example/](http://child.example/)",
+        "",
+        "- s : [../s.pdf](../s.pdf)",
+        "",
+        "",
+        "[r]: http://parent.example/",
+        "[r-2]: http://child.example/",
+        "[s]: ../s.pdf",
+    ]
+    assert lines == want
 
 
 def test_embed_remote_url(tmp_path):
