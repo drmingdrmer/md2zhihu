@@ -137,7 +137,7 @@ class TestMd2zhihu(unittest.TestCase):
             self.assertEqual(want_url, conf.img_url("x.jpg"))
 
     def test_broken_link(self):
-        d = "test/data/broken-link"
+        d = copy_case("broken-link", self.tmp_path)
 
         cases = [
             ("src/image.md", "image not found: 'src/nope.png', used in 'src/image.md'"),
@@ -154,8 +154,6 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertEqual(0, code)
         self.assertIn("md2zhihu: warning: undefined reference [foo][bar] in 'src/ref.md'\n", err)
 
-        rm(d, "dst")
-
     def test_mask_url_credential(self):
         cases = [
             ("https://someone:TOKEN@github.com/a/b.git@br", "https://***@github.com/a/b.git@br"),
@@ -171,7 +169,7 @@ class TestMd2zhihu(unittest.TestCase):
             self.assertEqual(want, got)
 
     def test_push_masks_token(self):
-        d = "test/data/push-token"
+        d = copy_case("push-token", self.tmp_path)
         token = "FAKETOKEN"
         url_prefix = "https://someone:" + token + "@github.com/"
 
@@ -197,8 +195,6 @@ class TestMd2zhihu(unittest.TestCase):
 
         # The failed push removes the .git that md2zhihu created.
         self.assertEqual(["a", "a.md"], sorted(os.listdir(pjoin(d, "_md2"))))
-
-        rm(d, "_md2")
 
     def test_chunks(self):
         parser_config = md2zhihu.ParserConfig(False, [])
@@ -440,22 +436,23 @@ class TestMd2zhihu(unittest.TestCase):
 
         self.assertEqual(want, got)
 
+    @pytest.mark.integration
     def test_option_no_push(self):
         # - Without --repo, do not transform image url.
         # - Output to local dir, without pushing
 
         platform_type = "zhihu-localrepo"
 
-        d = pjoin("test/data", platform_type, "src")
-        want_dir = pjoin("test/data", platform_type, "want")
+        case_dir = copy_case(platform_type, self.tmp_path)
+        d = pjoin(case_dir, "src")
+        want_dir = pjoin(case_dir, "want")
 
         cmdx("md2zhihu", "simple.md", "--md-output", "out.md", "--output-dir", ".", cwd=d)
 
         cmp_md(self, pjoin(want_dir, "out.md"), pjoin(d, "out.md"))
         cmp_all_images(self, want_dir, d)
 
-        cmdx("git", "clean", "-dxf", cwd=d)
-
+    @pytest.mark.integration
     def test_option_use_local_remote_to_push(self):
         #  TODO output-dir is subdir and use the local git
 
@@ -465,13 +462,13 @@ class TestMd2zhihu(unittest.TestCase):
 
         platform_type = "zhihu-pushall"
 
-        case_dir = pjoin("test/data", platform_type)
+        case_dir = copy_case(platform_type, self.tmp_path)
         d = pjoin(case_dir, "src")
         want_dir = pjoin(case_dir, "want")
         clone_dir = pjoin(case_dir, "tmp")
-        k3fs.remove(clone_dir, onerror="ignore")
 
-        remote_url = get_testing_repo_url()
+        remote_url = "git@github.com:drmingdrmer/md2test.git"
+        bare, env = local_remote(self.tmp_path, remote_url)
 
         make_init_git(d, {"my_remote": remote_url})
 
@@ -485,6 +482,7 @@ class TestMd2zhihu(unittest.TestCase):
             "--repo",
             "my_remote@my_branch",
             cwd=d,
+            env=env,
         )
 
         cmp_md(self, pjoin(want_dir, "out.md"), pjoin(d, "out.md"))
@@ -492,7 +490,7 @@ class TestMd2zhihu(unittest.TestCase):
 
         # clone pushed branch and check its content
 
-        cmdx("git", "clone", remote_url, "--branch", "my_branch", "tmp", cwd=case_dir)
+        cmdx("git", "clone", bare, "--branch", "my_branch", "tmp", cwd=case_dir)
         _, out, _ = cmdx("git", "ls-files", cwd=clone_dir)
 
         self.assertEqual(
@@ -506,11 +504,11 @@ class TestMd2zhihu(unittest.TestCase):
             ],
             out,
         )
+        for path in out:
+            same = filecmp.cmp(pjoin(d, path), pjoin(clone_dir, path), shallow=False)
+            self.assertTrue(same, path)
 
-        cmdx("git", "clean", "-dxf", cwd=pjoin("test/data", platform_type))
-        k3fs.remove(clone_dir, onerror="ignore")
-        k3fs.remove(d, ".git", onerror="ignore")
-
+    @pytest.mark.integration
     def test_option_use_local_remote_to_push_deep_asset_dir(self):
         # - Use the source git as asset repo.
         # - Output to local nested dir and push everything to master
@@ -518,14 +516,13 @@ class TestMd2zhihu(unittest.TestCase):
 
         platform_type = "zhihu-deep-asset-dir"
 
-        case_dir = pjoin("test/data", platform_type)
+        case_dir = copy_case(platform_type, self.tmp_path)
         d = pjoin(case_dir, "src")
         want_dir = pjoin(case_dir, "want")
         clone_dir = pjoin(case_dir, "tmp")
 
-        k3fs.remove(clone_dir, onerror="ignore")
-
-        remote_url = get_testing_repo_url()
+        remote_url = "git@github.com:drmingdrmer/md2test.git"
+        bare, env = local_remote(self.tmp_path, remote_url)
 
         make_init_git(d, {"my_remote": remote_url})
 
@@ -541,6 +538,7 @@ class TestMd2zhihu(unittest.TestCase):
             "--repo",
             "my_remote@my_branch_deep",
             cwd=d,
+            env=env,
         )
 
         cmp_md(self, pjoin(want_dir, "out.md"), pjoin(d, "out.md"))
@@ -551,7 +549,7 @@ class TestMd2zhihu(unittest.TestCase):
         cmdx(
             "git",
             "clone",
-            remote_url,
+            bare,
             "--branch",
             "my_branch_deep",
             "tmp",
@@ -570,16 +568,19 @@ class TestMd2zhihu(unittest.TestCase):
             ],
             out,
         )
+        for path in out:
+            same = filecmp.cmp(pjoin(d, path), pjoin(clone_dir, path), shallow=False)
+            self.assertTrue(same, path)
 
-        cmdx("git", "clean", "-dxf", cwd=case_dir)
-        k3fs.remove(clone_dir, onerror="ignore")
-        k3fs.remove(d, ".git", onerror="ignore")
-
+    @pytest.mark.integration
     def test_option_md_output_fn(self):
         platform_type = "zhihu-meta"
 
-        d = "test/data/{}".format(platform_type)
-        code, out, err = k3proc.command(
+        d = copy_case(platform_type, self.tmp_path)
+        repo_url = "git@gitee.com:drdrxp/bed.git"
+        bare, env = local_remote(self.tmp_path, repo_url)
+
+        cmdx(
             "md2zhihu",
             "src/simple.md",
             "--output-dir",
@@ -587,32 +588,29 @@ class TestMd2zhihu(unittest.TestCase):
             "--md-output",
             "specified.md",
             "--repo",
-            "git@gitee.com:drdrxp/bed.git",
+            repo_url,
             "--keep-meta",
             cwd=d,
+            env=env,
         )
-
-        #  can not push on CI
-        _ = code
-        _ = out
-        _ = err
-
-        print(out)
-        print(err)
-
-        if not is_ci():
-            self.assertEqual(0, code)
 
         cmp_md(self, pjoin(d, "want/simple.md"), pjoin(d, "specified.md"))
 
-        rm(d, "specified.md")
-        k3fs.remove(d, "dst2", onerror="ignore")
+        # Without a branch in --repo, md2zhihu names the branch after the working folder.
+        _, branches, _ = cmdx("git", "--git-dir", bare, "for-each-ref", "--format=%(refname:short)")
+        [branch] = branches
+        self.assertRegex(branch, r"^_md2zhihu_zhihu-meta_[0-9a-f]{8}$")
+        cmp_pushed(self, bare, branch, pjoin(d, "dst2"))
 
+    @pytest.mark.integration
     def test_option_md_output_dir(self):
         platform_type = "zhihu-meta"
 
-        d = "test/data/{}".format(platform_type)
-        code, out, err = k3proc.command(
+        d = copy_case(platform_type, self.tmp_path)
+        repo_url = "git@gitee.com:drdrxp/bed.git"
+        bare, env = local_remote(self.tmp_path, repo_url)
+
+        cmdx(
             "md2zhihu",
             "src/simple.md",
             "--output-dir",
@@ -620,26 +618,19 @@ class TestMd2zhihu(unittest.TestCase):
             "--md-output",
             "foo/",
             "--repo",
-            "git@gitee.com:drdrxp/bed.git",
+            repo_url,
             "--keep-meta",
             cwd=d,
+            env=env,
         )
-
-        #  can not push on CI
-        _ = code
-        _ = out
-        _ = err
-
-        print(out)
-        print(err)
-
-        if not is_ci():
-            self.assertEqual(0, code)
 
         cmp_md(self, pjoin(d, "want/simple.md"), pjoin(d, "foo/simple.md"))
 
-        k3fs.remove(d, "foo", onerror="ignore")
-        k3fs.remove(d, "dst2", onerror="ignore")
+        # Without a branch in --repo, md2zhihu names the branch after the working folder.
+        _, branches, _ = cmdx("git", "--git-dir", bare, "for-each-ref", "--format=%(refname:short)")
+        [branch] = branches
+        self.assertRegex(branch, r"^_md2zhihu_zhihu-meta_[0-9a-f]{8}$")
+        cmp_pushed(self, bare, branch, pjoin(d, "dst2"))
 
     def test_rules_to_features(self):
         rules = [
@@ -685,9 +676,11 @@ class TestMd2zhihu(unittest.TestCase):
         with self.assertRaisesRegex(KeyError, "to_foo"):
             md2zhihu.platform.rules_to_features(rules)
 
+    @pytest.mark.integration
     def test_zhihu_meta(self):
         self._test_platform("zhihu-meta", ["--keep-meta"])
 
+    @pytest.mark.integration
     def test_zhihu_download(self):
         self._test_platform("zhihu-download", ["--download"])
 
@@ -695,7 +688,11 @@ class TestMd2zhihu(unittest.TestCase):
         self._test_platform("zhihu-embed", ["--embed", "[.]md$"])
 
     def test_zhihu_extrefs(self):
-        self._test_platform("zhihu-extrefs", ["--refs", "src/refs.yaml"])
+        want_warnings = [
+            "md2zhihu: warning: undefined reference [invis][invis] in 'src/simple.md'",
+            "md2zhihu: warning: undefined reference [m-wechat][meta-ref-wechat] in 'src/simple.md'",
+        ]
+        self._test_platform("zhihu-extrefs", ["--refs", "src/refs.yaml"], want_warnings)
 
     def test_zhihu_img_url(self):
         self._test_platform("zhihu-img-url", [])
@@ -709,21 +706,27 @@ class TestMd2zhihu(unittest.TestCase):
     def test_zhihu_jekyll(self):
         self._test_platform_no_push("zhihu-jekyll", "2021-06-11-simple.md", ["--jekyll"])
 
+    @pytest.mark.integration
     def test_minimal_mistake(self):
         self._test_platform_no_push("minimal_mistake", "simple.md", [])
 
+    @pytest.mark.integration
     def test_zhihu(self):
         self._test_platform("zhihu", [])
 
+    @pytest.mark.integration
     def test_github(self):
         self._test_platform("github", ["-p", "github"])
 
+    @pytest.mark.integration
     def test_wechat(self):
         self._test_platform("wechat", ["-p", "wechat"])
 
+    @pytest.mark.integration
     def test_weibo(self):
         self._test_platform("weibo", ["-p", "weibo"])
 
+    @pytest.mark.integration
     def test_simple(self):
         self._test_platform("simple", ["-p", "simple"])
 
@@ -760,50 +763,44 @@ class TestMd2zhihu(unittest.TestCase):
         self.assertTrue(big_kept)
         self.assertTrue(small_kept)
 
-    def _test_platform(self, platform_type, args):
-        d = "test/data/{}".format(platform_type)
+    def _test_platform(self, platform_type, args, want_warnings=()):
+        d = copy_case(platform_type, self.tmp_path)
         got_dir = "dst"
         want_dir = "want"
         got_asset_dir = "dst/simple"
         want_asset_dir = "want/simple"
 
-        k3fs.remove(d, got_dir, onerror="ignore")
+        repo_url = "git@gitee.com:drdrxp/bed.git"
+        bare, env = local_remote(self.tmp_path, repo_url)
 
-        #  do not check error, upload will fail
-        code, out, err = k3proc.command(
+        _, _, err = cmdx(
             "md2zhihu",
             "src/simple.md",
             "--output-dir",
             "dst",
             "--repo",
-            "git@gitee.com:drdrxp/bed.git@_md2zhihu_foo",
+            repo_url + "@_md2zhihu_foo",
             *args,
             cwd=d,
+            env=env,
         )
 
-        dd(err)
-
-        #  can not push on CI
-        _ = code
-        _ = out
-        _ = err
-
-        print(out)
-        print(err)
-
-        if not is_ci():
-            self.assertEqual(0, code)
+        want_err = [
+            *want_warnings,
+            "src/simple.md -> dst/simple.md",
+            "pushed dst to " + repo_url + ", branch _md2zhihu_foo",
+        ]
+        self.assertEqual(want_err, err)
 
         cmp_md(self, pjoin(d, want_dir, "simple.md"), pjoin(d, got_dir, "simple.md"))
         cmp_all_images(self, pjoin(d, want_asset_dir), pjoin(d, got_asset_dir))
-
-        k3fs.remove(d, got_dir, onerror="ignore")
+        cmp_pushed(self, bare, "_md2zhihu_foo", pjoin(d, got_dir))
 
     def _test_platform_no_push(self, platform_type, fn, args):
         elts = platform_type.split("-", 1)
         platform = elts[0]
 
-        d = "test/data/{}".format(platform_type)
+        d = copy_case(platform_type, self.tmp_path)
         got_dir = "dst"
         want_dir = "want"
 
@@ -811,8 +808,6 @@ class TestMd2zhihu(unittest.TestCase):
         asset_name = re.sub(r"^\d\d\d\d-\d\d-\d\d-", "", fn.rsplit(".", 1)[0])
         got_asset_dir = pjoin("dst", asset_name)
         want_asset_dir = pjoin("want", asset_name)
-
-        k3fs.remove(d, got_dir, onerror="ignore")
 
         cmdx(
             "md2zhihu",
@@ -827,8 +822,6 @@ class TestMd2zhihu(unittest.TestCase):
 
         cmp_md(self, pjoin(d, want_dir, fn), pjoin(d, got_dir, fn))
         cmp_all_images(self, pjoin(d, want_asset_dir), pjoin(d, got_asset_dir))
-
-        k3fs.remove(d, got_dir, onerror="ignore")
 
 
 def cmp_md(t, want_path, got_path):
@@ -941,21 +934,52 @@ def normalize_pandoc_output(want, got):
     return want
 
 
-def rm(*p):
-    k3fs.remove(*p, onerror="ignore")
+def copy_case(case, tmp):
+    """Copy the folder test/data/<case> into the folder tmp, for the test to write in, and return the path of the copy."""
+    d = pjoin(tmp, case)
+    shutil.copytree(pjoin(test_data, case), d)
+    return d
 
 
-def is_ci():
-    # github ci
-    return os.environ.get("CI") is not None
+def local_remote(tmp, url):
+    """
+    Create a bare repo in the folder tmp, and return its path and the environment to run md2zhihu in.
+    In this environment, git pushes to the bare repo instead of to `url`.
+    """
+    bare = pjoin(tmp, "remote.git")
+    cmdx("git", "init", "-q", "--bare", bare)
+    env = dict(
+        os.environ,
+        GIT_CONFIG_COUNT="1",
+        # md2zhihu makes the image URLs from `git remote get-url`, which applies insteadOf but not pushInsteadOf.
+        GIT_CONFIG_KEY_0="url." + bare + ".pushInsteadOf",
+        GIT_CONFIG_VALUE_0=url,
+        # An ssh URL that the rule above misses fails at once, instead of reaching the real host.
+        GIT_SSH_COMMAND="false",
+    )
+    return bare, env
 
 
-def get_testing_repo_url():
-    if is_ci():
-        c = os.environ.get("MD2TEST_USERNAME")
-        t = os.environ.get("MD2TEST_TOKEN")
-        #  use https on github action, it will be filled with token by k3git.GitUrl.parse
-        return "https://{c}:{t}@github.com/drmingdrmer/md2test.git".format(c=c, t=t)
-    else:
-        # use ssh when testing on my laptop.
-        return "git@github.com:drmingdrmer/md2test.git"
+def cmp_pushed(t, bare, branch, folder):
+    """
+    Check that `branch` of the bare repo holds the files in `folder` and in its subfolders, each with the same content.
+    md2zhihu removes the .git that it creates in `folder`, so a .git left there fails the check.
+    """
+    clone = pjoin(os.path.dirname(bare), "pushed")
+    cmdx("git", "clone", "-q", "--branch", branch, bare, clone)
+    _, pushed, _ = cmdx("git", "ls-files", cwd=clone)
+    t.assertEqual(file_paths(folder), pushed)
+
+    for path in pushed:
+        same = filecmp.cmp(pjoin(folder, path), pjoin(clone, path), shallow=False)
+        t.assertTrue(same, path)
+
+
+def file_paths(folder):
+    """Return the paths of the files in `folder` and in its subfolders, relative to `folder`, sorted."""
+    paths = []
+    for root, _, names in os.walk(folder):
+        for name in names:
+            path = pjoin(root, name)
+            paths.append(os.path.relpath(path, folder))
+    return sorted(paths)

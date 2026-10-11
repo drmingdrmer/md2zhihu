@@ -9,8 +9,6 @@ jobs:
 
     runs-on: ubuntu-latest
     strategy:
-      # parallel running result in conflict when git-push to a same branch
-      max-parallel: 1
       matrix:
         # Test minimum supported (3.10), middle (3.11), and latest (3.14)
         python-version: ["3.10", "3.11", "3.14"]
@@ -60,21 +58,15 @@ jobs:
         mypy md2zhihu --ignore-missing-imports
 
     - name: Test with pytest
-      env:
-        # pass in committer and token to access a test repo:
-        # https://github.com/drmingdrmer/md2test
-        MD2TEST_USERNAME: ${{ github.repository_owner }}
-        MD2TEST_TOKEN: ${{ secrets.MD2TEST_TOKEN }}
-        # Some tests push to git@gitee.com. The push fails on CI, which has no ssh key,
-        # but a stalled network can hang it for hours. These two timeouts end it in seconds.
-        GIT_SSH_COMMAND: ssh -o ConnectTimeout=10 -o ServerAliveInterval=10
       run: |
-        pytest -xv
+        # A failed test keeps its files in test-output, which the next step uploads.
+        pytest -xv --basetemp="$RUNNER_TEMP/test-output"
+        pytest -xv -m integration --basetemp="$RUNNER_TEMP/test-output"
 
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
-        path: test/
+        path: ${{ runner.temp }}/test-output/
 
   action_test:
 

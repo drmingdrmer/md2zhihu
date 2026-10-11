@@ -65,3 +65,10 @@ md2zhihu = "md2zhihu:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["md2zhihu", "md2zhihu.*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: renders with pandoc, mmdc, dot or Chromium, or downloads from the network; run it with -m integration",
+]
+# By default, only the tests that need nothing but Python and git run.
+addopts = "-m 'not integration'"
