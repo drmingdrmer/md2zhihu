@@ -2,6 +2,7 @@ import re
 from typing import List
 from urllib.parse import unquote
 
+from ..renderer.md_render import char_reference_start
 from ..renderer.md_render import escape_text
 from ..renderer.md_render import link_destination
 from ..renderer.md_render import link_title
@@ -10,9 +11,6 @@ from ..types import RefDict
 # A block marker at the start of the text of a list item, which would start a block in the item:
 # an ATX heading, a quote, a bullet list or an ordered list, such as "# x", "> q", "- x" or "1. x".
 item_block_marker = re.compile(r"#{1,6}(?=[ \t]|$)|>|[-+*](?=[ \t]|$)|\d{1,9}[.)](?=[ \t]|$)")
-
-# An "&" that starts a character reference, such as "&copy;" or "&#169;", which a markdown parser reads as one char.
-char_reference_start = re.compile(r"&(?=#[0-9]{1,7};|#[xX][0-9a-fA-F]{1,6};|[A-Za-z][A-Za-z0-9]*;)")
 
 
 # TODO: move to renderer module?

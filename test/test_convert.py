@@ -138,6 +138,8 @@ link_destinations = [
     ("a/(x.png", "a/%28x.png"),
     (")(", "%29%28"),
     ("my dir/x.png", "my%20dir/x.png"),
+    ("https://a.com/?a=1&b=2", "https://a.com/?a=1&b=2"),
+    ("https://a.com/?q=&copy;&#169;", "https://a.com/?q=&amp;copy;&amp;#169;"),
 ]
 
 # Markdown files that embed themselves, as name: ({path: content}, the error message).
@@ -250,6 +252,21 @@ ref_definitions = {
             "",
             "",
             "[r]: https://a.com/?q=%26copy;",
+        ],
+    ),
+    "url-escaped-char-reference": (
+        "[x][r]\n\n[r]: https://a.com/?q=&amp;copy;\n",
+        [
+            "[x](https://a.com/?q=&amp;copy;)",
+            "",
+            "",
+            "",
+            "Reference:",
+            "",
+            r"- r : [https://a.com/?q=\&copy;](https://a.com/?q=&amp;copy;)",
+            "",
+            "",
+            "[r]: https://a.com/?q=&amp;copy;",
         ],
     ),
     "front-matter": (

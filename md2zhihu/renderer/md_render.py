@@ -17,6 +17,9 @@ from .dispatch import render_with_features
 # The characters that end the URL of a link or an image in markdown: the ASCII control characters and the space.
 url_breakers = re.compile(r"[\x00-\x20\x7f]")
 
+# An "&" that starts a character reference, such as "&copy;" or "&#169;", which a markdown parser reads as one char.
+char_reference_start = re.compile(r"&(?=#[0-9]{1,7};|#[xX][0-9a-fA-F]{1,6};|[A-Za-z][A-Za-z0-9]*;)")
+
 # A line that closes its block, so that the next line starts a block without a blank line between them:
 # a code fence, an ATX heading or a thematic break.
 block_closing_line = re.compile(r" *(?:`{3,}|#{1,6}(?: .*)?|(?:- *){3,}|(?:\* *){3,}|(?:_ *){3,})")
@@ -470,11 +473,14 @@ def link_title(title: Optional[str]) -> str:
 
 
 def link_destination(url: str) -> str:
-    """
+    r"""
     Return `url` as written as the destination of a link or an image, which a markdown parser reads to its end.
     Each space or control character is percent-encoded, and so is each parenthesis, if they do not pair up, such as in "x).png".
+    An "&" that starts a character reference is written as "&amp;", such as "&amp;copy;" for "&copy;".
+    mistune reads "&amp;" back as "&", but it reads "\&copy;" in a URL as "©".
     """
     url = url_breakers.sub(percent_encode, url)
+    url = char_reference_start.sub("&amp;", url)
 
     depth = 0
     for c in url:
