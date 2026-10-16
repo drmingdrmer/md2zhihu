@@ -1,4 +1,5 @@
 import re
+from functools import partial
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -58,6 +59,9 @@ literal_markers = re.compile(r"\\.|[*`]")
 # or the title of a reference: a backslash escape, a code span, an emphasis, a link, md2zhihu's math, a strikethrough,
 # or inline HTML. A run of "_" is matched as a whole, because escape_text_char() decides by the chars around the run.
 text_specials = re.compile(r"[\\`*\[\]$~<]|_+")
+
+# A run of "_" in plain text.
+underscore_runs = re.compile(r"_+")
 
 
 class MDRender(object):
@@ -343,14 +347,17 @@ def escape_text(text: str) -> str:
     such as "\*a\*" for "*a*".
     An "&" is kept, because mistune keeps a character reference in the title of a link as written, such as "&amp;".
     """
-    return text_specials.sub(escape_text_char, text)
+    emphasis_pair = has_emphasis_pair(text)
+    escape = partial(escape_text_char, emphasis_pair=emphasis_pair)
+    return text_specials.sub(escape, text)
 
 
-def escape_text_char(m: re.Match[str]) -> str:
+def escape_text_char(m: re.Match[str], emphasis_pair: bool) -> str:
     r"""
     Return the match of `text_specials` escaped, such as "\_" for "_".
     A "`" is written as "&#96;", because in the text of a link mistune starts a code span at "\`" too.
     A run of "_" with a letter or digit on both sides, such as in "a_b", is kept, because it opens or closes no emphasis.
+    Every run of "_" is kept if `emphasis_pair` is False, because then no run of "_" in the text starts an emphasis.
     """
     c = m.group(0)
     if c == "`":
@@ -359,10 +366,30 @@ def escape_text_char(m: re.Match[str]) -> str:
         before = m.string[m.start() - 1 : m.start()]
         after = m.string[m.end() : m.end() + 1]
         inside_word = before.isalnum() and after.isalnum()
-        if inside_word:
+        if inside_word or not emphasis_pair:
             return c
         return "\\_" * len(c)
     return "\\" + c
+
+
+def has_emphasis_pair(text: str) -> bool:
+    """
+    Return whether a run of "_" in the plain text `text` can open an emphasis, and a later run can close one.
+    As mistune reads a run of "_", it can open an emphasis if no letter or digit is before it and no space is after it,
+    and close one if no letter or digit is after it and no space is before it.
+    The char beyond either end of `text` counts as punctuation, such as the "[" that md2zhihu writes before the text of a link.
+    """
+    opened = False
+    for m in underscore_runs.finditer(text):
+        before = text[m.start() - 1 : m.start()]
+        after = text[m.end() : m.end() + 1]
+        can_open = not before.isalnum() and not after.isspace()
+        can_close = not after.isalnum() and not before.isspace()
+        if opened and can_close:
+            return True
+        if can_open:
+            opened = True
+    return False
 
 
 def emphasis_marker(mdrender, rnode) -> str:

@@ -278,7 +278,7 @@ ref_definitions = {
             "",
             "Reference:",
             "",
-            r"- \_中_文\_ : [https://a.com/leader_id__cmp.rs\_/\_x](https://a.com/leader_id__cmp.rs_/_x)",
+            r"- \_中_文\_ : [https://a.com/leader_id__cmp.rs_/_x](https://a.com/leader_id__cmp.rs_/_x)",
             "",
             "",
             '[r]: https://a.com/leader_id__cmp.rs_/_x "_中_文_"',
