@@ -47,7 +47,14 @@ undefined_ref_forms = re.compile(r"\[[^\[\]]*\]\[[^\[\]]*\]")
 
 # md2zhihu's math, "$$...$$" or "$...$", which may span lines and have spaces inside, such as "$ x $".
 # A "$" followed by a digit does not close math, so "costs $5 and $6" has no math.
-math_pattern = re.compile(r"\$\$([^$][\s\S]*?)\$\$|\$([^$][\s\S]*?)\$(?!\d)")
+# A "$...$" holds a "$" only in a backslash escape, such as "\$", and a "$" after a space closes only math that starts
+# with a space. So in "costs $5 and $6; calculate $x$." only "x" is math.
+math_pattern = re.compile(
+    r"\$\$([^$][\s\S]*?)\$\$"  # "$$...$$"
+    r"|\$((?=\s)(?:[^$\\]|\\[\s\S])+"  # "$...$" that starts with a space
+    r"|(?:[^$\\]|\\[\s\S])*(?:[^\s$\\]|\\[\s\S])"  # "$...$" that ends with a char other than a space, or with an escape
+    r")\$(?!\d)"
+)
 
 # A code span, whose "$$", such as in `$$`, is not math.
 code_span = re.compile(r"(`+)[\s\S]*?\1")
