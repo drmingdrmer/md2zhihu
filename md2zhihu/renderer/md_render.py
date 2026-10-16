@@ -56,8 +56,8 @@ literal_markers = re.compile(r"\\.|[*`]")
 
 # A char of plain text that starts inline markdown where md2zhihu writes the text, such as the text of an autolink
 # or the title of a reference: a backslash escape, a code span, an emphasis, a link, md2zhihu's math, a strikethrough,
-# or inline HTML.
-text_specials = re.compile(r"[\\`*_\[\]$~<]")
+# or inline HTML. A run of "_" is matched as a whole, because escape_text_char() decides by the chars around the run.
+text_specials = re.compile(r"[\\`*\[\]$~<]|_+")
 
 
 class MDRender(object):
@@ -340,7 +340,7 @@ def escape_marker(m: re.Match[str]) -> str:
 def escape_text(text: str) -> str:
     r"""
     Return the plain text `text` as markdown that shows it, with each char of `text_specials` escaped,
-    such as "a\_b" for "a_b".
+    such as "\*a\*" for "*a*".
     An "&" is kept, because mistune keeps a character reference in the title of a link as written, such as "&amp;".
     """
     return text_specials.sub(escape_text_char, text)
@@ -350,10 +350,18 @@ def escape_text_char(m: re.Match[str]) -> str:
     r"""
     Return the match of `text_specials` escaped, such as "\_" for "_".
     A "`" is written as "&#96;", because in the text of a link mistune starts a code span at "\`" too.
+    A run of "_" with a letter or digit on both sides, such as in "a_b", is kept, because it opens or closes no emphasis.
     """
     c = m.group(0)
     if c == "`":
         return "&#96;"
+    if c[0] == "_":
+        before = m.string[m.start() - 1 : m.start()]
+        after = m.string[m.end() : m.end() + 1]
+        inside_word = before.isalnum() and after.isalnum()
+        if inside_word:
+            return c
+        return "\\_" * len(c)
     return "\\" + c
 
 

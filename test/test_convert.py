@@ -269,6 +269,21 @@ ref_definitions = {
             "[r]: https://a.com/?q=&amp;copy;",
         ],
     ),
+    "underscores": (
+        '[x][r]\n\n[r]: https://a.com/leader_id__cmp.rs_/_x "_中_文_"\n',
+        [
+            '[x](https://a.com/leader_id__cmp.rs_/_x "_中_文_")',
+            "",
+            "",
+            "",
+            "Reference:",
+            "",
+            r"- \_中_文\_ : [https://a.com/leader_id__cmp.rs\_/\_x](https://a.com/leader_id__cmp.rs_/_x)",
+            "",
+            "",
+            '[r]: https://a.com/leader_id__cmp.rs_/_x "_中_文_"',
+        ],
+    ),
     "front-matter": (
         '---\nrefs:\n  - r: <no such.pdf> "Paper"\n---\n[x][r]\n',
         [
