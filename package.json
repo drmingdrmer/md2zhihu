@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@mermaid-js/mermaid-cli": "^11.4.3"
+    "@mermaid-js/mermaid-cli": "^11.4.3",
+    "mathjax-full": "3.2.2"
   }
 }

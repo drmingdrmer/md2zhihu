@@ -168,7 +168,7 @@ MaxOS
 ```sh
 # For rendering table to html, and graphviz to images
 brew install pandoc graphviz node
-npm install -g @mermaid-js/mermaid-cli
+npm install -g @mermaid-js/mermaid-cli mathjax-full@3.2.2
 pip install md2zhihu
 # For rendering mermaid, code blocks, tables and math to images
 playwright install chromium

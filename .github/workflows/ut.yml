@@ -35,6 +35,8 @@ jobs:
         fi
         echo "add node module path: $GITHUB_WORKSPACE/node_modules/.bin/"
         echo "$GITHUB_WORKSPACE/node_modules/.bin/" >> $GITHUB_PATH
+        # k3down2 renders math with its tex2svg.js in site-packages, where node finds mathjax-full only through NODE_PATH.
+        echo "NODE_PATH=$GITHUB_WORKSPACE/node_modules" >> $GITHUB_ENV
 
     - name: Install apt dependencies
       run: |

@@ -1,4 +1,4 @@
-# md2zhihu with every tool that it runs: git, pandoc, graphviz, mermaid-cli and Chromium.
+# md2zhihu with every tool that it runs: git, pandoc, graphviz, mermaid-cli, MathJax and Chromium.
 #
 #   docker run --rm -v "${PWD}:/work" ghcr.io/drmingdrmer/md2zhihu md2zhihu post.md
 
@@ -17,9 +17,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates python3 python3-venv unzip $(cat /tmp/packages.txt) \
     && rm -rf /var/lib/apt/lists/* /tmp/packages.txt
 
-# k3down2 runs `npm exec -- mmdc`, which finds a global mmdc in any directory.
-# The version is the same as in package.json.
-RUN npm install -g "@mermaid-js/mermaid-cli@^11.4.3" \
+# k3down2 runs `npm exec -- mmdc`, which finds a global mmdc in any directory,
+# and renders math with node and the global mathjax-full, because it adds the global node_modules to NODE_PATH.
+# The versions are the same as in package.json.
+RUN npm install -g "@mermaid-js/mermaid-cli@^11.4.3" mathjax-full@3.2.2 \
     && npm cache clean --force
 
 COPY pyproject.toml README.md /src/
@@ -32,10 +33,10 @@ RUN python3 -m venv /opt/venv \
 # The mounted directory belongs to the host user, and git refuses to work in it otherwise.
 RUN git config --system --add safe.directory '*'
 
-# Render mermaid and code to images, so that the build fails if a renderer is broken.
+# Render mermaid, code and math to images, so that the build fails if a renderer is broken.
 # puppeteer's install script exits 0 even when the browser download fails.
 RUN cd /tmp \
-    && printf '```mermaid\ngraph LR\n  a --> b\n```\n\n```python\nprint(1)\n```\n' > smoke.md \
+    && printf '```mermaid\ngraph LR\n  a --> b\n```\n\n```python\nprint(1)\n```\n\n$x^2$\n' > smoke.md \
     && md2zhihu smoke.md -p simple \
     && rm -rf smoke.md _md2
 

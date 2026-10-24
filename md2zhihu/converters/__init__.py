@@ -1,16 +1,16 @@
 import json
 import os
-import urllib.error
 from typing import Any
 from typing import List
 from typing import Optional
 
 import k3down2
+import k3proc
 
 from ..asset import save_image_to_asset_dir
 from ..asset import save_linked_file_to_asset_dir
-from ..errors import DownloadError
 from ..errors import MissingToolError
+from ..errors import RenderError
 from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..renderer.md_render import inline_children
@@ -46,18 +46,17 @@ def k3down2_convert(mdrender: "MDRender", typ: str, txt: str, output_typ: str, o
     """
     Return what k3down2 converts `txt` of type `typ` to.
     Raise MissingToolError if the program that k3down2 runs is not on PATH, such as dot for graphviz,
-    and DownloadError if k3down2 can not download an image, such as the image of math from zhihu.com.
+    and RenderError if the program fails on `txt`, such as MathJax on TeX with an undefined command.
     """
     try:
         return k3down2.convert(typ, txt, output_typ, opt=opt)
     except FileNotFoundError as e:
         reason = f"needs {e.filename!r}, which is not on PATH"
         raise MissingToolError(f"rendering {typ} in {mdrender.conf.src_path!r} {reason}") from e
-    except (urllib.error.URLError, TimeoutError) as e:
-        # urlopen() raises URLError for a failed connection or an HTTP error, and TimeoutError for a stalled read.
-        cause = getattr(e, "reason", e)
-        reason = f"can not download its image: {cause}"
-        raise DownloadError(f"rendering {typ} in {mdrender.conf.src_path!r} {reason}") from e
+    except k3proc.CalledProcessError as e:
+        # The program writes why it failed to stderr, such as "Undefined control sequence \foo" from MathJax.
+        reason = "\n".join(e.err)
+        raise RenderError(f"rendering {typ} in {mdrender.conf.src_path!r} failed: {reason}") from e
 
 
 def conversion_key(typ: str, opt: Optional[dict]) -> str:

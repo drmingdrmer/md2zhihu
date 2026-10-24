@@ -16,12 +16,16 @@ class MissingToolError(UserError, FileNotFoundError):
     """A program that renders the markdown is not on PATH, such as dot for a graphviz block."""
 
 
+class RenderError(UserError, RuntimeError):
+    """A program that renders the markdown fails on it, such as MathJax on TeX with an undefined command."""
+
+
 class PushError(UserError, RuntimeError):
     """git failed to push the output folder to the asset repo."""
 
 
 class DownloadError(UserError, RuntimeError):
-    """md2zhihu can not download an image, for --download or for math from zhihu.com, such as for a 404 status or a stalled server."""
+    """md2zhihu can not download an image for --download, such as for a 404 status or a stalled server."""
 
 
 class FormatError(UserError, ValueError):

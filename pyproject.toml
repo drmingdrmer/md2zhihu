@@ -27,10 +27,11 @@ classifiers = [
 ]
 dependencies = [
     "PyYAML>=5.3.1,<7",
-    "k3down2>=0.1.31,<0.2",
+    "k3down2>=0.2.0,<0.3",
     "k3fs>=0.1.5,<0.3",
     "k3git>=0.1.18,<0.2",
     "k3handy>=0.1.12,<0.2",
+    "k3proc>=0.2.21,<0.3",
     # md2zhihu builds its parser on the internals of mistune, which a minor release changes, as 3.4.0 changed the
     # parsing of links; and the golden tests check the exact parse. So a new version needs a port, not a range.
     "mistune==3.3.4",
@@ -70,7 +71,7 @@ include = ["md2zhihu", "md2zhihu.*"]
 
 [tool.pytest.ini_options]
 markers = [
-    "integration: renders with pandoc, mmdc, dot or Chromium, or downloads from the network; run it with -m integration",
+    "integration: renders with pandoc, mmdc, dot, MathJax or Chromium, or downloads from the network; run it with -m integration",
 ]
 # By default, only the tests that need nothing but Python and git run.
 addopts = "-m 'not integration'"

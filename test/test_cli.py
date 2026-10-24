@@ -10,8 +10,6 @@ import logging
 import os
 import subprocess
 import sys
-import urllib.error
-import urllib.request
 
 import k3down2
 import pytest
@@ -145,12 +143,6 @@ missing_tools = {
         "rendering graphviz in 'a.md' needs 'dot', which is not on PATH",
     ),
     "table": ("| a | b |\n| - | - |\n| 1 | 2 |\n", "rendering table in 'a.md' needs 'pandoc', which is not on PATH"),
-}
-
-# The failures of the download of the image of math, as name: (the error that urlopen() raises, the reason md2zhihu prints).
-math_download_failures = {
-    "refused": (urllib.error.URLError(ConnectionRefusedError(61, "Connection refused")), "[Errno 61] Connection refused"),
-    "stalled": (TimeoutError("timed out"), "timed out"),
 }
 
 # --embed flags before an input, as (md2zhihu arguments, the parsed regexes).
@@ -296,22 +288,16 @@ def test_missing_tool(name, tmp_path, monkeypatch, capsys):
     assert err == "md2zhihu: error: " + want + "\n"
 
 
-@pytest.mark.parametrize("name", sorted(math_download_failures))
-def test_math_download_failure(name, tmp_path, monkeypatch, capsys):
-    error, reason = math_download_failures[name]
+@pytest.mark.integration
+def test_bad_tex(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "a.md").write_text("Math: $x$\n")
+    (tmp_path / "a.md").write_text("Math: $a \\foo b$\n")
 
-    def fail(url, timeout):
-        raise error
-
-    # The platform "simple" makes a jpg of math from the image that k3down2 downloads from zhihu.com.
-    monkeypatch.setattr(urllib.request, "urlopen", fail)
-
+    # The platform "simple" makes a jpg of math with MathJax, which does not define \foo.
     code, err = run_failing(monkeypatch, capsys, ["a.md", "-p", "simple"])
 
     assert code == 1
-    assert err == "md2zhihu: error: rendering tex_inline in 'a.md' can not download its image: " + reason + "\n"
+    assert err == "md2zhihu: error: rendering tex_inline in 'a.md' failed: Undefined control sequence \\foo\n"
 
 
 def test_repo_without_remote(tmp_path, monkeypatch, capsys):
