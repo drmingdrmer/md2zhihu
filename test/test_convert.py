@@ -364,6 +364,23 @@ plain_text_neighbors = {
     ("weibo", "_*b*$x$_\n"): "_*b*x_\n",
 }
 
+# Math for the passthrough extension of Hugo, as markdown: the markdown that md2zhihu writes with -p hugo.
+hugo_math = {
+    "$$x$$\n": "\\[x\\]\n",
+    # A "%" starts a comment, but "\%" does not.
+    "$$\na % one\n+ b \\% 2\n$$\n": "\\[a + b \\% 2\\]\n",
+    # md2zhihu reads "$x$" alone in its paragraph as a math block.
+    "$x$\n": "\\[x\\]\n",
+    # On one line, the math crosses no blank line and holds no ">" of a quote.
+    "> $$\n> a\n>\n> b\n> $$\n": "> \\[a b\\]\n",
+    # Hugo also reads math right after a list marker as a block.
+    "- $$x$$\n- b\n": "-   \\[x\\]\n-   b\n",
+    "a $$x\ny$$ b\n": "a $$x y$$ b\n",
+    # A math block of md2zhihu that is not alone in its paragraph is inline math, as kramdown reads it.
+    "$$x$$\nis a number.\n": "$$x$$\nis a number.\n",
+    "# $$x$$\n": "# $$x$$\n",
+}
+
 # A backslash escape or a character reference in markdown text, each of which writes one char, such as "\*" or "&#96;".
 char_escape = re.compile(r"\\[!-/:-@\[-`{-~]|&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]*);")
 
@@ -1026,6 +1043,13 @@ def test_emphasis_next_to_plain_text(platform, md_text, tmp_path):
     got = write_example(md_text, tmp_path, platform)
 
     assert got == plain_text_neighbors[(platform, md_text)]
+
+
+@pytest.mark.parametrize("md_text", sorted(hugo_math))
+def test_hugo_math(md_text, tmp_path):
+    got = write_example(md_text, tmp_path, "hugo")
+
+    assert got == hugo_math[md_text]
 
 
 def test_emphasis_neighbor_converted_once(tmp_path, monkeypatch):

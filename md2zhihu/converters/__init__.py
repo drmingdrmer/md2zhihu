@@ -13,6 +13,7 @@ from ..errors import DownloadError
 from ..errors import MissingToolError
 from ..renderer import MDRender
 from ..renderer import RenderNode
+from ..renderer.md_render import inline_children
 from ..utils import asset_fn
 from ..utils import code_fence
 from ..utils import escape
@@ -126,6 +127,67 @@ def math_block_join_dolar_when_nested(mdrender, rnode):
 def math_inline_single_dolar(mdrender, rnode):
     n = rnode.node
     return ["$" + n["text"].strip() + "$"]
+
+
+def math_block_to_hugo(mdrender: "MDRender", rnode: "RenderNode") -> List[str]:
+    r"""
+    Write a math block on one line, between "\[" and "\]" if it is alone in its paragraph, else between "$$" and "$$".
+    md2zhihu reads math as a block if it starts its paragraph and ends a line, such as in "$$x$$\nis a number.",
+    but kramdown, which reads the "$$" math of minimal_mistake, takes such math as inline math.
+    """
+    n = rnode.node
+    tex = tex_one_line(n["text"])
+    if alone_in_paragraph(rnode):
+        return ["\\[" + tex + "\\]"]
+    return ["$$" + tex + "$$"]
+
+
+def math_inline_to_hugo(mdrender: "MDRender", rnode: "RenderNode") -> List[str]:
+    """
+    Write inline math on one line, between "$$" and "$$".
+    """
+    n = rnode.node
+    tex = tex_one_line(n["text"])
+    return ["$$" + tex + "$$"]
+
+
+def alone_in_paragraph(rnode: "RenderNode") -> bool:
+    """
+    Return whether the node `rnode` is the only node of its paragraph, or of the text of an item of a tight list.
+    """
+    parent = rnode.parent
+    if parent is None:
+        return False
+    if parent.node["type"] not in ("paragraph", "block_text"):
+        return False
+    siblings = inline_children(parent.node)
+    return len(siblings) == 1
+
+
+def tex_one_line(tex: str) -> str:
+    """
+    Return the TeX `tex` on one line: each line without its comment and its spaces at both ends, joined with a space.
+    TeX reads a line break as a space, and a comment ends at the end of its line,
+    so the line breaks can become spaces once the comments are gone.
+    """
+    parts = []
+    for line in tex.split("\n"):
+        code = strip_tex_comment(line).strip()
+        if code != "":
+            parts.append(code)
+    return " ".join(parts)
+
+
+def strip_tex_comment(line: str) -> str:
+    r"""
+    Return `line` up to its first "%" that is not escaped as "\%", which starts a TeX comment.
+    """
+    escaped = False
+    for i, c in enumerate(line):
+        if c == "%" and not escaped:
+            return line[:i]
+        escaped = c == "\\" and not escaped
+    return line
 
 
 def math_block_to_jpg(mdrender, rnode):

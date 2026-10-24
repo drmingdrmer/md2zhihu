@@ -10,9 +10,11 @@ from ..converters import block_code_mermaid_to_jpg
 from ..converters import block_code_to_fixwidth_jpg
 from ..converters import block_code_to_jpg
 from ..converters import math_block_join_dolar_when_nested
+from ..converters import math_block_to_hugo
 from ..converters import math_block_to_imgtag
 from ..converters import math_block_to_jpg
 from ..converters import math_inline_single_dolar  # ... 其他转换函数
+from ..converters import math_inline_to_hugo
 from ..converters import math_inline_to_imgtag
 from ..converters import math_inline_to_jpg
 from ..converters import math_inline_to_plaintext
@@ -159,6 +161,15 @@ minimal_mistake_features: Features = dict(
     ),
 )
 
+#  Hugo with the passthrough extension, whose block delimiters are "\[" and "\]", and inline delimiters "$$" and "$$".
+#  Each formula goes on one line: the passthrough reads no math across a blank line,
+#  and in a quote it would keep the ">" of each line in the math.
+hugo_features: Features = dict(
+    minimal_mistake_features,
+    math_block=math_block_to_hugo,
+    math_inline=math_inline_to_hugo,
+)
+
 # type, subtype... action
 #
 all_features = dict(
@@ -202,6 +213,7 @@ platform_feature_dict: Dict[str, Features] = {
     "wechat": wechat_features,
     "weibo": weibo_features,
     "minimal_mistake": minimal_mistake_features,
+    "hugo": hugo_features,
     "simple": simple_features,
     "transparent": transparent_features,
 }

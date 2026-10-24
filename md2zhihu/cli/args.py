@@ -14,6 +14,9 @@ platforms:
   github           math stays math, which GitHub shows; graphviz to images
   minimal_mistake  mermaid and graphviz to images, for the Jekyll theme
                    Minimal Mistakes
+  hugo             as minimal_mistake, and each formula on one line, as block
+                   math \\[...\\] if alone in its paragraph, else as inline math
+                   $$...$$, for the passthrough extension of Hugo
   simple           math, tables and code blocks to images, and inline code to
                    plain text
   transparent      copy local images and linked files, and change nothing else
@@ -154,6 +157,7 @@ def create_parser() -> argparse.ArgumentParser:
             "weibo",
             "simple",
             "minimal_mistake",
+            "hugo",
             "transparent",
         ],
         metavar="PLATFORM",
