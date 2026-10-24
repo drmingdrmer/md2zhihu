@@ -31,7 +31,9 @@ dependencies = [
     "k3fs>=0.1.5,<0.3",
     "k3git>=0.1.18,<0.2",
     "k3handy>=0.1.12,<0.2",
-    "mistune>=3.3.4,<4",
+    # md2zhihu builds its parser on the internals of mistune, which a minor release changes, as 3.4.0 changed the
+    # parsing of links; and the golden tests check the exact parse. So a new version needs a port, not a range.
+    "mistune==3.3.4",
     "typing_extensions>=4.0,<5",
     "urllib3>=1.26.7,<3",
 ]
