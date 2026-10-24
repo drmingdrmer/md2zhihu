@@ -4,4 +4,8 @@
 
 ![an image](https://a.com/x.png "Image title")
 
+[](https://a.com/empty)
+
+![a `]` in code](https://a.com/y.png)
+
 

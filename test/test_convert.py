@@ -117,6 +117,9 @@ warn_cases = {
     "warn-shortcut": ("[x]", []),
     "warn-defined": ("[ok][]\n\n[ok]: http://ok", []),
     "warn-emphasis-text": ("[*foo*][bar]", ["[*foo*][bar]"]),
+    "warn-image": ("![foo][bar]", ["[foo][bar]"]),
+    # mistune makes no link in an HTML link, even of a defined reference.
+    "warn-in-html-link": ('<a href="x">[ok][]</a>\n\n[ok]: http://ok', []),
 }
 
 # Local images, as name: (file name, its URL in the markdown, the name of its copy after the md5, the URL of the copy after the md5).

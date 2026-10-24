@@ -74,10 +74,11 @@ def new_markdown() -> mistune.Markdown:
         plugins=["strikethrough", "table", table_in_list, table_in_quote],
     )
     md.inline.register("escape", None, parse_escape)
-    md.inline.register("link", None, parse_link)
+    md.inline.register("link_close", r"\]", parse_link_close)
     md.inline.register("auto_link", None, parse_auto_link)
     md.inline.register("auto_email", None, parse_auto_email)
-    md.inline.register("math", r"\$", parse_math)
+    # mistune skips plain text fast only if it knows the chars that start each rule.
+    md.inline.register("math", r"\$", parse_math, start_chars="$")
     md.block.register("math_lines", math_opening_line, parse_math_lines)
     md.block.insert_rule(md.block.block_quote_rules, "math_lines")
     md.block.insert_rule(md.block.list_rules, "math_lines")
@@ -163,29 +164,37 @@ def parse_escape(inline: InlineParser, m: re.Match[str], state: InlineState) -> 
     return m.end()
 
 
-def parse_link(inline: InlineParser, m: re.Match[str], state: InlineState) -> Optional[int]:
+def parse_link_close(inline: InlineParser, m: re.Match[str], state: InlineState) -> int:
     """
-    Run mistune's link rule. On an image it builds, keep the alt text as written.
+    Run mistune's rule of a "]", which closes the last "[" or "![" into a link or an image, if it can.
+    md2zhihu registers the rule for one "]" instead of mistune's run of "]",
+    so each call closes at most one bracket: the last one in `state.brackets`.
+    On an image it builds, keep the alt text as written.
     Record the references that md2zhihu defines and the links use, and the undefined references.
     """
 
-    count = len(state.tokens)
-    end = inline.parse_link(m, state)
-    if end is None:
-        form = undefined_ref_forms.match(state.src, m.start())
+    if len(state.brackets) == 0:
+        # No "[" is open, so mistune keeps the "]" as text.
+        return inline.parse_link_close(m, state)
+
+    opener = state.brackets[-1]
+    end = inline.parse_link_close(m, state)
+    # The token of the "[" becomes the link or the image, or stays text if the bracket closes nothing.
+    tok = state.tokens[opener.token_index]
+
+    # In an HTML link, such as `<a href="u">[x][r]</a>`, mistune makes no link, even of a defined reference.
+    if tok["type"] == "text" and not state.in_link:
+        # `opener.start` is the position after the "[", also for "![".
+        form = undefined_ref_forms.match(state.src, opener.start - 1)
         if form is not None:
             state.env["undefined_refs"].append(form.group(0))
-        return None
 
-    new_tokens = state.tokens[count:]
-    if len(new_tokens) == 1 and new_tokens[0]["type"] == "image":
+    if tok["type"] == "image":
         # mistune keeps the alt text only as parsed tokens, but md2zhihu writes it as written, such as "a *b*".
-        alt_end = closing_bracket(state.src, m.end())
-        new_tokens[0]["alt"] = state.src[m.end() : alt_end]
+        tok["alt"] = state.src[opener.start : m.start()]
 
-    if len(new_tokens) == 1 and new_tokens[0]["type"] == "link" and "ref" in new_tokens[0]:
-        text_end = closing_bracket(state.src, m.end())
-        use_ref(state, count, state.src[text_end:end])
+    if tok["type"] == "link" and "ref" in tok:
+        use_ref(state, opener.token_index, state.src[m.start() : end])
 
     return end
 
@@ -215,29 +224,6 @@ def use_ref(state: InlineState, index: int, tail: str) -> None:
                 # With "_emphasis" False, no emphasis crosses the brackets, as with a link.
                 tok["_emphasis"] = False
         state.tokens[index : index + 1] = source
-
-
-def closing_bracket(src: str, pos: int) -> int:
-    """
-    Return the position of the "]" that closes the "[" before ``pos``.
-    Nested brackets and backslash escapes are skipped, as mistune does.
-    """
-
-    depth = 0
-    while True:
-        c = src[pos]
-        if c == "\\":
-            pos += 2
-            continue
-
-        if c == "]" and depth == 0:
-            return pos
-
-        if c == "[":
-            depth += 1
-        if c == "]":
-            depth -= 1
-        pos += 1
 
 
 def parse_auto_link(inline: InlineParser, m: re.Match[str], state: InlineState) -> int:
@@ -290,8 +276,7 @@ def parse_math(inline: InlineParser, m: re.Match[str], state: InlineState) -> Op
     if text is None:
         text = math.group(2)
 
-    # mistune parses a link's text on its own, so the start of that text is not the start of the paragraph.
-    starts_paragraph = math.start() == 0 and not state.in_link
+    starts_paragraph = math.start() == 0
     ends_line = math.end() == len(state.src) or state.src.startswith("\n", math.end())
     if starts_paragraph and ends_line:
         state.append_token({"type": "math_block", "raw": text})
@@ -450,6 +435,10 @@ def adapt_token(tok: Token) -> ASTNode:
 
     if "children" in tok:
         node["children"] = adapt(tok["children"])
+
+    if typ == "link" and len(node["children"]) == 0:
+        # MDRender needs a child in a link. mistune 2 gives an empty link text, such as in "[](u)", an empty text.
+        node["children"] = [{"type": "text", "text": ""}]
 
     return node
 
