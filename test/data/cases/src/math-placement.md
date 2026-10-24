@@ -12,3 +12,7 @@
 Two on one line: $a$ and $b$.
 
 Link text: [$x^2$](https://a.com).
+
+Strikethrough: a ~~$x$~~ b.
+
+~~$y$~~
