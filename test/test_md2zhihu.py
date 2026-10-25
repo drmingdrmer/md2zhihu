@@ -26,6 +26,14 @@ dd = k3ut.dd
 this_base = os.path.dirname(__file__)
 test_data = "test/data"
 
+# The name of an image that a converter renders from a text, such as a graph:
+# the letters and digits of the text, then "-" and 16 hex digits of an md5, as md2zhihu.utils.asset_fn makes it.
+rendered_image_name = re.compile(r"[a-zA-Z0-9_\-=]*-[0-9a-f]{16}\.jpg")
+
+# How alike a rendered image must look to the wanted one, by the structural similarity (SSIM) of the two, at most 1.
+# Each version of a converter renders a little differently: the bound went down from 0.7 with the upgrade to mermaid 10.2.2.
+min_similarity = 0.68
+
 
 class TestMd2zhihu(unittest.TestCase):
     def _clean(self):
@@ -751,23 +759,37 @@ class TestMd2zhihu(unittest.TestCase):
         got = str(e.exception)
         self.assertIn("'nested/missing.png'", got)
 
-        # Images of two sizes fail the comparison, and both files stay as they are.
+        # Rendered images of two sizes fail the comparison, and both files stay as they are.
         big = "test/data/zhihu/src/assets/slim.jpg"
         small = "test/data/zhihu/want/simple/digraphRnodeshape=plaintextrankd-64adfb3ac6b25dd2.jpg"
+        rendered = "x-0123456789abcdef.jpg"
         os.makedirs(pjoin(tmp, "big"))
         os.makedirs(pjoin(tmp, "small"))
-        shutil.copyfile(big, pjoin(tmp, "big", "x.jpg"))
-        shutil.copyfile(small, pjoin(tmp, "small", "x.jpg"))
+        shutil.copyfile(big, pjoin(tmp, "big", rendered))
+        shutil.copyfile(small, pjoin(tmp, "small", rendered))
         with self.assertRaises(AssertionError) as e:
             cmp_all_images(self, pjoin(tmp, "big"), pjoin(tmp, "small"))
         got = str(e.exception)
-        want = f"{tmp}/small/x.jpg has the shape (131, 203, 3), but {tmp}/big/x.jpg has (400, 1024, 3)"
+        want = f"{tmp}/small/{rendered} has the shape (131, 203, 3), but {tmp}/big/{rendered} has (400, 1024, 3)"
         self.assertEqual(want, got)
 
-        big_kept = filecmp.cmp(big, pjoin(tmp, "big", "x.jpg"), shallow=False)
-        small_kept = filecmp.cmp(small, pjoin(tmp, "small", "x.jpg"), shallow=False)
+        big_kept = filecmp.cmp(big, pjoin(tmp, "big", rendered), shallow=False)
+        small_kept = filecmp.cmp(small, pjoin(tmp, "small", rendered), shallow=False)
         self.assertTrue(big_kept)
         self.assertTrue(small_kept)
+
+        # A copy of a local image with one more byte fails the comparison, though it looks the same.
+        copy = "18b61671112f3aeb-slim.jpg"
+        os.makedirs(pjoin(tmp, "copy"))
+        os.makedirs(pjoin(tmp, "changed"))
+        shutil.copyfile(big, pjoin(tmp, "copy", copy))
+        shutil.copyfile(big, pjoin(tmp, "changed", copy))
+        with open(pjoin(tmp, "changed", copy), "ab") as f:
+            f.write(b"\0")
+        with self.assertRaises(AssertionError) as e:
+            cmp_all_images(self, pjoin(tmp, "copy"), pjoin(tmp, "changed"))
+        got = str(e.exception)
+        self.assertEqual(f"{tmp}/changed/{copy} has other bytes than {tmp}/copy/{copy}", got)
 
     def _test_platform(self, platform_type, args, want_warnings=()):
         d = copy_case(platform_type, self.tmp_path)
@@ -839,7 +861,9 @@ def cmp_md(t, want_path, got_path):
 
 def cmp_all_images(t, want_dir, got_dir):
     """
-    Check that the two folders and their subfolders hold images of the same paths, and that each two images look alike.
+    Check that the two folders and their subfolders hold images of the same paths, and that each two images match:
+    two images that a converter rendered look alike, and two other images, such as copies of a local image,
+    have the same bytes.
     md2zhihu creates the folder of the images it writes, so got_dir must exist,
     but git keeps no empty folder, so want_dir is missing when no image is expected.
     """
@@ -849,8 +873,17 @@ def cmp_all_images(t, want_dir, got_dir):
     t.assertEqual(want, got)
 
     for path in want:
-        sim = cmp_image(pjoin(want_dir, path), pjoin(got_dir, path))
-        t.assertGreater(sim, 0.68)
+        want_path = pjoin(want_dir, path)
+        got_path = pjoin(got_dir, path)
+        name = os.path.basename(path)
+        if rendered_image_name.fullmatch(name) is None:
+            same = filecmp.cmp(want_path, got_path, shallow=False)
+            if not same:
+                raise AssertionError(f"{got_path} has other bytes than {want_path}")
+            continue
+
+        sim = cmp_image(want_path, got_path)
+        t.assertGreater(sim, min_similarity)
 
 
 def image_paths(folder):
