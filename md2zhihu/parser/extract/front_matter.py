@@ -46,7 +46,9 @@ class FrontMatter(object):
 
 def extract_front_matter(cont: str, src_path: str = "the markdown") -> Tuple[str, Optional[FrontMatter]]:
     meta: Optional[FrontMatter] = None
-    m = re.match(r"^ *--- *\n(.*?)\n---\n", cont, flags=re.DOTALL | re.UNICODE)
+    # The closing "---" is a line of its own, which may follow the opening one, as in "---\n---\n" of an empty one,
+    # and may end the markdown without a newline.
+    m = re.match(r"^ *--- *\n(.*?)^---(?:\n|\Z)", cont, flags=re.DOTALL | re.MULTILINE | re.UNICODE)
     if m:
         cont = cont[m.end() :]
         meta_text = m.groups()[0].strip()

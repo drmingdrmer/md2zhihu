@@ -169,6 +169,15 @@ backslash_files = [
 # Fragments of the URL of a downloaded image, which select a part of it, such as a view of an SVG. "" is no fragment.
 download_fragments = ["", "#left", "#svgView(viewBox(0,0,5,10))"]
 
+# Markdown that starts with front matter, as name: (markdown, the text of the front matter, the body after it,
+# the output of the body).
+front_matters = {
+    "adjacent-fences": ("---\n---\nbody\n", "", "body\n", ["body", "", "", ""]),
+    "adjacent-fences-only": ("---\n---", "", "", ["", ""]),
+    "meta-only": ("---\ntitle: x\n---\n", "title: x", "", ["", ""]),
+    "meta-only-no-final-newline": ("---\ntitle: x\n---", "title: x", "", ["", ""]),
+}
+
 # Markdown files that embed themselves, as name: ({path: content}, the error message).
 # md2zhihu reads src/a.md, and a content of None makes the path a symlink to src/a.md.
 embed_cycles = {
@@ -551,6 +560,40 @@ def test_crlf_line_ends(tmp_path):
 
     got = md2zhihu.Article(parser_config, conf, md_text).render()
     want = md2zhihu.Article(parser_config, conf, md_text.replace("\r\n", "\n")).render()
+    assert got == want
+
+
+@pytest.mark.parametrize("name", sorted(front_matters))
+def test_extract_front_matter(name):
+    md_text, text, body, _ = front_matters[name]
+
+    got_body, meta = md2zhihu.parser.extract_front_matter(md_text)
+
+    assert got_body == body
+    assert meta is not None
+    assert meta.text == text
+
+
+def test_front_matter_without_closing_fence():
+    # Without a closing "---", the first "---" is a thematic break, and the markdown has no front matter.
+    got = md2zhihu.parser.extract_front_matter("---\nbody\n")
+    assert got == ("---\nbody\n", None)
+
+
+@pytest.mark.parametrize("name", sorted(front_matters))
+@pytest.mark.parametrize("line_end", ["\n", "\r\n"])
+@pytest.mark.parametrize("keep_meta", [False, True])
+def test_front_matter_output(name, line_end, keep_meta, tmp_path):
+    md_text, text, _, body_lines = front_matters[name]
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", out_dir, out_dir, md_output_path=out_dir + "/", keep_meta=keep_meta)
+
+    got = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text.replace("\n", line_end)).render()
+
+    # Only keep_meta writes the front matter, before the body.
+    want = body_lines
+    if keep_meta:
+        want = ["---", text, "---"] + body_lines
     assert got == want
 
 
