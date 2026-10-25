@@ -43,6 +43,12 @@ class TestMd2zhihu(unittest.TestCase):
         self.tmp_path = str(tmp_path)
 
     def test_asset_repo(self):
+        # Without a branch, md2zhihu names the branch after the working folder, so the test runs in a folder it names.
+        cwd = pjoin(self.tmp_path, "checkout")
+        os.mkdir(cwd)
+        self.addCleanup(os.chdir, os.getcwd())
+        os.chdir(cwd)
+
         for url in (
             "git@github.com:drmingdrmer/home.git",
             "ssh://git@github.com/drmingdrmer/home",
@@ -50,7 +56,7 @@ class TestMd2zhihu(unittest.TestCase):
         ):
             a = md2zhihu.config.asset_repo.AssetRepo(url, cdn=False)
             self.assertEqual(False, a.cdn)
-            self.assertRegex(a.branch, "_md2zhihu_md2zhihu_[a-z0-9]{8}")
+            self.assertRegex(a.branch, r"^_md2zhihu_checkout_[0-9a-f]{8}$")
             b = a.branch
             self.assertEqual("github.com", a.host)
             self.assertEqual("drmingdrmer", a.user)
@@ -78,7 +84,7 @@ class TestMd2zhihu(unittest.TestCase):
 
         a = md2zhihu.config.asset_repo.AssetRepo("git@github.com:drmingdrmer/home.git")
         self.assertEqual(True, a.cdn)
-        self.assertRegex(a.branch, "_md2zhihu_md2zhihu_[a-z0-9]{8}")
+        self.assertRegex(a.branch, r"^_md2zhihu_checkout_[0-9a-f]{8}$")
         b = a.branch
         self.assertEqual("github.com", a.host)
         self.assertEqual("drmingdrmer", a.user)
@@ -93,7 +99,7 @@ class TestMd2zhihu(unittest.TestCase):
         a = md2zhihu.config.asset_repo.AssetRepo("https://aa:bb@github.com/drmingdrmer/home.git")
         self.assertEqual(True, a.cdn)
         self.assertEqual("https://aa:bb@github.com/drmingdrmer/home.git", a.url)
-        self.assertRegex(a.branch, "_md2zhihu_md2zhihu_[a-z0-9]{8}")
+        self.assertRegex(a.branch, r"^_md2zhihu_checkout_[0-9a-f]{8}$")
         self.assertEqual("github.com", a.host)
         self.assertEqual("drmingdrmer", a.user)
         self.assertEqual("home", a.repo)
