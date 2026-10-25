@@ -2,7 +2,7 @@
 Fast golden tests of md2zhihu's markdown output.
 
 They run md2zhihu in the test process, and need no browser, LaTeX tool, network or git remote,
-except the integration tests, which check the meaning of the output with another renderer, such as MathJax.
+except the integration tests, which check the meaning of the output with another renderer, such as pandoc or MathJax.
 Run them with MD2ZHIHU_UPDATE_GOLDEN=1 to rewrite the golden files from the current output.
 """
 
@@ -17,6 +17,7 @@ import os
 import re
 import shutil
 import socket
+import subprocess
 import sys
 import threading
 import urllib.parse
@@ -472,6 +473,22 @@ render_misreads = {
 chunk_changes = {
     161: "the kept reference [Foo*bar\\]] is written as [Foo\\*bar\\]], whose label matches no definition",
     535: "the kept reference [foo*] is written as [foo\\*], whose label matches no definition",
+}
+
+# The CommonMark examples whose output of Article.render() pandoc reads with another meaning, as number: what pandoc
+# reads. md2zhihu writes what mistune reads, so a reading of mistune that differs from pandoc's also shows here.
+pandoc_changes = {
+    51: "a space for the line end in the heading, which md2zhihu writes on one line",
+    64: "a space for the line end in the heading, which md2zhihu writes on one line",
+    65: "no lines from the first --- to the next ---, which md2zhihu reads as front matter and drops",
+    67: "no lines from the first --- to the next ---, which md2zhihu reads as front matter and drops",
+    96: "no last line end in the code, which the example does not close, and pandoc ends such code with one",
+    106: "no last line end in the code, which the example does not close, and pandoc ends such code with one",
+    108: "no last line end in the code, which the example does not close, and pandoc ends such code with one",
+    140: "the blank lines that end the output, in the HTML block, which no </style> closes",
+    259: '"." after the number of the ordered list, for the ")" of the example',
+    260: '"." after the number of the ordered list, for the ")" of the example',
+    318: "the spaces that start the second line of the code span, which mistune keeps, and pandoc drops",
 }
 
 # The examples above whose URL has an unpaired "(" or ")", as number: the markdown that md2zhihu writes.
@@ -1502,6 +1519,68 @@ def block_types(nodes):
             types.append((n["type"], block_types(n["children"])))
         else:
             types.append(n["type"])
+    return types
+
+
+@pytest.mark.integration
+def test_examples_keep_meaning_in_pandoc(tmp_path):
+    """
+    pandoc reads the whole output of Article.render() for each CommonMark example as it reads the example,
+    as CommonMark: the same text, structure, link destinations and titles, and then the list of the used references.
+    pandoc is a parser apart from mistune, which md2zhihu reads the example with and test_examples_keep_meaning
+    compares with, so it also sees a change that mistune reads back as the example.
+    Each URL is compared percent-decoded, because md2zhihu writes the URL that mistune reads, percent-encoded.
+    """
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("example.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
+    changed = []
+    for example_id, md_text in robust_examples.items():
+        spec, number = example_id.rsplit("-", 1)
+        if spec != "commonmark":
+            continue
+        want = pandoc_blocks(md_text)
+        article = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text)
+        got = pandoc_blocks("\n".join(article.render()))
+        # After the blocks of the example, a paragraph "Reference:", and a list of one block for each used reference.
+        want_refs = []
+        if article.used_refs:
+            want_refs = ["Para", ("BulletList", [1] * len(article.used_refs))]
+        got_refs = pandoc_block_types(got[len(want) :])
+        if got[: len(want)] != want or got_refs != want_refs:
+            changed.append(int(number))
+
+    assert sorted(changed) == sorted(pandoc_changes)
+
+
+def pandoc_blocks(md_text):
+    """Return the blocks that pandoc reads from `md_text` as CommonMark, in its JSON, with each URL percent-decoded."""
+    cmd = ["pandoc", "--from", "commonmark", "--to", "json"]
+    proc = subprocess.run(cmd, input=md_text, capture_output=True, text=True, check=True)
+    doc = json.loads(proc.stdout)
+    return decode_urls(doc["blocks"])
+
+
+def decode_urls(node):
+    """Return a copy of the pandoc JSON `node`, with the URL of each link and each image percent-decoded."""
+    if isinstance(node, list):
+        return [decode_urls(x) for x in node]
+    if not isinstance(node, dict):
+        return node
+    node = {k: decode_urls(v) for k, v in node.items()}
+    if node.get("t") in ("Link", "Image"):
+        attr, inlines, (url, title) = node["c"]
+        node["c"] = [attr, inlines, [urllib.parse.unquote(url), title]]
+    return node
+
+
+def pandoc_block_types(blocks):
+    """Return the type of each block of the pandoc JSON `blocks`, with the number of blocks of each item of a list."""
+    types = []
+    for b in blocks:
+        if b["t"] == "BulletList":
+            types.append((b["t"], [len(item) for item in b["c"]]))
+        else:
+            types.append(b["t"])
     return types
 
 
