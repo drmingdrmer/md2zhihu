@@ -1,7 +1,8 @@
 """
 Fast golden tests of md2zhihu's markdown output.
 
-They run md2zhihu in the test process, and need no browser, LaTeX tool, network or git remote.
+They run md2zhihu in the test process, and need no browser, LaTeX tool, network or git remote,
+except the integration tests, which check the meaning of the output with another renderer, such as MathJax.
 Run them with MD2ZHIHU_UPDATE_GOLDEN=1 to rewrite the golden files from the current output.
 """
 
@@ -507,6 +508,9 @@ hugo_math = {
     "$$x$$\nis a number.\n": "$$x$$\nis a number.\n",
     "# $$x$$\n": "# $$x$$\n",
 }
+
+# A formula that md2zhihu writes for Hugo: a block between "\[" and "\]", or inline math between "$$" and "$$".
+written_math = re.compile(r"\\\[(?P<block>.*)\\\]|\$\$(?P<inline>.*)\$\$")
 
 # A backslash escape or a character reference in markdown text, each of which writes one char, such as "\*" or "&#96;".
 char_escape = re.compile(r"\\[!-/:-@\[-`{-~]|&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]*);")
@@ -1488,6 +1492,32 @@ def test_hugo_math(md_text, tmp_path):
     got = write_example(md_text, tmp_path, "hugo")
 
     assert got == hugo_math[md_text]
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("md_text", sorted(hugo_math))
+def test_hugo_math_renders_alike(md_text):
+    # MathJax draws the TeX that md2zhihu writes for Hugo as it draws the TeX of the input.
+    # test_hugo_math checks the delimiters, and both TeX are drawn as the written delimiters say: a block for "\[".
+    ast, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
+    [want_tex] = math_texts(ast)
+    m = written_math.search(hugo_math[md_text])
+    block = m["block"] is not None
+    got_tex = m["block"] if block else m["inline"]
+
+    want = k3down2.tex_to_svg(want_tex, block)
+    got = k3down2.tex_to_svg(got_tex, block)
+    assert got == want
+
+
+def math_texts(nodes):
+    """Return the TeX of each math node in the AST `nodes`, in the order of the markdown."""
+    texts = []
+    for n in nodes:
+        if n["type"] in ("math_block", "math_inline"):
+            texts.append(n["text"])
+        texts.extend(math_texts(n.get("children", [])))
+    return texts
 
 
 def test_emphasis_neighbor_converted_once(tmp_path, monkeypatch):
