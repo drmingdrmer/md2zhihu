@@ -6,7 +6,6 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from urllib.parse import unquote
-from urllib.parse import urlsplit
 
 from k3fs import fread
 from mistune.util import unikey
@@ -22,6 +21,8 @@ from ..renderer.refs import render_ref_list
 from ..types import Ref
 from ..types import RefDict
 from ..utils import add_paragraph_end
+from ..utils import is_path_url
+from ..utils import split_url
 from ..utils import warn
 from . import mistune3
 from .extract.front_matter import FrontMatter
@@ -172,13 +173,14 @@ class Article(object):
                 continue
 
             # md2zhihu embeds local markdown only, so a URL with a scheme or a host, such as "https://a.com/x.md", stays an image.
-            parts = urlsplit(child["src"])
-            is_path = parts.scheme == "" and parts.netloc == ""
-            if not is_path:
+            if not is_path_url(child["src"]):
                 children.append(n)
                 continue
 
-            article_path = self.conf.relpath_from_cwd(src)
+            # The query and the fragment of the URL are not a part of the path of the file, such as "#intro" of "b.md#intro".
+            parts = split_url(child["src"])
+            path = unquote(parts.head)
+            article_path = self.conf.relpath_from_cwd(path)
             if not os.path.exists(article_path):
                 raise MissingFileError(f"embedded markdown not found: {article_path!r}, used in {self.conf.src_path!r}")
 

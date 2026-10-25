@@ -1,8 +1,8 @@
 import os
-import re
 from urllib.parse import urlsplit
 
 from ...types import ASTNodes
+from ...utils import split_url
 
 
 def rebase_url_in_ast(frm: str, to: str, nodes: ASTNodes) -> None:
@@ -33,13 +33,12 @@ def rebase_url(frm: str, to: str, src: str) -> str:
         return src
 
     # The path ends where the query or the fragment starts, such as "doc.html" in "doc.html?next=a/../b".
-    path = re.split(r"[?#]", src, maxsplit=1)[0]
+    parts = split_url(src)
     # A URL without a path refers to the article where it is: "#intro" to a heading in it, and "" or "?q=1" to itself.
-    if path == "":
+    if parts.head == "":
         return src
-    rest = src[len(path) :]
 
-    p = os.path.join(frm, path)
+    p = os.path.join(frm, parts.head)
     p = os.path.relpath(p, start=to)
 
-    return p + rest
+    return p + parts.query + parts.fragment

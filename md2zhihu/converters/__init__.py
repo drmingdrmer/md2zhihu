@@ -7,7 +7,6 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 from urllib.parse import unquote
-from urllib.parse import urlsplit
 
 import k3down2
 import k3proc
@@ -23,6 +22,8 @@ from ..renderer.md_render import inline_children
 from ..utils import asset_fn
 from ..utils import code_block_lines
 from ..utils import fwrite
+from ..utils import is_path_url
+from ..utils import split_url
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -269,12 +270,11 @@ def local_images(conf: "Config", nodes: List[dict]) -> List[str]:
             paths.extend(local_images(conf, n["children"]))
         if n["type"] != "image":
             continue
-        parts = urlsplit(n["src"])
-        is_path = parts.scheme == "" and parts.netloc == ""
-        if not is_path:
+        if not is_path_url(n["src"]):
             continue
+        parts = split_url(n["src"])
         # mistune percent-encodes the URL, such as "图片/a.png" to "%E5%9B%BE%E7%89%87/a.png".
-        path = unquote(parts.path)
+        path = unquote(parts.head)
         path = conf.relpath_from_cwd(path)
         if os.path.isfile(path):
             paths.append(path)

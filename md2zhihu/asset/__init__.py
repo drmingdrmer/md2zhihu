@@ -8,7 +8,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from urllib.parse import unquote
-from urllib.parse import urlsplit
 
 import urllib3
 from k3handy import pjoin
@@ -17,6 +16,8 @@ from k3handy import to_bytes
 from ..errors import DownloadError
 from ..errors import MissingFileError
 from ..errors import NameClashError
+from ..utils import is_path_url
+from ..utils import split_url
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -50,7 +51,8 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
         if not mdrender.conf.options.download:
             return None
 
-        fn = src.split("/")[-1].split("#")[0].split("?")[0]
+        parts = split_url(src)
+        fn = parts.head.split("/")[-1]
         # mistune percent-encodes the URL, such as "图片.png" to "%E5%9B%BE%E7%89%87.png".
         fn = unquote(fn)
         fn = unsafe_name_chars.sub("-", fn)
@@ -74,24 +76,18 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
 
         url = mdrender.conf.img_url(fn)
         # A fragment selects a part of the image, such as the view "#left" of an SVG, so the URL of the copy keeps it.
-        fragment = urlsplit(src).fragment
-        if fragment != "":
-            url += "#" + fragment
-        n["src"] = url
+        n["src"] = url + parts.fragment
 
         return None
 
     # Another URL with a scheme or a host stays as written, such as a "data:" URI, which holds the image itself.
-    parts = urlsplit(src)
-    is_path = parts.scheme == "" and parts.netloc == ""
-    if not is_path:
+    if not is_path_url(src):
         return None
 
     # The URL of a local image may end with a query or a fragment, such as "#home" of an SVG, which its path does not have.
-    path, _, fragment = src.partition("#")
-    path, _, query = path.partition("?")
+    parts = split_url(src)
     # mistune percent-encodes the URL, such as "图片/a.png" to "%E5%9B%BE%E7%89%87/a.png".
-    path = unquote(path)
+    path = unquote(parts.head)
     path = mdrender.conf.relpath_from_cwd(path)
     if not os.path.exists(path):
         raise MissingFileError(f"image not found: {path!r}, used in {mdrender.conf.src_path!r}")
@@ -99,11 +95,7 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
     fn = copy_to_asset_dir(mdrender.conf, path)
 
     url = mdrender.conf.img_url(fn)
-    if query != "":
-        url += "?" + query
-    if fragment != "":
-        url += "#" + fragment
-    n["src"] = url
+    n["src"] = url + parts.query + parts.fragment
 
     # Transform ast node but does not render, leave the task to default image
     # renderer.
@@ -124,13 +116,14 @@ def store_linked_file(conf: "Config", url: str, linked_files: Dict[str, str]) ->
     or if it refers to a markdown file.
     `linked_files` maps the path of each copy that this run made to the path of its file, and gets the new copy.
     """
-    parts = urlsplit(url)
-    is_path = parts.scheme == "" and parts.netloc == "" and parts.query == ""
+    parts = split_url(url)
+    # A URL with a query refers to no local file, such as "page.php?id=1", but "a.pdf?", with an empty query, refers to a.pdf.
+    is_path = is_path_url(url) and parts.query in ("", "?")
     if not is_path:
         return url
 
     # mistune 3 percent-encodes a URL, but md2zhihu opens a local file by its path, such as "文件/a.pdf".
-    path = unquote(parts.path)
+    path = unquote(parts.head)
     if path == "" or path.lower().endswith(markdown_suffixes):
         return url
 
@@ -158,9 +151,8 @@ def store_linked_file(conf: "Config", url: str, linked_files: Dict[str, str]) ->
         shutil.copyfile(path, target)
 
     stored_url = conf.img_url(fn)
-    if parts.fragment != "":
-        # Such as "#page=2" of a PDF.
-        stored_url += "#" + parts.fragment
+    # The URL of the copy keeps the fragment, such as "#page=2" of a PDF, and an empty query.
+    stored_url += parts.query + parts.fragment
     return stored_url
 
 

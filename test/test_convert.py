@@ -172,6 +172,8 @@ warn_cases = {
 local_images = {
     "svg-fragment": ("icons.svg", "icons.svg#home", "icons.svg", "icons.svg#home"),
     "query": ("x.png", "x.png?v=2", "x.png", "x.png?v=2"),
+    "empty-query": ("x.png", "x.png?", "x.png", "x.png?"),
+    "empty-fragment": ("x.png", "x.png#", "x.png", "x.png#"),
     "space": ("my logo.png", "<my logo.png>", "my-logo.png", "my-logo.png"),
     "percent": ("100%.png", "100%25.png", "100-.png", "100-.png"),
     "encoded-hash": ("C#.png", "C%23.png", "C-.png", "C-.png"),
@@ -222,6 +224,10 @@ backslash_files = [
 
 # Fragments of the URL of a downloaded image, which select a part of it, such as a view of an SVG. "" is no fragment.
 download_fragments = ["", "#left", "#svgView(viewBox(0,0,5,10))"]
+
+# The ends of the URL of a downloaded image x.png that hold a "/" after the path, as (the end after "x.png",
+# the end of the URL of the copy). The copy keeps the fragment, and the query is a part of what md2zhihu downloads.
+download_url_ends = [("?v=a/b", ""), ("#a/b", "#a/b")]
 
 # Markdown that embeds src/b.md, which holds "# Child\n\nbody\n", as name: (markdown, the output).
 # The blocks of b.md replace an image that is the whole text of a block, and stay in the list item or the quote.
@@ -947,6 +953,20 @@ def test_linked_file(tmp_path, monkeypatch):
     assert lines[0] == "[paper](a/" + stored + ")"
 
 
+@pytest.mark.parametrize("url_end", ["#page=2", "#", "?"])
+def test_linked_file_url_end(url_end, tmp_path, monkeypatch):
+    (tmp_path / "x.pdf").write_bytes(b"pdf")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "[x](x.pdf" + url_end + ")").render()
+
+    # The URL of the copy keeps the fragment, such as a page of a PDF, and an empty query or fragment.
+    assert os.listdir("out/a") == ["x.pdf"]
+    assert lines[0] == "[x](a/x.pdf" + url_end + ")"
+
+
 def test_linked_files_of_one_name(tmp_path, monkeypatch):
     for folder, content in [("old", b"1"), ("new", b"2"), ("copy", b"1")]:
         (tmp_path / folder).mkdir()
@@ -1221,6 +1241,19 @@ def test_embed_encoded_path(tmp_path, monkeypatch):
     conf = md2zhihu.Config("src/a.md", "zhihu", "out", "out", md_output_path="out/")
 
     article = md2zhihu.Article(md2zhihu.ParserConfig(True, [r"子 文档[.]md$"]), conf, "![](<子 文档.md>)\n")
+
+    assert article.render() == ["b", "", "", ""]
+
+
+@pytest.mark.parametrize("url_end", ["?v=1", "#intro"])
+def test_embed_url_with_query_or_fragment(url_end, tmp_path, monkeypatch):
+    # The query and the fragment of the URL are not a part of the path of the embedded file.
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "b.md").write_text("b\n")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("src/a.md", "zhihu", "out", "out", md_output_path="out/")
+
+    article = md2zhihu.Article(md2zhihu.ParserConfig(True, [r"[.]md"]), conf, "![](b.md" + url_end + ")\n")
 
     assert article.render() == ["b", "", "", ""]
 
@@ -1609,6 +1642,22 @@ def test_download_image_fragment(fragment, tmp_path, monkeypatch, www):
     assert (tmp_path / "out" / "a" / stored).read_bytes() == svg
     stored_url = "a/" + stored + fragment
     assert lines[0] == "![](" + stored_url + ") ![](" + stored_url + ")"
+
+
+@pytest.mark.parametrize("url_end, copy_url_end", download_url_ends)
+def test_download_image_name_from_path(url_end, copy_url_end, tmp_path, monkeypatch, www):
+    folder, base_url = www
+    (folder / "x.png").write_bytes(b"png")
+    url = base_url + "/x.png" + url_end
+    monkeypatch.chdir(tmp_path)
+
+    lines = download_article(url).render()
+
+    # The name of the copy is the last part of the path of the URL, not of its query or its fragment.
+    url_md5 = hashlib.md5(url.encode()).hexdigest()[:16]
+    stored = url_md5 + "-x.png"
+    assert os.listdir("out/a") == [stored]
+    assert lines[0] == "![](a/" + stored + copy_url_end + ")"
 
 
 def test_download_missing_image(tmp_path, monkeypatch, www):

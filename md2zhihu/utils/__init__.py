@@ -5,6 +5,8 @@ import logging
 import os
 import re
 from typing import List
+from typing import NamedTuple
+from urllib.parse import urlsplit
 
 from k3handy import to_bytes
 
@@ -116,6 +118,33 @@ def asset_fn(text: str, suffix: str, key: str = "") -> str:
     escaped = re.sub(r"[^a-zA-Z0-9_\-=]+", "", text)
     fn = escaped[:32] + "-" + textmd5[:16] + "." + suffix
     return fn
+
+
+class URLParts(NamedTuple):
+    """
+    The parts of a URL, which join back into it: `head` ends before the query and the fragment, `query` is "" or starts
+    with "?", and `fragment` is "" or starts with "#". So an empty query or fragment stays, such as the "#" of "a.pdf#".
+    """
+
+    head: str
+    query: str
+    fragment: str
+
+
+def split_url(url: str) -> URLParts:
+    """
+    Split `url` before its query and before its fragment, such as "a/b.png?v=2#top" into "a/b.png", "?v=2" and "#top".
+    A "/" in the query or the fragment is not a part of the path, such as in "x.png?v=a/b".
+    """
+    head, hash_sign, fragment = url.partition("#")
+    head, question_mark, query = head.partition("?")
+    return URLParts(head, question_mark + query, hash_sign + fragment)
+
+
+def is_path_url(url: str) -> bool:
+    """Tell whether `url` is a path, without a scheme or a host, such as "a/b.png", but not "https://a.com/b.png"."""
+    parts = urlsplit(url)
+    return parts.scheme == "" and parts.netloc == ""
 
 
 def fwrite(*p) -> None:
