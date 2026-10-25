@@ -659,6 +659,9 @@ literal_texts = {
     ("simple", "`![i](x.png)`\n"): "!\\[i\\](x.png)\n",
     ("simple", "`` a`b ``\n"): "a&#96;b\n",
     ("simple", "`&amp;`\n"): "\\&amp;\n",
+    # A space at the end of the code and a space before it would make a hard line break at the end of a line.
+    ("simple", "`a  `\nb\n"): "a &#32;\nb\n",
+    ("simple", "x ` `\nb\n"): "x &#32;\nb\n",
     # A "_" of the code would pair with a "_" after it.
     ("simple", "`_a` b_\n"): "\\_a b_\n",
     # The code at the start of a paragraph or of an item would start a block.

@@ -90,6 +90,9 @@ underscore_runs = re.compile(r"_+")
 # a char of `text_specials`, or an "&" that starts a character reference.
 plain_specials = re.compile(text_specials.pattern + "|" + char_reference_start.pattern)
 
+# The space at the end of plain chars that follows a space or is the only char, such as the last space of "a  ", or " ".
+plain_last_space = re.compile(r"(?<![^ ]) \Z")
+
 # The types of the nodes that md2zhihu writes between markers of "*" or "_", which emphasis_marker() chooses.
 emphasis_types = ("strong", "emphasis")
 
@@ -441,9 +444,12 @@ def escape_plain(text: str) -> str:
     them in a line, with each char of `text_specials` escaped, and with a backslash before an "&" that would start
     a character reference, such as "\*a\*" for "*a*" or "\&amp;" for "&amp;".
     A run of "_" is kept only with a letter or digit on both sides, because a run beyond `text` in the line can pair with it.
+    The space of `plain_last_space` is written as "&#32;", because two spaces before a line end make a hard line break,
+    such as at the end of the code "a  ", or of the text "x " and the code " ".
     """
     escape = partial(escape_text_char, emphasis_pair=True)
-    return plain_specials.sub(escape, text)
+    escaped = plain_specials.sub(escape, text)
+    return plain_last_space.sub("&#32;", escaped)
 
 
 def escape_text_char(m: re.Match[str], emphasis_pair: bool) -> str:
