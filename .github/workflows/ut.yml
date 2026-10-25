@@ -12,6 +12,11 @@ jobs:
       matrix:
         # Test minimum supported (3.10), middle (3.11), and latest (3.14)
         python-version: ["3.10", "3.11", "3.14"]
+        include:
+          # The oldest Python also runs with the oldest k3down2 and k3proc that pyproject.toml allows,
+          # because md2zhihu reads the errors that they raise.
+          - python-version: "3.10"
+            deps: oldest
 
     steps:
     - uses: actions/checkout@v7
@@ -27,6 +32,12 @@ jobs:
         # The version in .pre-commit-config.yaml, so that CI and pre-commit format the code the same way.
         pip install ruff==0.16.10
         pip install -e ".[test]"
+        if [ "${{ matrix.deps }}" = oldest ]; then
+          # The lower bound in pyproject.toml, such as "k3down2>=0.2.0", becomes a pin, such as k3down2==0.2.0.
+          for dep in k3down2 k3proc; do
+            pip install "$(grep -o "\"$dep>=[0-9.]*" pyproject.toml | sed 's/^"//; s/>=/==/')"
+          done
+        fi
 
     - name: Install npm dependencies
       run: |
