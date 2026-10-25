@@ -409,6 +409,16 @@ ref_aliases = {
     ),
 }
 
+# Middle lines of a reference title of 3 lines that would start a block, as name: (the line, as md2zhihu writes it).
+# A backslash keeps the line in the title, and in the item of the reference list that shows the title.
+title_middle_lines = {
+    "heading": ("# Second", "\\# Second"),
+    "quote": ("> Second", "\\> Second"),
+    "bullet": ("- Second", "\\- Second"),
+    "ordered": ("1. Second", "1\\. Second"),
+    "thematic-break": ("---", "\\---"),
+}
+
 # Adjacent lists of one item each, as markdown: the item that Article.chunks() writes for each list.
 # A list right after a list of its kind takes the other marker, so that the joined chunks keep the lists apart.
 chunked_lists = {
@@ -914,6 +924,42 @@ def test_reference_alias(name, tmp_path, monkeypatch):
     assert article.used_refs == want
     [ref] = want.values()
     assert article.render()[0] == "[x](" + ref.url + ")"
+
+
+@pytest.mark.parametrize("name", sorted(title_middle_lines))
+@pytest.mark.parametrize("populate", [True, False])
+def test_multiline_reference_title(name, populate, tmp_path, monkeypatch):
+    line, escaped = title_middle_lines[name]
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    md_text = '[x][r]\n\n[r]: https://example.com "First\n' + line + '\nLast"\n'
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(populate, []), conf, md_text).render()
+
+    link = ["[x][r]"]
+    if populate:
+        link = ['[x](https://example.com "First', escaped, 'Last")']
+    want = link + [
+        "",
+        "",
+        "",
+        "Reference:",
+        "",
+        "- First",
+        "  " + escaped,
+        "  Last : [https://example.com](https://example.com)",
+        "",
+        "",
+        '[r]: https://example.com "First\n' + escaped + '\nLast"',
+    ]
+    assert lines == want
+
+    # The output links with the title of the input, and its reference list is one list of one item.
+    want_ast, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
+    got_ast, _, _ = md2zhihu.parser.mistune3.parse("\n".join(lines), {}, True)
+    assert got_ast[0] == want_ast[0]
+    assert [n["type"] for n in got_ast] == ["paragraph", "paragraph", "list"]
+    assert len(got_ast[2]["children"]) == 1
 
 
 @pytest.mark.parametrize("name", sorted(embed_cycles))

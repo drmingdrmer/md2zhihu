@@ -3,6 +3,7 @@ from typing import List
 from urllib.parse import unquote
 
 from ..renderer.md_render import char_reference_start
+from ..renderer.md_render import escape_block_start
 from ..renderer.md_render import escape_text
 from ..renderer.md_render import link_destination
 from ..renderer.md_render import link_title
@@ -35,7 +36,11 @@ def render_ref_list(refs: RefDict, platform: str) -> List[str]:
             txt = escape_text(ref.title)
         txt = escape_item_start(txt)
 
-        ref_lines.append("- {id} : [{url_text}]({url})".format(id=txt, url_text=url_text, url=url))
+        item = "- {id} : [{url_text}]({url})".format(id=txt, url_text=url_text, url=url)
+        # A title can span lines. Each line after the first is indented into the item, and starts no block, such as "# x".
+        lines = item.split("\n")
+        ref_lines.append(lines[0])
+        ref_lines.extend("  " + escape_block_start(x) for x in lines[1:])
 
         #  disable paragraph list in weibo
         if platform != "weibo":

@@ -45,6 +45,9 @@ paragraph_breaker = re.compile(
     re.IGNORECASE,
 )
 
+# The spaces and the number at the start of a line, before the char that starts its block, such as "1" of "1. a".
+block_start_prefix = re.compile(r"^ *[0-9]*")
+
 # The two markers of the items of an unordered list, and of an ordered list after its number.
 # The other bullet char is "+", because with "*" an item that holds a thematic break, "*   ***", is a thematic break.
 bullets = ["-", "+"]
@@ -310,6 +313,17 @@ def paragraph_lines(parts: List[str]) -> List[str]:
     return rst
 
 
+def escape_block_start(line: str) -> str:
+    r"""
+    Return `line`, a line after the first of a paragraph, with a backslash before the char that would start a block,
+    such as "\# a" for "# a", "\> a" for "> a" or "1\. a" for "1. a", so that the line stays in the paragraph.
+    Return it as it is if it starts no block.
+    """
+    if not paragraph_breaker.match(line):
+        return line
+    return block_start_prefix.sub(r"\g<0>\\", line, count=1)
+
+
 def lists_before(rnode) -> int:
     """
     Return how many lists of the kind of the list `rnode`, ordered or not, come right before it among its siblings.
@@ -497,14 +511,17 @@ def end_block_in_tight_item(lines: List[str]) -> List[str]:
 
 
 def link_title(title: Optional[str]) -> str:
-    """
+    r"""
     Return the title of a link or an image as written after its URL, such as ` "Figure 1"`, or "" without a title.
     mistune removes the backslash escapes from a title, so a backslash and a double quote in it are escaped again.
+    A title can span lines, and each line after the first is escaped as a line of a paragraph, such as "\# x" for "# x".
     """
     if title is None:
         return ""
     escaped = title.replace("\\", "\\\\").replace('"', '\\"')
-    return ' "' + escaped + '"'
+    lines = escaped.split("\n")
+    lines = lines[:1] + [escape_block_start(x) for x in lines[1:]]
+    return ' "' + "\n".join(lines) + '"'
 
 
 def link_destination(url: str) -> str:
