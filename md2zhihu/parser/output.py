@@ -59,11 +59,16 @@ def escape_item_start(text: str) -> str:
 
 
 def render_ref_definitions(refs: RefDict) -> List[str]:
-    """Return the definition of each reference, sorted by name, such as `[grpc]: https://grpc.io "gRPC"`."""
+    """
+    Return the definition of each reference, sorted by name, such as `[grpc]: https://grpc.io "gRPC"`.
+    An empty URL is written as "<>", because a definition without a URL is not a definition.
+    """
     lines: List[str] = []
     for ref_id in sorted(refs):
         ref = refs[ref_id]
         url = link_destination(ref.url)
+        if url == "":
+            url = "<>"
         title = link_title(ref.title)
         lines.append("[{id}]: {url}{title}".format(id=ref_id, url=url, title=title))
     return lines

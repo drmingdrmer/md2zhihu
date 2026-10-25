@@ -106,6 +106,13 @@ rebase_cases = [
     ("https://a.com/x.png", "https://a.com/x.png"),
     ("mailto:a@b.com", "mailto:a@b.com"),
     ("#intro", "#intro"),
+    # Only the path changes, and "/../" in a query or a fragment is not a path.
+    ("doc.html?next=a/../b", "sub/doc.html?next=a/../b"),
+    ("doc.html#x/../y", "sub/doc.html#x/../y"),
+    # A URL without a path refers to the article where it is.
+    ("?next=a/../b", "?next=a/../b"),
+    ("#x/../y", "#x/../y"),
+    ("", ""),
 ]
 
 # Inputs with references, as name: (markdown, the undefined references that Article warns about).
@@ -221,6 +228,16 @@ embed_ref_links = {
     True: ["[x](http://parent.example/) and [s](../s.pdf)", "", "[y](http://child.example/) and [s](../s.pdf)"],
     False: ["[x][r] and [s][]", "", "[y][r-2] and [s][]"],
 }
+
+# URLs in sub/c/d.md, which a.md embeds through sub/b.md, as (URL, the URL after embedding).
+embedded_urls = [
+    ("doc.html", "sub/c/doc.html"),
+    ("doc.html?next=a/../b", "sub/c/doc.html?next=a/../b"),
+    ("doc.html#x/../y", "sub/c/doc.html#x/../y"),
+    ("?next=a/../b", "?next=a/../b"),
+    ("#x/../y", "#x/../y"),
+    ("", ""),
+]
 
 # References whose URL has angle brackets or whose title has escapes, as name: (markdown, the lines that zhihu renders).
 # A link gets the URL as mistune writes it, percent-encoded, and the title; the reference list shows the URL as written.
@@ -827,6 +844,26 @@ def test_reference_definition(name, tmp_path, monkeypatch):
     assert lines == want
 
 
+@pytest.mark.parametrize("src_path", ["a.md", "sub/a.md"])
+@pytest.mark.parametrize("populate", [True, False])
+def test_empty_reference_url(src_path, populate, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config(src_path, "zhihu", "out", "out", md_output_path="out/")
+    md_text = "[self][r]\n\n[r]: <>\n"
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(populate, []), conf, md_text).render()
+
+    # The empty URL refers to the article itself, and a definition writes it as "<>".
+    link = "[self][r]"
+    if populate:
+        link = "[self]()"
+    assert lines == [link, "", "", "", "Reference:", "", "- r : []()", "", "", "[r]: <>"]
+
+    want, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
+    got, _, _ = md2zhihu.parser.mistune3.parse("\n".join(lines), {}, True)
+    assert got[0] == want[0]
+
+
 @pytest.mark.parametrize("name", sorted(embed_cycles))
 def test_embed_cycle(name, tmp_path, monkeypatch):
     files, want = embed_cycles[name]
@@ -938,6 +975,23 @@ def test_embed_ref_name_clash(populate, tmp_path, monkeypatch):
         "[s]: ../s.pdf",
     ]
     assert lines == want
+
+
+@pytest.mark.parametrize("url, want_url", embedded_urls)
+@pytest.mark.parametrize("populate", [True, False])
+def test_embed_nested_url(url, want_url, populate, tmp_path, monkeypatch):
+    (tmp_path / "sub" / "c").mkdir(parents=True)
+    (tmp_path / "sub" / "b.md").write_text("![](c/d.md)\n")
+    (tmp_path / "sub" / "c" / "d.md").write_text(f"[x](<{url}>) [y][r]\n\n[r]: <{url}>\n")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(populate, [r"[.]md$"]), conf, "![](sub/b.md)\n").render()
+
+    # The link and the reference, populated or kept, both point at the URL from a.md.
+    want, _, _ = md2zhihu.parser.mistune3.parse(f"[x](<{want_url}>) [y](<{want_url}>)\n", {}, True)
+    got, _, _ = md2zhihu.parser.mistune3.parse("\n".join(lines), {}, True)
+    assert got[0] == want[0]
 
 
 def test_embed_remote_url(tmp_path):
