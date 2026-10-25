@@ -157,9 +157,7 @@ class MDRender(object):
         if typ == "strong":
             lines = self.render(rnode)
             markers = emphasis_marker(rnode) * 2
-            lines[0] = markers + lines[0]
-            lines[-1] = lines[-1] + markers
-            return lines
+            return mark_emphasis(rnode, lines, markers)
 
         if typ == "math_block":
             return ["$$", n["text"], "$$"]
@@ -292,9 +290,7 @@ class MDRender(object):
         if typ == "emphasis":
             lines = self.render(rnode)
             char = emphasis_marker(rnode)
-            lines[0] = char + lines[0]
-            lines[-1] = lines[-1] + char
-            return lines
+            return mark_emphasis(rnode, lines, char)
 
         if typ == "inline_html":
             return [n["text"]]
@@ -539,6 +535,73 @@ def emphasis_marker(rnode) -> str:
         if n["type"] == "emphasis" and touches_parent_marker(child) and touches_letter(child):
             return "_"
     return "*"
+
+
+def mark_emphasis(rnode, lines: List[str], markers: str) -> List[str]:
+    """
+    Put `markers` around the lines of the strong emphasis or the emphasis `rnode`,
+    but not where it is written as one node with a node of its type: its parent, or a node next to it.
+    """
+    if joins_parent(rnode):
+        return lines
+    if not joins_sibling(rnode, -1):
+        lines[0] = markers + lines[0]
+    if not joins_sibling(rnode, 1):
+        lines[-1] = lines[-1] + markers
+    return lines
+
+
+def joins_parent(rnode) -> bool:
+    """
+    Return whether the strong emphasis or the emphasis `rnode` is written as a part of its parent of its type,
+    without its markers, such as "x*bc*" for "x_*b*c_", where the code span `x` is written as "x".
+    A letter or digit next to each makes both take "*", and their markers would join, such as in "x**b*c*".
+    The parent shows the same, as long as the other children of the parent meet the text of `rnode`, not a marker.
+    """
+    parent = rnode.parent
+    if parent.node["type"] != rnode.node["type"]:
+        return False
+    if not touches_parent_marker(rnode):
+        return False
+    if not touches_letter(rnode) or not touches_letter(parent):
+        return False
+
+    for step in (-1, 1):
+        neighbor = next_to(rnode, step)
+        if neighbor is None:
+            continue
+        edge = edge_child(rnode.node, step)
+        if neighbor["type"] in emphasis_types or edge["type"] in emphasis_types:
+            return False
+    return True
+
+
+def joins_sibling(rnode, step: int) -> bool:
+    """
+    Return whether the strong emphasis or the emphasis `rnode` is written as one node with the node of its type
+    right before it, if `step` is -1, or right after it, if `step` is 1, without the markers between them,
+    such as "x*ab*y" for "x*a*_b_y", where the code spans `x` and `y` are written as "x" and "y".
+    A letter or digit next to each makes both take "*", and their markers would join, such as in "x*a**b*y".
+    The two show the same, as long as their texts meet, not the markers of their children.
+    """
+    sibling = next_to(rnode, step)
+    if sibling is None or sibling["type"] != rnode.node["type"]:
+        return False
+    other = rnode.parent.new_child(sibling)
+    if not touches_letter(rnode) or not touches_letter(other):
+        return False
+
+    edge = edge_child(rnode.node, step)
+    other_edge = edge_child(sibling, -step)
+    return edge["type"] not in emphasis_types and other_edge["type"] not in emphasis_types
+
+
+def edge_child(node, step: int) -> dict:
+    """Return the first child of `node` without the empty texts, if `step` is -1, or the last one, if `step` is 1."""
+    children = inline_children(node)
+    if step == -1:
+        return children[0]
+    return children[-1]
 
 
 def touches_parent_marker(rnode) -> bool:

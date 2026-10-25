@@ -664,6 +664,13 @@ plain_text_neighbors = {
     # The letter of the code span next to two emphases makes the one next to it take "*".
     ("weibo", "`x`*a*_b_\n"): "x*a*_b_\n",
     ("weibo", "*a*_b_`y`\n"): "_a_*b*y\n",
+    # Two emphases of one type between letters both take "*", so they are written as one, or their markers would join.
+    ("weibo", "`x`*a*_b_`y`\n"): "x*ab*y\n",
+    ("weibo", "`x`**a**__b__`y`\n"): "x**ab**y\n",
+    # So is an emphasis in an emphasis of its type, where both are next to letters.
+    ("weibo", "`x`_*b*c_\n"): "x*bc*\n",
+    ("weibo", "_c*b*_`x`\n"): "*cb*x\n",
+    ("weibo", "`x`_*b*_\n"): "x*b*\n",
 }
 
 # Text that would become markdown where md2zhihu writes it, as (platform, markdown): the markdown that md2zhihu writes.
