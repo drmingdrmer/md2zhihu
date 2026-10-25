@@ -334,13 +334,12 @@ class MDRender(object):
         The last block needs no blank line after it, because the next item closes it.
         """
         children = rnode.node["children"]
+        blocks = [self.render_node(rnode.new_child(n)) for n in children]
         rst = []
-        for n in children[:-1]:
-            lines = self.render_node(rnode.new_child(n))
-            rst.extend(end_block_in_tight_item(lines))
+        for lines, following in zip(blocks[:-1], blocks[1:]):
+            rst.extend(end_block_in_tight_item(lines, following))
 
-        lines = self.render_node(rnode.new_child(children[-1]))
-        rst.extend(strip_paragraph_end(lines))
+        rst.extend(strip_paragraph_end(blocks[-1]))
 
         # An empty item still needs a line for its bullet.
         if len(rst) == 0:
@@ -610,13 +609,15 @@ def inline_children(node) -> List[dict]:
     return children
 
 
-def end_block_in_tight_item(lines: List[str]) -> List[str]:
+def end_block_in_tight_item(lines: List[str], following: List[str]) -> List[str]:
     """
-    Return the lines of a block in an item of a tight list, which another block of the item follows.
+    Return the lines of a block in an item of a tight list, which the block of the lines `following` follows in the item.
     A block that its last line closes, such as a fenced code block, needs no blank line after it.
     A quote ends with an empty quote line instead, such as ">", so that the next block does not continue its paragraph.
     Any other block keeps the blank line after it, because the next block would continue it,
     such as the paragraph of the image that a code block converts to.
+    The text of the item has no blank line after it, as the next block starts a block of its own, such as a fence.
+    It gets one if the next block does not, such as the image that a code block converts to.
     """
     stripped = strip_paragraph_end(lines)
     if len(stripped) == 0:
@@ -630,7 +631,15 @@ def end_block_in_tight_item(lines: List[str]) -> List[str]:
     if quote is not None:
         return stripped + [quote.group(0)]
 
-    return lines
+    has_blank_line = len(stripped) < len(lines)
+    if has_blank_line:
+        return lines
+
+    # A table starts a block at its second line, the delimiter row, which makes its first line the header row.
+    for line in following[:2]:
+        if paragraph_breaker.match(line):
+            return lines
+    return lines + [""]
 
 
 def html_block_end(text: str) -> Optional[str]:

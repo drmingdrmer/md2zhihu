@@ -26,4 +26,11 @@ A block that converts to an image keeps the blank line after it, so the list bec
     text after the mermaid
 -   last item
 
+So does the text before such a block, as the image would continue it:
+
+-   text before the mermaid
+
+    ![](lists-tight-blocks/graphLR-4c14e30e5e8f00e0.jpg)
+-   last item
+
 

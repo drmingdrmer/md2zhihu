@@ -26,3 +26,11 @@ A block that converts to an image keeps the blank line after it, so the list bec
   ```
   text after the mermaid
 - last item
+
+So does the text before such a block, as the image would continue it:
+
+- text before the mermaid
+  ```mermaid
+  graph LR
+  ```
+- last item

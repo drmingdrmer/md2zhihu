@@ -572,8 +572,9 @@ platform_changes = {
         "the nested items of the tight list join the text of their parent item into one paragraph",
     ),
     "lists-tight-blocks": (
-        ["simple", "wechat", "weibo"],
-        "the image of the code in an item of a tight list joins the text before it into one paragraph",
+        ["weibo"],
+        "the image of the code in an item joins the text before it into one paragraph, as weibo writes the blocks of an item "
+        "with no blank line between them",
     ),
     "math-block-blank-line": (
         ["hugo", "simple", "wechat", "weibo", "zhihu"],
