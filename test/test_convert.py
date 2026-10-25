@@ -34,6 +34,7 @@ from md2zhihu.errors import DownloadError
 from md2zhihu.errors import EmbedCycleError
 from md2zhihu.errors import MissingFileError
 from md2zhihu.errors import NameClashError
+from md2zhihu.platform import platform_feature_dict
 from md2zhihu.types import Ref
 
 this_base = os.path.dirname(os.path.abspath(__file__))
@@ -531,6 +532,67 @@ pandoc_changes = {
     259: '"." after the number of the ordered list, for the ")" of the example',
     260: '"." after the number of the ordered list, for the ")" of the example',
     318: "the spaces that start the second line of the code span, which mistune keeps, and pandoc drops",
+}
+
+# The markdown that md2zhihu reads, as a reader of pandoc: CommonMark with tables, strikethrough, math between "$",
+# front matter and footnotes.
+md2zhihu_markdown = "commonmark+pipe_tables+strikeout+tex_math_dollars+yaml_metadata_block+footnotes"
+
+# The platforms that write each code span as plain text.
+plain_code_platforms = {"simple", "weibo"}
+
+# The platforms that write the blocks of each list item and of each quote without the list marker or the ">".
+flat_block_platforms = {"weibo"}
+
+# The small cases whose output pandoc reads with another meaning on some platforms than on the platform null,
+# as name: (those platforms, what changes).
+platform_changes = {
+    "lists-syntax": (
+        ["weibo"],
+        "the nested items of the tight list join the text of their parent item into one paragraph",
+    ),
+    "lists-tight-blocks": (
+        ["simple", "wechat", "weibo"],
+        "the image of the code in an item of a tight list joins the text before it into one paragraph",
+    ),
+    "math-block-blank-line": (
+        ["hugo", "simple", "wechat", "weibo", "zhihu"],
+        "pandoc ends null's formula at its blank line and reads it as text, though md2zhihu reads one formula",
+    ),
+    "math-block-syntax-lines": (
+        ["hugo"],
+        "pandoc reads a formula between \\[ and \\] as text, which test_hugo_math_renders_alike checks",
+    ),
+    "math-codespan": (
+        ["simple", "weibo"],
+        "the code $x$, which the platform writes as text, becomes a formula",
+    ),
+    "math-latex": (
+        ["hugo"],
+        "pandoc reads a formula between \\[ and \\] as text, which test_hugo_math_renders_alike checks",
+    ),
+    "math-placement": (
+        ["hugo"],
+        "pandoc reads a formula between \\[ and \\] as text, which test_hugo_math_renders_alike checks",
+    ),
+    "math-table-cell": (
+        ["simple", "wechat", "weibo", "zhihu"],
+        "the formula a|b of the cell shows as a∥b in display math, as md2zhihu writes it as $$a\\|b$$ "
+        "for pandoc's markdown reader, and the HTML of the table holds each formula as text",
+    ),
+    "math-unclosed": (
+        ["hugo", "simple", "wechat", "weibo", "zhihu"],
+        "pandoc ends null's formula at its blank line and reads it as text, though md2zhihu reads one formula",
+    ),
+}
+
+# The small cases whose joined chunks of Article.chunks() pandoc reads with another meaning on some platforms,
+# besides the cases of platform_changes, as name: (those platforms, what changes).
+platform_chunk_changes = {
+    "refs-placement": (
+        ["simple", "wechat", "weibo", "zhihu"],
+        "the reference [slim][] in the table shows as text, as the converter gets the table without the definition",
+    ),
 }
 
 # The examples above whose URL has an unpaired "(" or ")", as number: the markdown that md2zhihu writes.
@@ -1686,12 +1748,18 @@ def test_examples_keep_meaning_in_pandoc(tmp_path):
     assert sorted(changed) == sorted(pandoc_changes)
 
 
-def pandoc_blocks(md_text):
-    """Return the blocks that pandoc reads from `md_text` as CommonMark, in its JSON, with each URL percent-decoded."""
-    cmd = ["pandoc", "--from", "commonmark", "--to", "json"]
-    proc = subprocess.run(cmd, input=md_text, capture_output=True, text=True, check=True)
-    doc = json.loads(proc.stdout)
+def pandoc_blocks(text, reader="commonmark"):
+    """Return the blocks that pandoc reads from `text` with `reader`, in its JSON, with each URL percent-decoded."""
+    doc = json.loads(pandoc_json(text, reader))
     return decode_urls(doc["blocks"])
+
+
+@functools.lru_cache(maxsize=None)
+def pandoc_json(text, reader):
+    """Return the JSON that pandoc writes for `text`, read with `reader`, from a cache, as many outputs are the same."""
+    cmd = ["pandoc", "--from", reader, "--to", "json"]
+    proc = subprocess.run(cmd, input=text, capture_output=True, text=True, check=True)
+    return proc.stdout
 
 
 def decode_urls(node):
@@ -1716,6 +1784,291 @@ def pandoc_block_types(blocks):
         else:
             types.append(b["t"])
     return types
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("api", ["render", "chunks"])
+def test_cases_keep_meaning_on_platforms(api, tmp_path, monkeypatch):
+    """
+    pandoc reads the output of each small case on each platform as it reads the output on the platform null,
+    which writes the AST of the case back as markdown: the same text, structure, link destinations and file contents.
+    The output, of Article.render() or Article.chunks() by `api`, holds what the converters of the platform make.
+    pandoc reads the HTML of a table where the output holds it, as on zhihu.
+    Each other converter returns a placeholder, and the test reads it as what the output of the converter shows:
+    a formula for the image of math, the code for the image of code or of a diagram,
+    and the table that the HTML of the image of a table holds.
+    md2zhihu writes a few things in another way on purpose, so the comparison leaves them out:
+    - The kind of each formula, as null writes inline math between "$$", which pandoc reads as display math.
+    - Whether each list is tight. md2zhihu makes the list of the image of a converted block loose,
+      and Article.chunks() writes each item as a chunk, which ends with a blank line.
+    - What pandoc's HTML reader adds to a table: a class on each row, and on each cell the alignment of its column.
+    - On simple and weibo, the code of each code span, which these platforms write as text.
+    - On weibo, each list and each quote, whose blocks weibo writes without the list marker or the ">".
+    """
+    monkeypatch.chdir(cases_dir)
+    real_convert = k3down2.convert
+    shown = []
+
+    def convert(input_typ, content, output_typ, opt=None):
+        # The HTML of a table is in the output on zhihu and wechat, where pandoc reads it.
+        if input_typ == "table":
+            return real_convert(input_typ, content, output_typ, opt)
+        # Each other output is a placeholder for what the output shows: the URL of an image, or the bytes of its file.
+        blocks = converted_blocks(input_typ, content, opt, real_convert)
+        shown.append(blocks)
+        placeholder = "shown:%d" % (len(shown) - 1)
+        if output_typ == "jpg":
+            return placeholder.encode()
+        return "![](%s)" % placeholder
+
+    monkeypatch.setattr(k3down2, "convert", convert)
+
+    null_dir = str(tmp_path / "null")
+    changed = {}
+    for name in case_names:
+        null_md = case_output(name, "null", api, null_dir)
+        null_blocks = pandoc_blocks(null_md, md2zhihu_markdown)
+        # null writes the URL of a link as the case does, which refers to a file from the folder of the case,
+        # but the URL of a used reference refers to the copy, as on each platform.
+        null_meaning = shown_nodes(null_blocks, shown, [null_dir, "src"])
+        for platform in sorted(platform_feature_dict):
+            out_dir = str(tmp_path / platform)
+            md_text = case_output(name, platform, api, out_dir)
+            blocks = pandoc_blocks(md_text, md2zhihu_markdown)
+            meaning = shown_nodes(blocks, shown, [out_dir])
+            want = comparable(null_meaning, platform)
+            got = comparable(meaning, platform)
+            if got != want:
+                changed.setdefault(name, []).append(platform)
+
+    declared = platform_changes
+    if api == "chunks":
+        declared = {**platform_changes, **platform_chunk_changes}
+    want_changed = {name: platforms for name, (platforms, _) in declared.items()}
+    assert changed == want_changed
+
+
+def case_output(name, platform, api, out_dir):
+    """
+    Convert the small case `name` for `platform` into `out_dir`, and return the markdown that the article API `api`
+    writes: the whole output of Article.render(), or the joined chunks of Article.chunks().
+    """
+    src_path = "src/" + name + ".md"
+    options = case_config.get(name, {})
+    conf = md2zhihu.Config(src_path, platform, out_dir, out_dir, md_output_path=out_dir + "/", **options)
+    os.makedirs(conf.asset_output_dir, exist_ok=True)
+    with open(src_path, encoding="utf-8") as f:
+        md_text = f.read()
+
+    if api == "render":
+        article = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text)
+        return "\n".join(article.render())
+    article = md2zhihu.Article(md2zhihu.ParserConfig(False, []), conf, md_text)
+    return "\n".join(content for _, _, content in article.chunks())
+
+
+def converted_blocks(input_typ, content, opt, real_convert):
+    """
+    Return what the output of k3down2 shows for `content` of type `input_typ`, as blocks in the JSON of pandoc:
+    the formula of math, the code of a diagram or of a code block,
+    and the table of the image of a table, from the HTML that k3down2 makes with pandoc for the image.
+    """
+    if input_typ in ("tex_block", "tex_inline"):
+        math = {"t": "Math", "c": [None, content]}
+        return [{"t": "Para", "c": [math]}]
+    if input_typ in ("mermaid", "graphviz"):
+        attr = ["", [input_typ], []]
+        code = content.removesuffix("\n")
+        return [{"t": "CodeBlock", "c": [attr, code]}]
+    if input_typ == "md":
+        html_text = real_convert("md", content, "html")
+        blocks = pandoc_blocks(html_text, "html")
+        # The image shows each local image from the folder asset_base.
+        return shown_nodes(blocks, [], [opt["html"]["asset_base"]])
+    if input_typ == "code":
+        # The markdown of a fenced code block.
+        return pandoc_blocks(content, md2zhihu_markdown)
+    raise ValueError(f"unknown converter input type {input_typ!r}")
+
+
+def shown_nodes(node, shown, folders):
+    """
+    Return a copy of the pandoc JSON `node`, with what a reader sees in place of each HTML block and each placeholder:
+    the blocks that pandoc reads from the HTML of an HTML block,
+    and the blocks in `shown` of a placeholder image, or the inlines of its one paragraph for an image in a line.
+    The URL of a local file is the md5 of the file, as file_url() writes it, from the first of `folders` that has it.
+    """
+    if isinstance(node, dict):
+        node = {k: shown_nodes(v, shown, folders) for k, v in node.items()}
+        if node["t"] in ("Link", "Image"):
+            attr, inlines, (url, title) = node["c"]
+            url = file_url(url, folders)
+            node["c"] = [attr, inlines, [url, title]]
+        return node
+    if not isinstance(node, list):
+        return node
+
+    rst = []
+    for x in node:
+        in_place = shown_in_place(x, shown, folders)
+        if in_place is None:
+            rst.append(shown_nodes(x, shown, folders))
+        else:
+            rst.extend(shown_nodes(in_place, shown, folders))
+    return rst
+
+
+def shown_in_place(node, shown, folders):
+    """Return the nodes that a reader sees in place of the pandoc JSON `node`, as shown_nodes() says, or None."""
+    if not isinstance(node, dict):
+        return None
+    if node["t"] == "RawBlock" and node["c"][0] == "html":
+        return pandoc_blocks(node["c"][1], "html")
+    if node["t"] in ("Para", "Plain") and len(node["c"]) == 1:
+        index = placeholder_index(node["c"][0], folders)
+        if index is not None:
+            return shown[index]
+
+    index = placeholder_index(node, folders)
+    if index is None:
+        return None
+    blocks = shown[index]
+    is_one_para = len(blocks) == 1 and blocks[0]["t"] == "Para"
+    if is_one_para:
+        return blocks[0]["c"]
+    return blocks
+
+
+def placeholder_index(node, folders):
+    """
+    Return the index of the placeholder that the pandoc JSON `node` is, or None:
+    an image of the URL "shown:<index>", or of a file in one of `folders` that holds "shown:<index>".
+    """
+    if not isinstance(node, dict) or node["t"] != "Image":
+        return None
+    url = node["c"][2][0]
+    data = url.encode()
+    path = local_file(url, folders)
+    if path is not None:
+        with open(path, "rb") as f:
+            data = f.read()
+
+    m = re.fullmatch(rb"shown:(\d+)", data)
+    if m is None:
+        return None
+    return int(m.group(1))
+
+
+def file_url(url, folders):
+    """
+    Return `url` with "md5:<hex>" of the file in place of its path, if a local file of one of `folders` has the path,
+    else `url`. A markdown file names another article, which md2zhihu converts to a file of the same name,
+    so its URL stays.
+    """
+    parts = urllib.parse.urlsplit(url)
+    if parts.path.endswith(".md"):
+        return url
+    path = local_file(url, folders)
+    if path is None:
+        return url
+
+    with open(path, "rb") as f:
+        data = f.read()
+    digest = hashlib.md5(data).hexdigest()
+    parts = parts._replace(path="md5:" + digest)
+    return urllib.parse.urlunsplit(parts)
+
+
+def local_file(url, folders):
+    """Return the path of the local file that `url` refers to, in the first of `folders` that has it, or None."""
+    parts = urllib.parse.urlsplit(url)
+    is_path = parts.scheme == "" and parts.netloc == "" and parts.path != ""
+    if not is_path:
+        return None
+    for folder in folders:
+        path = os.path.join(folder, parts.path)
+        if os.path.isfile(path):
+            return path
+    return None
+
+
+def comparable(node, platform):
+    """
+    Return a copy of the pandoc JSON `node`, without the differences that md2zhihu makes on purpose on `platform`,
+    as test_cases_keep_meaning_on_platforms says.
+    """
+    if isinstance(node, list):
+        rst = [comparable(x, platform) for x in node]
+        if platform in plain_code_platforms:
+            rst = merged_text(rst)
+        if platform in flat_block_platforms:
+            rst = flat_blocks(rst)
+        return rst
+    if not isinstance(node, dict):
+        return node
+
+    if node["t"] == "Table":
+        node = table_cells(node)
+    node = {k: comparable(v, platform) for k, v in node.items()}
+    if node["t"] == "Math":
+        node["c"] = [None, node["c"][1].strip()]
+    if node["t"] == "Plain":
+        node["t"] = "Para"
+    if node["t"] == "Code" and platform in plain_code_platforms:
+        node = {"t": "Str", "c": node["c"][1]}
+    return node
+
+
+def table_cells(node):
+    """Return the pandoc JSON table `node` as the alignment of each column, and the blocks of each cell, row by row."""
+    _, _, colspecs, head, bodies, _ = node["c"]
+    aligns = [align for align, _ in colspecs]
+    rows = list(head[1])
+    for body in bodies:
+        rows.extend(body[2])
+        rows.extend(body[3])
+    cells = [[cell[4] for cell in row[1]] for row in rows]
+    return {"t": "Table", "c": [aligns, cells]}
+
+
+def merged_text(nodes):
+    """Return the pandoc JSON `nodes`, with each run of words and spaces as one text, whose spaces are each one " "."""
+    rst = []
+    for x in nodes:
+        is_text = isinstance(x, dict) and x["t"] in ("Str", "Space")
+        if not is_text:
+            rst.append(x)
+            continue
+
+        text = " "
+        if x["t"] == "Str":
+            text = x["c"]
+        follows_text = len(rst) > 0 and isinstance(rst[-1], dict) and rst[-1]["t"] == "Text"
+        if follows_text:
+            text = rst.pop()["c"] + text
+        text = re.sub(r"\s+", " ", text)
+        rst.append({"t": "Text", "c": text})
+    return rst
+
+
+def flat_blocks(nodes):
+    """Return the pandoc JSON `nodes`, with the blocks of each item of a list, and of each quote, in place of it."""
+    rst = []
+    for x in nodes:
+        t = None
+        if isinstance(x, dict):
+            t = x["t"]
+        if t == "BulletList":
+            for item in x["c"]:
+                rst.extend(item)
+        elif t == "OrderedList":
+            for item in x["c"][1]:
+                rst.extend(item)
+        elif t == "BlockQuote":
+            rst.extend(x["c"])
+        else:
+            rst.append(x)
+    return rst
 
 
 def plain_text(nodes):
