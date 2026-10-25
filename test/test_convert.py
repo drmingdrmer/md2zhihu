@@ -150,6 +150,11 @@ rebase_cases = [
     ("?next=a/../b", "?next=a/../b"),
     ("#x/../y", "#x/../y"),
     ("", ""),
+    # The path of a folder keeps its final "/".
+    ("docs/", "sub/docs/"),
+    ("./", "sub/"),
+    ("../", "./"),
+    ("docs/?q=1", "sub/docs/?q=1"),
 ]
 
 # Inputs with references, as name: (markdown, the undefined references that Article warns about).

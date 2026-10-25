@@ -40,5 +40,8 @@ def rebase_url(frm: str, to: str, src: str) -> str:
 
     p = os.path.join(frm, parts.head)
     p = os.path.relpath(p, start=to)
+    # relpath() drops the "/" that ends the path of a folder, such as "docs/".
+    if parts.head.endswith("/"):
+        p += "/"
 
     return p + parts.query + parts.fragment
