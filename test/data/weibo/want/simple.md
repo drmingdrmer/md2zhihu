@@ -13,7 +13,7 @@ inline code: foo = bar
 
 inline math  ||Xβ⃗-Y||²  foo
 
-inline math in codespan $$ ||X{\vec {\beta }}-Y||^{2} $$
+inline math in codespan \$\$ ||X{\\vec {\\beta }}-Y||^{2} \$\$
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/18b61671112f3aeb-slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
@@ -58,21 +58,21 @@ inline math in codespan $$ ||X{\vec {\beta }}-Y||^{2} $$
 
 <img src="https://www.zhihu.com/equation?tex=%20X%20%3D%20%5Cbegin%7Bbmatrix%7D%201%20%20%20%20%20%20%26%20x_1%20%20%20%20%26%20x_1%5E2%20%5C%5C%201%20%20%20%20%20%20%26%20x_2%20%20%20%20%26%20x_2%5E2%20%5C%5C%20%5Cvdots%20%26%20%5Cvdots%20%26%20%5Cvdots%20%20%20%20%5C%5C%201%20%20%20%20%20%20%26%20x_n%20%20%20%20%26%20x_n%5E2%20%5Cend%7Bbmatrix%7D%20%2C%20%20%5Cvec%7B%5Cbeta%7D%20%3D%20%5Cbegin%7Bbmatrix%7D%20%5Cbeta_1%20%5C%5C%20%5Cbeta_2%20%5C%5C%20%5Cbeta_3%20%5C%5C%20%5Cend%7Bbmatrix%7D%20%2C%20%20Y%20%3D%20%5Cbegin%7Bbmatrix%7D%20y_1%20%5C%5C%20y_2%20%5C%5C%20%5Cvdots%20%5C%5C%20y_n%20%5Cend%7Bbmatrix%7D%20%5C%5C" alt=" X = \begin{bmatrix} 1      &amp; x_1    &amp; x_1^2 \\ 1      &amp; x_2    &amp; x_2^2 \\ \vdots &amp; \vdots &amp; \vdots    \\ 1      &amp; x_n    &amp; x_n^2 \end{bmatrix} ,  \vec{\beta} = \begin{bmatrix} \beta_1 \\ \beta_2 \\ \beta_3 \\ \end{bmatrix} ,  Y = \begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_n \end{bmatrix} \\" class="ee_img tr_noresize" eeimg="1">
 
-spanIndex = OnesCount(bitmap &amp; (1&lt;&lt;(i/16) - 1))
+spanIndex = OnesCount(bitmap & (1\<\<(i/16) - 1))
 
 ## 读取过程
 
 读取过程通过找span, 读取span配置,还原原始数据几个步骤完成, 假设 slimarray 的对象是sa:
 
-通过下标i 得到 spanIndex: spanIndex = OnesCount(sa.bitmap &amp; (1&lt;&lt;(i/16) - 1));
+通过下标i 得到 spanIndex: spanIndex = OnesCount(sa.bitmap & (1\<\<(i/16) - 1));
 
-通过 spanIndex 得到多项式的3个系数: [b₀, b₁, b₂] = sa.polynomials[spanIndex: spanIndex + 3];
+通过 spanIndex 得到多项式的3个系数: \[b₀, b₁, b₂\] = sa.polynomials\[spanIndex: spanIndex + 3\];
 
-读取 delta 数组起始位置, 和 delta 数组中每个 delta 的 bit 宽度: config=sa.configs[spanIndex];
+读取 delta 数组起始位置, 和 delta 数组中每个 delta 的 bit 宽度: config=sa.configs\[spanIndex\];
 
-delta 的值保存在 delta 数组的config.offset + i*config.width的位置, 从这个位置读取width个 bit 得到 delta 的值.
+delta 的值保存在 delta 数组的config.offset + i\*config.width的位置, 从这个位置读取width个 bit 得到 delta 的值.
 
-计算 nums[i] 的值: b₀ + b₁*i + b₂*i² 再加上 delta 的值.
+计算 nums\[i\] 的值: b₀ + b₁\*i + b₂\*i² 再加上 delta 的值.
 
 
 简化的读取逻辑如下:

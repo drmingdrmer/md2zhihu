@@ -17,6 +17,8 @@ from ..errors import EmbedCycleError
 from ..errors import MissingFileError
 from ..renderer import MDRender
 from ..renderer import RenderNode
+from ..renderer.refs import render_ref_definitions
+from ..renderer.refs import render_ref_list
 from ..types import Ref
 from ..types import RefDict
 from ..utils import add_paragraph_end
@@ -26,8 +28,6 @@ from .extract.front_matter import FrontMatter
 from .extract.front_matter import extract_front_matter
 from .extract.refs import load_external_refs
 from .extract.refs import update_refs
-from .output import render_ref_definitions
-from .output import render_ref_list
 from .transform.rebase import rebase_url
 from .transform.rebase import rebase_url_in_ast
 

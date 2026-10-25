@@ -18,10 +18,10 @@ from ..errors import MissingToolError
 from ..errors import RenderError
 from ..renderer import MDRender
 from ..renderer import RenderNode
+from ..renderer.md_render import escape_plain
 from ..renderer.md_render import inline_children
 from ..utils import asset_fn
 from ..utils import code_block_lines
-from ..utils import escape
 from ..utils import fwrite
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ def code_join(n: dict) -> str:
 
 def to_plaintext(mdrender, rnode):
     n = rnode.node
-    return [escape(n["text"])]
+    return [escape_plain(n["text"])]
 
 
 def typ_text_to_jpg(
@@ -218,7 +218,8 @@ def math_inline_to_jpg(mdrender, rnode):
 
 def math_inline_to_plaintext(mdrender, rnode):
     n = rnode.node
-    return [escape(k3down2.convert("tex_inline", n["text"], "plain"))]
+    text = k3down2.convert("tex_inline", n["text"], "plain")
+    return [escape_plain(text)]
 
 
 def table_to_barehtml(mdrender, rnode) -> List[str]:

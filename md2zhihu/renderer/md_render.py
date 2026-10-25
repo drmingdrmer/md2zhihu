@@ -48,6 +48,18 @@ paragraph_breaker = re.compile(
 # The spaces and the number at the start of a line, before the char that starts its block, such as "1" of "1. a".
 block_start_prefix = re.compile(r"^ *[0-9]*")
 
+# A block marker at the start of a line that starts a block, such as the first line of a paragraph:
+# an ATX heading, a quote, an item of a bullet list or of an ordered list, or a thematic break up to its last char,
+# such as "# x", "> q", "- x", "1. x" or "---".
+line_block_marker = re.compile(
+    r"#{1,6}(?=[ \t]|$)|>|[-+*](?=[ \t]|$)|\d{1,9}[.)](?=[ \t]|$)"
+    r"|(?:-[ \t]*){2,}-(?=[ \t]*$)|(?:_[ \t]*){2,}_(?=[ \t]*$)|(?:\*[ \t]*){2,}\*(?=[ \t]*$)"
+)
+
+# The closing sequence of an ATX heading at the end of its text, such as the last "#" of "# a #", which a markdown parser
+# removes.
+heading_closing = re.compile(r"(?:^|(?<=[ \t]))#+[ \t]*$")
+
 # The two markers of the items of an unordered list, and of an ordered list after its number.
 # The other bullet char is "+", because with "*" an item that holds a thematic break, "*   ***", is a thematic break.
 bullets = ["-", "+"]
@@ -65,6 +77,10 @@ text_specials = re.compile(r"[\\`*\[\]$~<]|_+")
 
 # A run of "_" in plain text.
 underscore_runs = re.compile(r"_+")
+
+# A char of plain chars that starts inline markdown where md2zhihu writes them, such as the code of a code span on simple:
+# a char of `text_specials`, or an "&" that starts a character reference.
+plain_specials = re.compile(text_specials.pattern + "|" + char_reference_start.pattern)
 
 
 class MDRender(object):
@@ -231,6 +247,9 @@ class MDRender(object):
             # The heading is written on one line, so its parts, such as text and code, are joined.
             # The lines of a setext heading are joined with a space.
             text = "".join(lines).replace("\n", " ")
+            # A "#" after a space at the end would close the heading, such as in the text of the setext heading "a #\n===",
+            # or in "a #" of the code span `a #`, which simple writes as text.
+            text = heading_closing.sub(r"\\\g<0>", text)
             return ["#" * n["level"] + " " + text, ""]
 
         if typ == "strikethrough":
@@ -301,11 +320,13 @@ class MDRender(object):
 def paragraph_lines(parts: List[str]) -> List[str]:
     """
     Join the rendered parts of a paragraph and split them into lines.
+    The first line starts no block, as escape_line_start() writes it, because a platform can write a part as text,
+    such as "# a" of the code span `# a` on simple.
     A line after the first that would start a block, such as "# a" or "---", is indented by 4 spaces,
     because no block starts after 4 spaces in a paragraph.
     """
     lines = "".join(parts).split("\n")
-    rst = lines[:1]
+    rst = [escape_line_start(lines[0])]
     for line in lines[1:]:
         if paragraph_breaker.match(line):
             line = indent(line)
@@ -322,6 +343,21 @@ def escape_block_start(line: str) -> str:
     if not paragraph_breaker.match(line):
         return line
     return block_start_prefix.sub(r"\g<0>\\", line, count=1)
+
+
+def escape_line_start(text: str) -> str:
+    r"""
+    Return the text at the start of a line that starts a block, such as the first line of a paragraph or the text of
+    a list item, without the spaces at its start, and with a backslash before the last char of a block marker at its
+    start, such as "\# x" for "# x", "1\. Intro" for "1. Intro" or "--\-" for "---".
+    4 spaces would start a code block, and a block marker would start its block.
+    """
+    text = text.lstrip(" \t")
+    m = line_block_marker.match(text)
+    if m is None:
+        return text
+    end = m.end()
+    return text[: end - 1] + "\\" + text[end - 1 :]
 
 
 def lists_before(rnode) -> int:
@@ -366,9 +402,20 @@ def escape_text(text: str) -> str:
     return text_specials.sub(escape, text)
 
 
+def escape_plain(text: str) -> str:
+    r"""
+    Return the plain chars `text`, such as the code of a code span that simple writes as text, as markdown that shows
+    them in a line, with each char of `text_specials` escaped, and with a backslash before an "&" that would start
+    a character reference, such as "\*a\*" for "*a*" or "\&amp;" for "&amp;".
+    A run of "_" is kept only with a letter or digit on both sides, because a run beyond `text` in the line can pair with it.
+    """
+    escape = partial(escape_text_char, emphasis_pair=True)
+    return plain_specials.sub(escape, text)
+
+
 def escape_text_char(m: re.Match[str], emphasis_pair: bool) -> str:
     r"""
-    Return the match of `text_specials` escaped, such as "\_" for "_".
+    Return the match of `text_specials` or of `plain_specials` escaped, such as "\_" for "_" or "\&" for "&".
     A "`" is written as "&#96;", because in the text of a link mistune starts a code span at "\`" too.
     A run of "_" with a letter or digit on both sides, such as in "a_b", is kept, because it opens or closes no emphasis.
     Every run of "_" is kept if `emphasis_pair` is False, because then no run of "_" in the text starts an emphasis.

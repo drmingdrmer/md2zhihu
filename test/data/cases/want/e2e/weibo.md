@@ -10,9 +10,9 @@
 
 inline code: foo = bar
 
-inline math {tex_inline:plain} ||X{\vec {\beta }}-Y||^{2} {/tex_inline} foo
+inline math {tex_inline:plain} ||X{\\vec {\\beta }}-Y||^{2} {/tex_inline} foo
 
-inline math in codespan $$ ||X{\vec {\beta }}-Y||^{2} $$
+inline math in codespan \$\$ ||X{\\vec {\\beta }}-Y||^{2} \$\$
 ![](simple/18b61671112f3aeb-slim.jpg)
 
 在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,
@@ -81,21 +81,21 @@ y_n
 \end{bmatrix}
 {/tex_block}
 
-spanIndex = OnesCount(bitmap &amp; (1&lt;&lt;(i/16) - 1))
+spanIndex = OnesCount(bitmap & (1\<\<(i/16) - 1))
 
 ## 读取过程
 
 读取过程通过找span, 读取span配置,还原原始数据几个步骤完成, 假设 slimarray 的对象是sa:
 
-通过下标i 得到 spanIndex: spanIndex = OnesCount(sa.bitmap &amp; (1&lt;&lt;(i/16) - 1));
+通过下标i 得到 spanIndex: spanIndex = OnesCount(sa.bitmap & (1\<\<(i/16) - 1));
 
-通过 spanIndex 得到多项式的3个系数: [b₀, b₁, b₂] = sa.polynomials[spanIndex: spanIndex + 3];
+通过 spanIndex 得到多项式的3个系数: \[b₀, b₁, b₂\] = sa.polynomials\[spanIndex: spanIndex + 3\];
 
-读取 delta 数组起始位置, 和 delta 数组中每个 delta 的 bit 宽度: config=sa.configs[spanIndex];
+读取 delta 数组起始位置, 和 delta 数组中每个 delta 的 bit 宽度: config=sa.configs\[spanIndex\];
 
-delta 的值保存在 delta 数组的config.offset + i*config.width的位置, 从这个位置读取width个 bit 得到 delta 的值.
+delta 的值保存在 delta 数组的config.offset + i\*config.width的位置, 从这个位置读取width个 bit 得到 delta 的值.
 
-计算 nums[i] 的值: b₀ + b₁*i + b₂*i² 再加上 delta 的值.
+计算 nums\[i\] 的值: b₀ + b₁\*i + b₂\*i² 再加上 delta 的值.
 
 
 简化的读取逻辑如下:
@@ -122,7 +122,7 @@ Q_{odd}(C) = M(C) = \{ q : q \subseteq C,  |q| > |C|/2 \}
 
 
 要找到一个更好的偶节点的 quorum 集合, 一个方法是可以把偶数节点的集群看做是一个奇数节点集群加上一个节点x:
-{tex_inline:plain} D = C \cup \{x\} {/tex_inline}
+{tex_inline:plain} D = C \\cup \\{x\\} {/tex_inline}
 
 于是偶数节点的 quorum 集合就可以是 M(D) 的一个扩张:
 

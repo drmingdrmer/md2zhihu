@@ -1,6 +1,13 @@
 """
 Parse markdown with mistune 3 into the AST that md2zhihu renders.
 This is the only module that knows mistune 3's token format.
+
+The text fields of the AST hold:
+- markdown as written, with its backslash escapes and character references: the text of a text node,
+  the alt of an image, and the TeX of math;
+- plain chars: the code of a code span, whose line endings are spaces, and the code and the info of a code block;
+- chars without the backslash escapes, but with the character references as written: the title of a link or an image;
+- a percent-encoded URL: the URL of a link or an image.
 """
 
 import re

@@ -24,6 +24,7 @@ import threading
 import urllib.parse
 
 import k3down2
+import mistune
 import numpy
 import pytest
 import skimage.io
@@ -563,10 +564,6 @@ platform_changes = {
         ["hugo"],
         "pandoc reads a formula between \\[ and \\] as text, which test_hugo_math_renders_alike checks",
     ),
-    "math-codespan": (
-        ["simple", "weibo"],
-        "the code $x$, which the platform writes as text, becomes a formula",
-    ),
     "math-latex": (
         ["hugo"],
         "pandoc reads a formula between \\[ and \\] as text, which test_hugo_math_renders_alike checks",
@@ -626,6 +623,37 @@ plain_text_neighbors = {
     ("weibo", "_*b*$x$_\n"): "_*b*x_\n",
 }
 
+# Text that would become markdown where md2zhihu writes it, as (platform, markdown): the markdown that md2zhihu writes.
+# simple and weibo write each code span as its text.
+literal_texts = {
+    ("simple", "`*literal*`\n"): "\\*literal\\*\n",
+    ("simple", "`[x](https://example.com)`\n"): "\\[x\\](https://example.com)\n",
+    ("simple", "`![i](x.png)`\n"): "!\\[i\\](x.png)\n",
+    ("simple", "`` a`b ``\n"): "a&#96;b\n",
+    ("simple", "`&amp;`\n"): "\\&amp;\n",
+    # A "_" of the code would pair with a "_" after it.
+    ("simple", "`_a` b_\n"): "\\_a b_\n",
+    # The code at the start of a paragraph or of an item would start a block.
+    ("simple", "`# title`\n"): "\\# title\n",
+    ("simple", "`> quote`\n"): "\\> quote\n",
+    ("simple", "`- item`\n"): "\\- item\n",
+    ("simple", "`2. item`\n"): "2\\. item\n",
+    ("simple", "`---`\n"): "--\\-\n",
+    ("simple", "- `# x`\n"): "-   \\# x\n",
+    ("simple", "# `*a*`\n"): "# \\*a\\*\n",
+    ("simple", "[`*a*`](u)\n"): "[\\*a\\*](u)\n",
+    ("simple", "*`_a_`*\n"): "*\\_a\\_*\n",
+    ("weibo", "`*a*` and `_b_`\n"): "\\*a\\* and \\_b\\_\n",
+    # A "#" after a space at the end of a heading would close it.
+    ("simple", "# `a #`\n"): "# a \\#\n",
+    ("null", "a #\n===\n"): "# a \\#\n",
+}
+
+# Math that weibo writes as text, as markdown: the markdown that md2zhihu writes.
+math_texts_on_weibo = {
+    "x $a*b$ and $c*d$\n": "x a\\*b and c\\*d\n",
+}
+
 # Math for the passthrough extension of Hugo, as markdown: the markdown that md2zhihu writes with -p hugo.
 hugo_math = {
     "$$x$$\n": "\\[x\\]\n",
@@ -648,6 +676,10 @@ written_math = re.compile(r"\\\[(?P<block>.*)\\\]|\$\$(?P<inline>.*)\$\$")
 
 # A backslash escape or a character reference in markdown text, each of which writes one char, such as "\*" or "&#96;".
 char_escape = re.compile(r"\\[!-/:-@\[-`{-~]|&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]*);")
+
+# The placeholder text that test_cases_keep_meaning_on_platforms makes for a converter output of text,
+# such as the text of math on weibo, with the index of what it shows.
+placeholder_text = re.compile(r"shown:(\d+)")
 
 # The URL of an image in markdown or in HTML, such as "x.png" of "![](x.png)" or of '<img src="x.png">'.
 shown_image_url = re.compile(r'!\[[^\]]*\]\(([^)\s]+)\)|<img [^>]*src="([^"]+)"')
@@ -1795,7 +1827,7 @@ def test_cases_keep_meaning_on_platforms(api, tmp_path, monkeypatch):
     The output, of Article.render() or Article.chunks() by `api`, holds what the converters of the platform make.
     pandoc reads the HTML of a table where the output holds it, as on zhihu.
     Each other converter returns a placeholder, and the test reads it as what the output of the converter shows:
-    a formula for the image of math, the code for the image of code or of a diagram,
+    a formula for the image or the text of math, the code for the image of code or of a diagram,
     and the table that the HTML of the image of a table holds.
     md2zhihu writes a few things in another way on purpose, so the comparison leaves them out:
     - The kind of each formula, as null writes inline math between "$$", which pandoc reads as display math.
@@ -1819,6 +1851,9 @@ def test_cases_keep_meaning_on_platforms(api, tmp_path, monkeypatch):
         placeholder = "shown:%d" % (len(shown) - 1)
         if output_typ == "jpg":
             return placeholder.encode()
+        # md2zhihu escapes an output of text, such as the text of math on weibo, so its placeholder is a text too.
+        if output_typ == "plain":
+            return placeholder
         return "![](%s)" % placeholder
 
     monkeypatch.setattr(k3down2, "convert", convert)
@@ -1895,7 +1930,8 @@ def shown_nodes(node, shown, folders):
     """
     Return a copy of the pandoc JSON `node`, with what a reader sees in place of each HTML block and each placeholder:
     the blocks that pandoc reads from the HTML of an HTML block,
-    and the blocks in `shown` of a placeholder image, or the inlines of its one paragraph for an image in a line.
+    and the blocks in `shown` of a placeholder image, or the inlines of its one paragraph for an image in a line
+    or for a placeholder text.
     The URL of a local file is the md5 of the file, as file_url() writes it, from the first of `folders` that has it.
     """
     if isinstance(node, dict):
@@ -1924,6 +1960,8 @@ def shown_in_place(node, shown, folders):
         return None
     if node["t"] == "RawBlock" and node["c"][0] == "html":
         return pandoc_blocks(node["c"][1], "html")
+    if node["t"] == "Str":
+        return shown_in_text(node["c"], shown)
     if node["t"] in ("Para", "Plain") and len(node["c"]) == 1:
         index = placeholder_index(node["c"][0], folders)
         if index is not None:
@@ -1937,6 +1975,24 @@ def shown_in_place(node, shown, folders):
     if is_one_para:
         return blocks[0]["c"]
     return blocks
+
+
+def shown_in_text(text, shown):
+    """
+    Return the inlines that a reader sees in place of the pandoc text `text`, such as "(shown:3)", with the inlines of
+    the one paragraph in `shown` of each placeholder text, or None if `text` holds no placeholder text.
+    """
+    pieces = placeholder_text.split(text)
+    if len(pieces) == 1:
+        return None
+    rst = []
+    for i, piece in enumerate(pieces):
+        if i % 2 == 1:
+            [para] = shown[int(piece)]
+            rst.extend(para["c"])
+        elif piece != "":
+            rst.append({"t": "Str", "c": piece})
+    return rst
 
 
 def placeholder_index(node, folders):
@@ -2127,6 +2183,26 @@ def test_emphasis_next_to_plain_text(platform, md_text, tmp_path):
     got = write_example(md_text, tmp_path, platform)
 
     assert got == plain_text_neighbors[(platform, md_text)]
+
+
+@pytest.mark.parametrize("platform, md_text", sorted(literal_texts))
+def test_literal_text(platform, md_text, tmp_path):
+    got_md = write_example(md_text, tmp_path, platform)
+
+    assert got_md == literal_texts[(platform, md_text)]
+
+    # mistune reads the output as the input, with each code span as its text.
+    want = mistune.html(md_text)
+    want = want.replace("<code>", "").replace("</code>", "")
+    got = mistune.html(got_md)
+    assert got == want
+
+
+@pytest.mark.parametrize("md_text", sorted(math_texts_on_weibo))
+def test_math_as_text(md_text, tmp_path):
+    got = write_example(md_text, tmp_path, "weibo")
+
+    assert got == math_texts_on_weibo[md_text]
 
 
 @pytest.mark.parametrize("md_text", sorted(hugo_math))

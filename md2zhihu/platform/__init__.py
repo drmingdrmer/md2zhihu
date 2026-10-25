@@ -22,7 +22,6 @@ from ..converters import table_to_barehtml
 from ..converters import table_to_jpg
 from ..converters import to_plaintext
 from ..types import Features
-from ..utils import escape
 from ..utils import strip_paragraph_end
 
 
@@ -47,7 +46,7 @@ def weibo_specific(mdrender, rnode) -> Optional[List[str]]:
         return table_to_jpg(mdrender, rnode)
 
     if typ == "codespan":
-        return [escape(n["text"])]
+        return to_plaintext(mdrender, rnode)
 
     #  weibo does not support pasting <p> in <li>
 
