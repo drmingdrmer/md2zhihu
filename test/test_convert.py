@@ -461,6 +461,19 @@ meaning_changes = {
     471: "the URL is written percent-encoded, as encoded_destinations shows",
 }
 
+# The examples above whose whole output of Article.render() mistune reads with another meaning, though pandoc reads
+# the meaning of the example, as number: what mistune reads.
+render_misreads = {
+    247: "the empty last item, before the blank lines that end the output, as an item of a loose list",
+}
+
+# The examples above whose meaning the joined chunks of Article.chunks() change, besides meaning_changes,
+# as number: what changes.
+chunk_changes = {
+    161: "the kept reference [Foo*bar\\]] is written as [Foo\\*bar\\]], whose label matches no definition",
+    535: "the kept reference [foo*] is written as [foo\\*], whose label matches no definition",
+}
+
 # The examples above whose URL has an unpaired "(" or ")", as number: the markdown that md2zhihu writes.
 # md2zhihu percent-encodes each parenthesis, so that the written link parses back as one link.
 encoded_destinations = {
@@ -1414,19 +1427,82 @@ def test_examples_keep_meaning(tmp_path):
     The markdown that md2zhihu writes for an example parses to the AST of the example:
     the same code text, emphasis, link destinations and titles, and list nesting.
     The ASTs are compared instead of the texts, because md2zhihu rewrites the whitespace that decides the nesting.
+    The markdown is the whole output of Article.render(), which ends with the list of the used references.
     """
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("example.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
     changed = []
     for number in meaning_examples:
         md_text = robust_examples["commonmark-%d" % number]
         want, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
-        got_md = write_example(md_text, tmp_path)
+        article = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text)
+        got_md = "\n".join(article.render())
         got, _, _ = md2zhihu.parser.mistune3.parse(got_md, {}, True)
+        body = got[: len(want)]
+        # After the blocks of the example, a paragraph "Reference:", and a list of one paragraph for each used reference.
+        want_refs = []
+        if article.used_refs:
+            want_refs = ["paragraph", ("list", [("list_item", ["paragraph"])] * len(article.used_refs))]
+        got_refs = block_types(loose(got[len(want) :]))
         want = plain_text(want)
-        got = plain_text(got)
+        got = plain_text(body)
+        if got != want or got_refs != want_refs:
+            changed.append(number)
+
+    assert changed == sorted({**meaning_changes, **render_misreads})
+
+
+def test_example_chunks_keep_meaning(tmp_path):
+    """
+    The chunks that md2zhihu writes for an example, joined with "\\n", parse to the AST of the example,
+    as in test_examples_keep_meaning. Article.chunks() keeps each reference as written, and ends with the definitions.
+    Each item of a list is a chunk, which ends a block, so the joined items make a loose list,
+    and each list is compared as loose.
+    """
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("example.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
+    changed = []
+    for number in meaning_examples:
+        md_text = robust_examples["commonmark-%d" % number]
+        want, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
+        article = md2zhihu.Article(md2zhihu.ParserConfig(False, []), conf, md_text)
+        joined = "\n".join(content for _, _, content in article.chunks())
+        got, _, _ = md2zhihu.parser.mistune3.parse(joined, {}, True)
+        want = loose(plain_text(want))
+        got = loose(plain_text(got))
         if got != want:
             changed.append(number)
 
-    assert changed == sorted(meaning_changes)
+    assert changed == sorted({**meaning_changes, **chunk_changes})
+
+
+def loose(nodes):
+    """
+    Return a copy of the AST `nodes` with each list loose, as if a blank line were between its items:
+    the text of an item of a tight list, a block_text, becomes a paragraph.
+    """
+    rst = []
+    for n in nodes:
+        n = dict(n)
+        if n["type"] == "block_text":
+            n["type"] = "paragraph"
+        if n["type"] == "list":
+            n["tight"] = False
+        if "children" in n:
+            n["children"] = loose(n["children"])
+        rst.append(n)
+    return rst
+
+
+def block_types(nodes):
+    """Return the type of each block of the AST `nodes`, with the types of the blocks in it for a list or a list item."""
+    types = []
+    for n in nodes:
+        if n["type"] in ("list", "list_item"):
+            types.append((n["type"], block_types(n["children"])))
+        else:
+            types.append(n["type"])
+    return types
 
 
 def plain_text(nodes):
