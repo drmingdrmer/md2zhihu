@@ -2,12 +2,12 @@ from typing import List
 from urllib.parse import unquote
 
 from ..types import RefDict
-from .md_render import char_reference_start
 from .md_render import escape_block_start
 from .md_render import escape_line_start
 from .md_render import escape_text
 from .md_render import link_destination
 from .md_render import link_title
+from .md_render import plain_specials
 
 
 def render_ref_list(refs: RefDict, platform: str) -> List[str]:
@@ -20,9 +20,8 @@ def render_ref_list(refs: RefDict, platform: str) -> List[str]:
         url = link_destination(ref.url)
         # mistune percent-encodes a URL, such as "图片" to "%E5%9B%BE%E7%89%87", but the text shows it as written.
         url_text = unquote(ref.url)
-        url_text = escape_text(url_text)
         # The URL holds plain chars, so an "&", such as one from "%26", shows as itself, not as a reference.
-        url_text = char_reference_start.sub(r"\\&", url_text)
+        url_text = escape_text(url_text, plain_specials)
 
         if ref.title is None:
             # A name is a label as written, such as "foo\!", but mistune removes the backslash escapes from a title.

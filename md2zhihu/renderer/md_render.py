@@ -427,15 +427,17 @@ def escape_marker(m: re.Match[str]) -> str:
     return "\\" + s
 
 
-def escape_text(text: str) -> str:
+def escape_text(text: str, specials: re.Pattern[str] = text_specials) -> str:
     r"""
-    Return the plain text `text` as markdown that shows it, with each char of `text_specials` escaped,
+    Return the plain text `text` as markdown that shows it, with each match of `specials` escaped,
     such as "\*a\*" for "*a*".
-    An "&" is kept, because mistune keeps a character reference in the title of a link as written, such as "&amp;".
+    With `text_specials`, an "&" is kept, because mistune keeps a character reference in the title of a link as written,
+    such as "&amp;". With `plain_specials`, an "&" that would start a character reference gets a backslash,
+    such as in the text of a URL.
     """
     emphasis_pair = has_emphasis_pair(text)
     escape = partial(escape_text_char, emphasis_pair=emphasis_pair)
-    return text_specials.sub(escape, text)
+    return specials.sub(escape, text)
 
 
 def escape_plain(text: str) -> str:

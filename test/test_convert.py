@@ -418,6 +418,21 @@ ref_definitions = {
             "[r]: https://a.com/?q=&amp;copy;",
         ],
     ),
+    "url-backtick": (
+        "[x][r]\n\n[r]: https://a.com/a`b\n",
+        [
+            "[x](https://a.com/a%60b)",
+            "",
+            "",
+            "",
+            "Reference:",
+            "",
+            "- r : [https://a.com/a&#96;b](https://a.com/a%60b)",
+            "",
+            "",
+            "[r]: https://a.com/a%60b",
+        ],
+    ),
     "underscores": (
         '[x][r]\n\n[r]: https://a.com/leader_id__cmp.rs_/_x "_中_文_"\n',
         [
