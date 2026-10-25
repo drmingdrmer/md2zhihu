@@ -13,7 +13,10 @@ class MissingFileError(UserError, FileNotFoundError):
 
 
 class MissingToolError(UserError, FileNotFoundError):
-    """A program that renders the markdown is not on PATH, such as dot for a graphviz block."""
+    """
+    A program that renders the markdown is not on PATH, such as dot for a graphviz block,
+    or a package of it is missing, such as the node package mathjax-full for math.
+    """
 
 
 class RenderError(UserError, RuntimeError):

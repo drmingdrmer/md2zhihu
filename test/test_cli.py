@@ -367,9 +367,8 @@ def test_missing_mathjax(tmp_path):
     proc = subprocess.run(cmd, cwd=tmp_path, env=env, capture_output=True, text=True)
 
     assert proc.returncode == 1
-    # The reason is the message of node, with a stack that holds the paths of this machine.
-    assert proc.stderr.startswith("md2zhihu: error: rendering tex_inline in 'a.md' failed: ")
-    assert "\nError: Cannot find module 'mathjax-full/js/mathjax.js'\n" in proc.stderr
+    reason = "needs the node package mathjax-full; install it with npm install -g mathjax-full@3.2.2"
+    assert proc.stderr == "md2zhihu: error: rendering tex_inline in 'a.md' " + reason + "\n"
 
 
 def test_repo_without_remote(tmp_path, monkeypatch, capsys):

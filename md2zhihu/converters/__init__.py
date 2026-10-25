@@ -73,6 +73,7 @@ def k3down2_convert(mdrender: "MDRender", typ: str, txt: str, output_typ: str, o
     """
     Return what k3down2 converts `txt` of type `typ` to.
     Raise MissingToolError if the program that k3down2 runs is not on PATH, such as dot for graphviz,
+    or if node can not find the package mathjax-full,
     and RenderError if the program fails on `txt`, such as MathJax on TeX with an undefined command.
     """
     try:
@@ -83,6 +84,10 @@ def k3down2_convert(mdrender: "MDRender", typ: str, txt: str, output_typ: str, o
     except k3proc.CalledProcessError as e:
         # The program writes why it failed to stderr, such as "Undefined control sequence \foo" from MathJax.
         reason = "\n".join(e.err)
+        # node writes a stack of many lines when it can not load MathJax, with "Cannot find module 'mathjax-full/...".
+        if "Cannot find module 'mathjax-full" in reason:
+            missing = "needs the node package mathjax-full; install it with npm install -g mathjax-full@3.2.2"
+            raise MissingToolError(f"rendering {typ} in {mdrender.conf.src_path!r} {missing}") from e
         raise RenderError(f"rendering {typ} in {mdrender.conf.src_path!r} failed: {reason}") from e
 
 
