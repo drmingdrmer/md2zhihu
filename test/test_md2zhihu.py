@@ -210,6 +210,23 @@ class TestMd2zhihu(unittest.TestCase):
         # The failed push removes the .git that md2zhihu created.
         self.assertEqual(["a", "a.md"], sorted(os.listdir(pjoin(d, "_md2"))))
 
+    def test_push_starts_no_maintenance(self):
+        d = copy_case("push-token", self.tmp_path)
+        repo_url = "git@github.com:nobody/nothing.git"
+        bare, env = local_remote(self.tmp_path, repo_url)
+        # The bare repo starts no maintenance after a push, so each one in the trace is of the output folder.
+        cmdx("git", "--git-dir", bare, "config", "receive.autogc", "false")
+        # git writes each command that it runs into the trace, also the ones that a command starts.
+        trace_path = pjoin(self.tmp_path, "git-trace")
+        env["GIT_TRACE"] = trace_path
+
+        cmdx("md2zhihu", "a.md", "--repo", repo_url + "@b", cwd=d, env=env)
+
+        # Newer git runs the maintenance in the background, so it could write in .git after md2zhihu removes it.
+        trace = k3fs.fread(trace_path)
+        maintenance = re.findall(r"git maintenance .*", trace)
+        self.assertEqual([], maintenance)
+
     def test_chunks(self):
         parser_config = md2zhihu.ParserConfig(False, [])
         conf = md2zhihu.Config(

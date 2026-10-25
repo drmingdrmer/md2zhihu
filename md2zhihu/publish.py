@@ -19,6 +19,11 @@ from .utils import mask_url_credential
 # The committer of the assets, for each part of it that git has no config for, as on a fresh CI runner.
 fallback_identity = {"user.name": "md2zhihu", "user.email": "noreply@localhost"}
 
+# The config of the commit that stops the auto maintenance, which git starts after a commit.
+# Newer git runs it in the background, so it could write in the .git that push() removes, such as
+# .git/objects/info/packs. Git before 2.29 starts "git gc --auto" instead, which gc.auto=0 stops.
+no_maintenance = ["-c", "maintenance.auto=false", "-c", "gc.auto=0"]
+
 
 def push(options: Options, src_dst_fns: List[List[str]]) -> None:
     """
@@ -62,6 +67,7 @@ def _commit_and_push(options: Options, repo: AssetRepo, src_dst_fns: List[List[s
     cmdpass(
         "git",
         *identity,
+        *no_maintenance,
         "commit",
         "-q",
         "--allow-empty",
