@@ -259,6 +259,8 @@ fenced_codes = {
     "long-tilde-run": ("~~~~~ a`b\n~~~~\n~~~~~\n", "a`b", "~~~~\n"),
     "nested-backticks": ("````markdown\n```python\nprint(1)\n```\n````\n", "markdown", "```python\nprint(1)\n```\n"),
     "nested-tildes": ("~~~~md`x\n~~~python\nprint(1)\n~~~\n~~~~\n", "md`x", "~~~python\nprint(1)\n~~~\n"),
+    # "\\" escapes the backslash, which would escape the "*" after it.
+    "escaped-backslash-in-info": ("``` a\\\\*b\nx\n```\n", "a\\*b", "x\n"),
 }
 
 # Markdown files that embed themselves, as name: ({path: content}, the error message).

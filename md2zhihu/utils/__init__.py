@@ -86,7 +86,11 @@ def code_block_lines(code: str, info: str) -> List[str]:
     else a run of "`". No run in `code` closes it: it is 1 longer than the longest run of its char in `code`,
     and at least 3 long.
     A space keeps an `info` that starts with the fence char, such as "~a`b", apart from the fence.
+    A backslash of `info` before an ASCII punctuation char is written as "\\", because a markdown parser reads it as an
+    escape, such as "a\\*b" for the info string "a\*b".
     """
+    info = re.sub(r"\\(?=[!-/:-@\[-`{-~])", r"\\\\", info)
+
     char = "`"
     if "`" in info:
         char = "~"
