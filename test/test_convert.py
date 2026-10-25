@@ -719,6 +719,9 @@ hugo_math = {
     "$$\n\\alpha% one\nbeta\n$$\n": "\\[\\alpha beta\\]\n",
     # A "%" in a "\verb" span starts no comment.
     "Math: $\\verb|a%b|$.\n": "Math: $$\\verb|a%b|$$.\n",
+    # Nor does a "%" in the URL of "\href", or in the CSS of "\style".
+    "Math: $\\href{https://a.com/%20}{x}$\n": "Math: $$\\href{https://a.com/%20}{x}$$\n",
+    "Math: $\\style{font-size:150%}{x}$\n": "Math: $$\\style{font-size:150%}{x}$$\n",
     # The control space "\ " keeps its space, before the line break that also makes a space.
     "$$\n\\text{a\\ \nb}\n$$\n": "\\[\\text{a\\  b}\\]\n",
     "$$\na\\ \n$$\n": "\\[a\\ \\]\n",

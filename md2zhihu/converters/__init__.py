@@ -37,11 +37,14 @@ if TYPE_CHECKING:
 
 # A part of TeX that tex_one_line() reads as a whole, tried in this order:
 # a "\verb" span, which ends on its line as in LaTeX, and in which "%" starts no comment, such as "\verb|a%b|";
+# "\href", "\url" or "\style" with its first argument on its line, which MathJax and KaTeX read as written,
+# so that "%" starts no comment in it, such as "\href{https://a.com/%20}";
 # a gap, which is a run of white space and comments, with the control word right before it if there is one;
 # or a control sequence, such as "\alpha", "\%", or the control space "\ ", whose space belongs to it, not to a gap.
 # A comment runs from "%" to the end of its line.
 tex_parts = re.compile(
     r"\\verb\*?(?P<delimiter>[^a-zA-Z \t\n]).*?(?P=delimiter)"
+    r"|\\(?:href|url|style)[ \t]*\{[^{}\n]*\}"
     r"|(?P<word>\\[a-zA-Z]+)?(?P<gap>(?:[ \t\n]|%.*)+)"
     r"|\\(?:[a-zA-Z]+|[\s\S])"
 )
