@@ -214,7 +214,8 @@ class MDRender(object):
             return lines + [""]
 
         if typ == "block_html":
-            return add_paragraph_end([n["text"]])
+            # A quote or a list item puts its marker or indent before each of its lines, so each line of the HTML is one.
+            return add_paragraph_end(n["text"].split("\n"))
 
         if typ == "link":
             lines = self.render(rnode)
