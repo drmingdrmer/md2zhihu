@@ -4,6 +4,7 @@ from typing import Dict
 
 import yaml
 from k3fs import fread
+from mistune.util import unikey
 
 from ...config import Config
 from ...errors import FormatError
@@ -20,10 +21,23 @@ def load_external_refs(conf: Config) -> RefDict:
         fcont = fread(ref_path)
         loaded = load_yaml(fcont, ref_path)
         y = mapping_in(loaded, ref_path)
-        refs.update(refs_in(y.get("universal"), "universal in " + ref_path))
-        refs.update(refs_in(y.get(conf.options.platform), conf.options.platform + " in " + ref_path))
+        update_refs(refs, refs_in(y.get("universal"), "universal in " + ref_path))
+        update_refs(refs, refs_in(y.get(conf.options.platform), conf.options.platform + " in " + ref_path))
 
     return refs
+
+
+def update_refs(refs: RefDict, new: RefDict) -> None:
+    """
+    Add each reference of `new` to `refs`, in place of each reference of `refs` that has its name as markdown matches it,
+    regardless of case and of repeated spaces, such as "R" for "r" or "a  b" for "a b".
+    """
+    for name, ref in new.items():
+        key = unikey(name)
+        aliases = [n for n in refs if unikey(n) == key]
+        for alias in aliases:
+            del refs[alias]
+        refs[name] = ref
 
 
 def load_yaml(text: str, where: str) -> Any:

@@ -29,6 +29,7 @@ from md2zhihu.errors import DownloadError
 from md2zhihu.errors import EmbedCycleError
 from md2zhihu.errors import MissingFileError
 from md2zhihu.errors import NameClashError
+from md2zhihu.types import Ref
 
 this_base = os.path.dirname(os.path.abspath(__file__))
 test_data = os.path.join(this_base, "data")
@@ -374,6 +375,37 @@ ref_definitions = {
             "",
             '[r]: no%20such.pdf "Paper"',
         ],
+    ),
+}
+
+# Definitions of the reference "a b" under names that markdown matches with it, regardless of case and of repeated spaces,
+# as name: (the --refs file ext.yaml, the front matter, the definitions in the text, the reference that "[x][a b]" uses).
+# Each place overrides the places before it: the universal refs of ext.yaml, its zhihu refs, the refs of the front matter,
+# its zhihu platform_refs, and the text.
+ref_aliases = {
+    "refs-file-platform": (
+        "universal:\n  a b: https://ext-universal.example\nzhihu:\n  A B: https://ext-zhihu.example\n",
+        None,
+        "",
+        {"A B": Ref("https://ext-zhihu.example", None)},
+    ),
+    "front-matter-platform": (
+        None,
+        'refs:\n  a b: https://fm-universal.example\nplatform_refs:\n  zhihu:\n    "A  b": https://fm-zhihu.example\n',
+        "",
+        {"A  b": Ref("https://fm-zhihu.example", None)},
+    ),
+    "front-matter-over-refs-file": (
+        "zhihu:\n  A B: https://ext-zhihu.example\n",
+        'refs:\n  "a  b": https://fm-universal.example\n',
+        "",
+        {"a  b": Ref("https://fm-universal.example", None)},
+    ),
+    "text-over-front-matter": (
+        None,
+        'platform_refs:\n  zhihu:\n    "A  b": https://fm-zhihu.example\n',
+        "[a   B]: https://text.example\n",
+        {"a   B": Ref("https://text.example", None)},
     ),
 }
 
@@ -864,6 +896,26 @@ def test_empty_reference_url(src_path, populate, tmp_path, monkeypatch):
     assert got[0] == want[0]
 
 
+@pytest.mark.parametrize("name", sorted(ref_aliases))
+def test_reference_alias(name, tmp_path, monkeypatch):
+    refs_file, front_matter, definitions, want = ref_aliases[name]
+    monkeypatch.chdir(tmp_path)
+    ref_files = []
+    if refs_file is not None:
+        (tmp_path / "ext.yaml").write_text(refs_file)
+        ref_files = ["ext.yaml"]
+    md_text = "[x][a b]\n\n" + definitions
+    if front_matter is not None:
+        md_text = "---\n" + front_matter + "---\n" + md_text
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/", ref_files=ref_files)
+
+    article = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text)
+
+    assert article.used_refs == want
+    [ref] = want.values()
+    assert article.render()[0] == "[x](" + ref.url + ")"
+
+
 @pytest.mark.parametrize("name", sorted(embed_cycles))
 def test_embed_cycle(name, tmp_path, monkeypatch):
     files, want = embed_cycles[name]
@@ -992,6 +1044,27 @@ def test_embed_nested_url(url, want_url, populate, tmp_path, monkeypatch):
     want, _, _ = md2zhihu.parser.mistune3.parse(f"[x](<{want_url}>) [y](<{want_url}>)\n", {}, True)
     got, _, _ = md2zhihu.parser.mistune3.parse("\n".join(lines), {}, True)
     assert got[0] == want[0]
+
+
+def test_embed_reference_alias(tmp_path, monkeypatch):
+    # a.md and sub/b.md each name "a b" in two ways, and the zhihu platform_refs of each wins.
+    # The reference of b.md becomes "A  B-2", because markdown matches its name with the "A B" of a.md.
+    (tmp_path / "sub").mkdir()
+    child_meta = (
+        'refs:\n  "a  b": https://child-universal.example\nplatform_refs:\n  zhihu:\n    "A  B": https://child-zhihu.example\n'
+    )
+    (tmp_path / "sub" / "b.md").write_text("---\n" + child_meta + "---\n[y][a  b]\n")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    meta = "refs:\n  a b: https://parent-universal.example\nplatform_refs:\n  zhihu:\n    A B: https://parent-zhihu.example\n"
+    md_text = "---\n" + meta + "---\n[x][a b]\n\n![](sub/b.md)\n"
+
+    article = md2zhihu.Article(md2zhihu.ParserConfig(True, [r"[.]md$"]), conf, md_text)
+
+    want = {"A B": Ref("https://parent-zhihu.example", None), "A  B-2": Ref("https://child-zhihu.example", None)}
+    assert article.used_refs == want
+    lines = article.render()
+    assert lines[:3] == ["[x](https://parent-zhihu.example)", "", "[y](https://child-zhihu.example)"]
 
 
 def test_embed_remote_url(tmp_path):

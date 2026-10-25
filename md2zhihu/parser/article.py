@@ -25,6 +25,7 @@ from . import mistune3
 from .extract.front_matter import FrontMatter
 from .extract.front_matter import extract_front_matter
 from .extract.refs import load_external_refs
+from .extract.refs import update_refs
 from .output import render_ref_definitions
 from .output import render_ref_list
 from .transform.rebase import rebase_url
@@ -78,7 +79,7 @@ class Article(object):
 
         # References from outside the text: the --refs files and the front matter.
         # A definition in the text wins over one of them, as mistune3.parse reads the text.
-        self.refs = {}
+        self.refs: RefDict = {}
 
         self.front_matter: Optional[FrontMatter] = None
 
@@ -88,9 +89,9 @@ class Article(object):
 
         # build refs
 
-        self.refs.update(load_external_refs(self.conf))
+        update_refs(self.refs, load_external_refs(self.conf))
         if self.front_matter is not None:
-            self.refs.update(self.front_matter.get_refs(conf.options.platform, conf.src_path))
+            update_refs(self.refs, self.front_matter.get_refs(conf.options.platform, conf.src_path))
 
         # parse to ast and clean up
 

@@ -8,6 +8,7 @@ from ...types import RefDict
 from .refs import load_yaml
 from .refs import mapping_in
 from .refs import refs_in
+from .refs import update_refs
 
 
 class FrontMatter(object):
@@ -35,11 +36,11 @@ class FrontMatter(object):
         where = " in the front matter of " + src_path
 
         # Collect universal refs
-        dic.update(refs_in(meta.get("refs"), "refs" + where))
+        update_refs(dic, refs_in(meta.get("refs"), "refs" + where))
 
         # Collect platform specific refs
         platform_refs = mapping_in(meta.get("platform_refs"), "platform_refs" + where)
-        dic.update(refs_in(platform_refs.get(platform), "platform_refs." + platform + where))
+        update_refs(dic, refs_in(platform_refs.get(platform), "platform_refs." + platform + where))
 
         return dic
 
