@@ -585,8 +585,7 @@ platform_changes = {
     ),
     "math-table-cell": (
         ["simple", "wechat", "weibo", "zhihu"],
-        "the formula a|b of the cell shows as a∥b in display math, as md2zhihu writes it as $$a\\|b$$ "
-        "for pandoc's markdown reader, and the HTML of the table holds each formula as text",
+        "the HTML of the table holds the formula a|b of the cell as text, which test_math_in_table_in_pandoc checks",
     ),
     "math-unclosed": (
         ["hugo", "simple", "wechat", "weibo", "zhihu"],
@@ -1074,6 +1073,27 @@ def test_kept_reference_in_table(tmp_path, monkeypatch):
     definitions = "[d]: a/x.pdf\n[slim]: https://github.com/openacid/slim"
     table = "| link |\n| --- |\n| [slim][slim] and [doc][d] |\n\n" + definitions
     assert chunks == [("content", "table", "{table:html}" + table + "{/table}\n"), ("ref_def", "", definitions)]
+
+
+@pytest.mark.parametrize("platform", ["simple", "zhihu"])
+def test_math_in_table(platform, tmp_path, monkeypatch):
+    # A table converter gives pandoc's markdown reader the math of a cell between "$", as pandoc reads math between "$$"
+    # as display math, and a "|" of the math, which the cell holds as "\|", as "\vert".
+    monkeypatch.chdir(tmp_path)
+    contents = []
+
+    def convert(input_typ, content, output_typ, opt=None):
+        contents.append(content)
+        return fake_convert(input_typ, content, output_typ, opt)
+
+    monkeypatch.setattr(k3down2, "convert", convert)
+    conf = md2zhihu.Config("a.md", platform, "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+    md_text = "| alone | in text |\n| --- | --- |\n| $a\\|b$ | is $ x $ |\n"
+
+    md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
+
+    assert contents == ["| alone | in text |\n| --- | --- |\n| $a\\vert b$ | is $x$ |\n"]
 
 
 @pytest.mark.parametrize("name", sorted(files_in_place))
@@ -1629,6 +1649,22 @@ def test_table_image_shows_local_images(tmp_path, monkeypatch):
         is_near = numpy.all(distance < 64, axis=2)
         shown[fn] = int(is_near.sum()) > 0.9 * drawn
     assert shown == {"red.png": True, "blue.png": True}
+
+
+@pytest.mark.integration
+def test_math_in_table_in_pandoc(tmp_path, monkeypatch):
+    # pandoc makes the HTML of a table on zhihu, with the math of each cell as inline math, which keeps its "|".
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+    md_text = "| alone | in text |\n| --- | --- |\n| $a\\|b$ | is $ x $ |\n"
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
+
+    cells = re.findall(r"<td>.*?</td>", "\n".join(lines))
+    alone = '<td><span class="math inline"><em>a</em>|<em>b</em></span></td>'
+    in_text = '<td>is <span class="math inline"><em>x</em></span></td>'
+    assert cells == [alone, in_text]
 
 
 def test_converter_failure(tmp_path, monkeypatch):

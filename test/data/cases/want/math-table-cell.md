@@ -1,6 +1,6 @@
 {table:html}| expr | note |
 | --- | --- |
-| $$a\|b$$ | pipe in math |
+| $a\vert b$ | pipe in math |
 {/table}
 
 

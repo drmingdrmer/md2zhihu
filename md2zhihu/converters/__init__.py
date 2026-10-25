@@ -172,6 +172,18 @@ def math_inline_single_dolar(mdrender, rnode):
     return ["$" + n["text"].strip() + "$"]
 
 
+def math_in_table(mdrender, rnode) -> List[str]:
+    r"""
+    Write the math of a table cell for pandoc's markdown reader, which makes the HTML or the image of a table:
+    between "$", such as "$x$", because pandoc reads math between "$$" as display math.
+    A cell holds a "|" of its math as "\|", which pandoc reads as the TeX of "∥", so the "|" is written as "\vert".
+    """
+    n = rnode.node
+    tex = n["text"].replace("\\|", "\\vert ")
+    # pandoc reads no math between "$" with a space next to either "$", such as "$ x $".
+    return ["$" + tex.strip() + "$"]
+
+
 def math_block_to_hugo(mdrender: "MDRender", rnode: "RenderNode") -> List[str]:
     r"""
     Write a math block on one line, between "\[" and "\]" if it is alone in its paragraph, else between "$$" and "$$".
@@ -264,7 +276,8 @@ def math_inline_to_plaintext(mdrender, rnode):
 def table_to_barehtml(mdrender, rnode) -> List[str]:
     # create a markdown render to recursively deal with images etc.
     # The table shares the copies of the run, so that store_linked_file finds two files that would be copied to one path.
-    mdr = MDRender(mdrender.conf, features=importer_features, linked_files=mdrender.linked_files)
+    features = {**importer_features, **table_math_features}
+    mdr = MDRender(mdrender.conf, features=features, linked_files=mdrender.linked_files)
 
     md = mdr.render_node(rnode)
     # The definition of a reference in the table points at the copy of a local file, as a link in the table does.
@@ -281,7 +294,7 @@ def table_to_barehtml(mdrender, rnode) -> List[str]:
 
 
 def table_to_jpg(mdrender, rnode):
-    mdr = MDRender(mdrender.conf, features={})
+    mdr = MDRender(mdrender.conf, features=table_math_features)
 
     md = mdr.render_node(rnode)
     refs = kept_refs([rnode.node])
@@ -381,4 +394,11 @@ class ImageSources(HTMLParser):
 importer_features = dict(
     image=save_image_to_asset_dir,
     link=save_linked_file_to_asset_dir,
+)
+
+# The renderers of the math of a table, for pandoc's markdown reader. Math alone in a cell is a math block,
+# such as "$x$" in "| $x$ |".
+table_math_features = dict(
+    math_block=math_in_table,
+    math_inline=math_in_table,
 )
