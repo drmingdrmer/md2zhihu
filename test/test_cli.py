@@ -1,9 +1,10 @@
 """
 Tests of the md2zhihu command: its exit status and what it prints.
 
-They run md2zhihu.main() in the test process.
+They run md2zhihu.main() in the test process, or in a new process for a test that needs a fresh one.
 """
 
+import errno
 import importlib.metadata
 import io
 import logging
@@ -12,6 +13,7 @@ import subprocess
 import sys
 
 import k3down2
+import k3proc
 import pytest
 
 import md2zhihu
@@ -143,6 +145,26 @@ missing_tools = {
         "rendering graphviz in 'a.md' needs 'dot', which is not on PATH",
     ),
     "table": ("| a | b |\n| - | - |\n| 1 | 2 |\n", "rendering table in 'a.md' needs 'pandoc', which is not on PATH"),
+}
+
+# Conversions that run a program, as name: (a.md, the platform, the converter that md2zhihu names in an error).
+program_conversions = {
+    "mermaid": ("```mermaid\ngraph LR\n```\n", "zhihu", "mermaid"),
+    "table-html": ("| a |\n| - |\n| 1 |\n", "zhihu", "table"),
+    "table-image": ("| a |\n| - |\n| 1 |\n", "simple", "md"),
+    "code": ("```python\nx\n```\n", "wechat", "code"),
+    "math": ("Math: $x$\n", "simple", "tex_inline"),
+}
+
+# Errors of a converter, as name: (the error type, its arguments, how md2zhihu explains it):
+# the program is not on PATH, or it fails on the input and writes why to stderr.
+converter_errors = {
+    "missing-program": (
+        FileNotFoundError,
+        (errno.ENOENT, "No such file or directory", "prog"),
+        "needs 'prog', which is not on PATH",
+    ),
+    "failed-program": (k3proc.CalledProcessError, (1, "", "bad input\n", ["prog"], {}), "failed: bad input"),
 }
 
 # --embed flags before an input, as (md2zhihu arguments, the parsed regexes).
@@ -298,6 +320,56 @@ def test_bad_tex(tmp_path, monkeypatch, capsys):
 
     assert code == 1
     assert err == "md2zhihu: error: rendering tex_inline in 'a.md' failed: Undefined control sequence \\foo\n"
+
+
+@pytest.mark.parametrize("conversion", sorted(program_conversions))
+@pytest.mark.parametrize("error", sorted(converter_errors))
+def test_converter_error(conversion, error, tmp_path, monkeypatch, capsys):
+    md, platform, typ = program_conversions[conversion]
+    error_type, error_args, reason = converter_errors[error]
+
+    def convert(input_typ, content, output_typ, opt=None):
+        raise error_type(*error_args)
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.md").write_text(md)
+    monkeypatch.setattr(k3down2, "convert", convert)
+
+    code, err = run_failing(monkeypatch, capsys, ["a.md", "-p", platform])
+
+    assert code == 1
+    assert err == f"md2zhihu: error: rendering {typ} in 'a.md' {reason}\n"
+
+
+def test_missing_node(tmp_path):
+    # k3down2 renders math with node and MathJax, after it asks npm where npm keeps packages.
+    # md2zhihu runs in a new process, because k3down2 keeps the answer of npm for the life of a process.
+    (tmp_path / "a.md").write_text("Math: $x$\n")
+    (tmp_path / "empty").mkdir()
+    # The only folder on PATH holds no program.
+    env = dict(os.environ, PATH=str(tmp_path / "empty"))
+    cmd = [sys.executable, "-c", "import sys, md2zhihu; sys.exit(md2zhihu.main())", "a.md", "-p", "simple"]
+
+    proc = subprocess.run(cmd, cwd=tmp_path, env=env, capture_output=True, text=True)
+
+    assert proc.returncode == 1
+    assert proc.stderr == "md2zhihu: error: rendering tex_inline in 'a.md' needs 'npm', which is not on PATH\n"
+
+
+@pytest.mark.integration
+def test_missing_mathjax(tmp_path):
+    # node finds MathJax in NODE_PATH and in the global packages of npm, under NPM_CONFIG_PREFIX, which are empty here.
+    (tmp_path / "a.md").write_text("Math: $x$\n")
+    (tmp_path / "empty").mkdir()
+    env = dict(os.environ, NODE_PATH=str(tmp_path / "empty"), NPM_CONFIG_PREFIX=str(tmp_path / "empty"))
+    cmd = [sys.executable, "-c", "import sys, md2zhihu; sys.exit(md2zhihu.main())", "a.md", "-p", "simple"]
+
+    proc = subprocess.run(cmd, cwd=tmp_path, env=env, capture_output=True, text=True)
+
+    assert proc.returncode == 1
+    # The reason is the message of node, with a stack that holds the paths of this machine.
+    assert proc.stderr.startswith("md2zhihu: error: rendering tex_inline in 'a.md' failed: ")
+    assert "\nError: Cannot find module 'mathjax-full/js/mathjax.js'\n" in proc.stderr
 
 
 def test_repo_without_remote(tmp_path, monkeypatch, capsys):
