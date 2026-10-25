@@ -86,6 +86,35 @@ e2e_conversions = {
         ["simple.md", "--md-output", "out.md", "--output-dir", ".", "--asset-output-dir", "foo/bar"],
         "out.md",
     ),
+    # test_md2zhihu.py does not run the next two. "zhihu-inputs" converts several inputs, and each result but the first
+    # is among the other files that md2zhihu writes. "zhihu-in-place" converts an input to itself.
+    "zhihu-inputs": (
+        "zhihu-embed",
+        ["src/simple.md", "src/a.md", "src/sub/bar.md", "--output-dir", "dst", "--embed", "[.]md$"],
+        "dst/simple.md",
+    ),
+    "zhihu-in-place": ("zhihu-localrepo/src", ["simple.md", "--md-output", "simple.md", "--output-dir", "."], "simple.md"),
+}
+
+# Other ways to run the e2e conversions above, which leave the same files as the conversion, as
+# name: (name of the conversion, files that are there before the runs, md2zhihu arguments of each run).
+# A file that is there before holds "old\n", at a path that the conversion writes, so the conversion replaces it.
+e2e_reruns = {
+    "zhihu-twice": ("zhihu", [], 2 * [["src/simple.md", "--output-dir", "dst"]]),
+    "zhihu-old-files": (
+        "zhihu",
+        [
+            "dst/simple.md",
+            "dst/simple/18b61671112f3aeb-slim.jpg",
+            "dst/simple/graphLRAHardedge--LinktextBRound-c3f417acad149464.jpg",
+        ],
+        [["src/simple.md", "--output-dir", "dst"]],
+    ),
+    "zhihu-inputs-reversed": (
+        "zhihu-inputs",
+        [],
+        [["src/sub/bar.md", "src/a.md", "src/simple.md", "--output-dir", "dst", "--embed", "[.]md$"]],
+    ),
 }
 
 # The small cases in test/data/cases/src/, by file name without ".md".
@@ -621,12 +650,42 @@ def test_e2e_conversion(name, tmp_path, monkeypatch):
     check_golden(os.path.join(golden_base, "e2e", name + ".md"), got)
 
     # Every other file that md2zhihu writes, such as an image, with its content.
+    outputs = file_contents(".")
     assets = {}
-    for path, content in file_contents(".").items():
+    for path, content in outputs.items():
         if path not in inputs and path != result_path:
             assets[path] = content
     got_assets = json.dumps(assets, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     check_golden(os.path.join(golden_base, "e2e", name + ".assets.json"), got_assets)
+
+    # Each input keeps its bytes, unless md2zhihu converts it to itself.
+    assert outputs == {**inputs, result_path: got, **assets}
+
+
+@pytest.mark.parametrize("name", sorted(e2e_reruns))
+def test_e2e_rerun(name, tmp_path, monkeypatch):
+    conversion, old_files, runs = e2e_reruns[name]
+    work_dir, _, result_path = e2e_conversions[conversion]
+    case = work_dir.split("/")[0]
+    shutil.copytree(os.path.join(test_data, case, "src"), tmp_path / case / "src")
+
+    monkeypatch.chdir(tmp_path / work_dir)
+    for path in old_files:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("old\n")
+    before = file_contents(".")
+    monkeypatch.setattr(k3down2, "convert", fake_convert)
+    for args in runs:
+        monkeypatch.setattr(sys, "argv", ["md2zhihu"] + args)
+        md2zhihu.main()
+
+    # The files that the golden files of the conversion list, and the other files that were there before.
+    with open(os.path.join(golden_base, "e2e", conversion + ".md"), encoding="utf-8") as f:
+        result = f.read()
+    with open(os.path.join(golden_base, "e2e", conversion + ".assets.json"), encoding="utf-8") as f:
+        assets = json.load(f)
+    assert file_contents(".") == {**before, result_path: result, **assets}
 
 
 @pytest.mark.parametrize("name", case_names)

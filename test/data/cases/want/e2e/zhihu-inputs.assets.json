@@ -1,0 +1,10 @@
+{
+  "dst/a.md": "![](a/18b61671112f3aeb-slim.jpg)\n\n![](a/18b61671112f3aeb-bar.jpg)\n[in-a-abs](/src/a.md)\n[in-a-link](in-a-link.md)\n[in-a-http](http://in-a-link.md)\n\n-   using [a-def](aa.com)\n\n\n\nReference:\n\n- a-def : [aa.com](aa.com)\n\n\n[a-def]: aa.com",
+  "dst/a/18b61671112f3aeb-bar.jpg": "md5 18b61671112f3aebf1a9d8d5bbe9596e",
+  "dst/a/18b61671112f3aeb-slim.jpg": "md5 18b61671112f3aebf1a9d8d5bbe9596e",
+  "dst/bar.md": "bar embed a start\n\n![](bar/18b61671112f3aeb-slim.jpg)\n\n![](bar/18b61671112f3aeb-bar.jpg)\n[in-a-abs](/src/a.md)\n[in-a-link](../in-a-link.md)\n[in-a-http](http://in-a-link.md)\n\n-   using [a-def](../aa.com)\n\nbar embed a end\n\n![](bar/18b61671112f3aeb-bar.jpg)\n[in-b-abs](/src/sub/bar.md)\n[in-b-link](in-b-link.md)\n[in-b-http](http://in-b-link.md)\n\n-   using [b-def](bb.com)\n\nbar end\n\n\n\nReference:\n\n- a-def : [../aa.com](../aa.com)\n\n- b-def : [bb.com](bb.com)\n\n\n[a-def]: ../aa.com\n[b-def]: bb.com",
+  "dst/bar/18b61671112f3aeb-bar.jpg": "md5 18b61671112f3aebf1a9d8d5bbe9596e",
+  "dst/bar/18b61671112f3aeb-slim.jpg": "md5 18b61671112f3aebf1a9d8d5bbe9596e",
+  "dst/simple/18b61671112f3aeb-bar.jpg": "md5 18b61671112f3aebf1a9d8d5bbe9596e",
+  "dst/simple/18b61671112f3aeb-slim.jpg": "md5 18b61671112f3aebf1a9d8d5bbe9596e"
+}
