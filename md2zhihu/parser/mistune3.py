@@ -4,7 +4,7 @@ This is the only module that knows mistune 3's token format.
 
 The text fields of the AST hold:
 - markdown as written, with its backslash escapes and character references: the text of a text node,
-  the alt of an image, and the TeX of math;
+  the name of a reference in a ref_label node, the alt of an image, and the TeX of math;
 - plain chars: the code of a code span, whose line endings are spaces, and the code and the info of a code block;
 - chars without the backslash escapes, but with the character references as written: the title of a link or an image;
 - a percent-encoded URL: the URL of a link or an image.
@@ -101,7 +101,7 @@ def parse(
 
     `refs` maps md2zhihu's name of each reference from outside the text to its definition.
     A definition in the text wins over the reference of the same name.
-    With `populate_reference` False, a link to a reference keeps its form, such as `[text][name]`.
+    With `populate_reference` False, a link to a reference is written as a full reference to its name, such as `[text][name]`.
     `ref_name` returns the name in the output of a used reference, from its name and its definition,
     such as "r-2" for an "r" that the output already has for another reference. Without it, each name stays.
 
@@ -201,16 +201,16 @@ def parse_link_close(inline: InlineParser, m: re.Match[str], state: InlineState)
         tok["alt"] = state.src[opener.start : m.start()]
 
     if tok["type"] == "link" and "ref" in tok:
-        use_ref(state, opener.token_index, state.src[m.start() : end])
+        use_ref(state, opener.token_index)
 
     return end
 
 
-def use_ref(state: InlineState, index: int, tail: str) -> None:
+def use_ref(state: InlineState, index: int) -> None:
     """
     Record the reference that the link `state.tokens[index]` uses, by its name in the output.
-    With populate_reference False, write the link as its source: "[", its text, and `tail`, such as "][name]".
-    A reference with another name in the output, such as "r-2", gets the tail "][r-2]" instead.
+    With populate_reference False, write the link as a full reference to that name, such as "[text][name]",
+    also for a shortcut "[name]" or a collapsed "[name][]".
     """
 
     ref = state.env["ref_links"][state.tokens[index]["ref"]]
@@ -220,12 +220,14 @@ def use_ref(state: InlineState, index: int, tail: str) -> None:
         name = state.env["ref_name"](name, used)
     state.env["used_refs"][name] = used
     if not state.env["populate_reference"]:
-        if name != ref["label"]:
-            tail = "][" + name + "]"
         # The text keeps its tokens, so that md2zhihu converts the math in it, such as in "[$x$][name]".
+        # The renderer escapes the text, such as "foo\*" for "foo*", but a definition matches a name without decoding its
+        # escapes, so the name follows the text, in a token that the renderer writes as it is, such as in "[foo\*][foo*]".
         opening = {"type": "text", "raw": "["}
-        closing = {"type": "text", "raw": tail}
-        source = [opening] + state.tokens[index]["children"] + [closing]
+        middle = {"type": "text", "raw": "]["}
+        label = {"type": "ref_label", "raw": name}
+        closing = {"type": "text", "raw": "]"}
+        source = [opening] + state.tokens[index]["children"] + [middle, label, closing]
         for tok in source:
             if tok["type"] == "text":
                 # With "_emphasis" False, no emphasis crosses the brackets, as with a link.

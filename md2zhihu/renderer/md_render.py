@@ -139,6 +139,10 @@ class MDRender(object):
             text = literal_markers.sub(escape_marker, n["text"])
             return [text]
 
+        if typ == "ref_label":
+            # A definition matches the name of a reference without decoding its escapes, such as "foo*" but not "foo\*".
+            return [n["text"]]
+
         if typ == "strong":
             lines = self.render(rnode)
             markers = emphasis_marker(rnode) * 2

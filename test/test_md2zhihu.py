@@ -270,7 +270,7 @@ class TestMd2zhihu(unittest.TestCase):
             (
                 "content",
                 "paragraph",
-                "在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,\n例如 [slim] 这个项目按天统计的 star 数:\n",
+                "在时序数据库, 或列存储为基础的系统中, 很常见的形式就是存储一个整数数组,\n例如 [slim][slim] 这个项目按天统计的 star 数:\n",
             ),
             (
                 "content",
@@ -285,7 +285,7 @@ class TestMd2zhihu(unittest.TestCase):
             (
                 "content",
                 "table",
-                "| Data size | Data Set | gzip size | slimarry size | avg size | ratio |\n| --: | :-- | --: | :-- | --: | --: |\n| 1,000 | rand u32: [0, 1000] | x | 824 byte | 6 bit/elt | 18% |\n| 1,000,000 | rand u32: [0, 1000,000] | x | 702 KB | 5 bit/elt | 15% |\n| 1,000,000 | IPv4 DB | 2 MB | 2 MB | 16 bit/elt | 50% |\n| 600 | [slim][] star count | 602 byte | 832 byte | 10 bit/elt | 26% |\n",
+                "| Data size | Data Set | gzip size | slimarry size | avg size | ratio |\n| --: | :-- | --: | :-- | --: | --: |\n| 1,000 | rand u32: [0, 1000] | x | 824 byte | 6 bit/elt | 18% |\n| 1,000,000 | rand u32: [0, 1000,000] | x | 702 KB | 5 bit/elt | 15% |\n| 1,000,000 | IPv4 DB | 2 MB | 2 MB | 16 bit/elt | 50% |\n| 600 | [slim][slim] star count | 602 byte | 832 byte | 10 bit/elt | 26% |\n",
             ),
             (
                 "content",
@@ -317,7 +317,7 @@ class TestMd2zhihu(unittest.TestCase):
             (
                 "content",
                 "paragraph",
-                "寻找这样一条曲线就使用线性回归,\n例如在 [slimarray] 中使用2次曲线 `f(x) = β₁ + β₂x + β₃x²`, 所要做的就是确定每个βᵢ的值,\n以使得`f(xⱼ) - yⱼ`的均方差最小. xⱼ是数组下标0, 1, 2...; yⱼ是数组中每个元素的值.\n",
+                "寻找这样一条曲线就使用线性回归,\n例如在 [slimarray][slimarray] 中使用2次曲线 `f(x) = β₁ + β₂x + β₃x²`, 所要做的就是确定每个βᵢ的值,\n以使得`f(xⱼ) - yⱼ`的均方差最小. xⱼ是数组下标0, 1, 2...; yⱼ是数组中每个元素的值.\n",
             ),
             (
                 "content",

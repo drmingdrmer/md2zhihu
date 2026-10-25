@@ -287,7 +287,7 @@ embed_cycles = {
 # Both define "r", for two URLs, so the "r" of b.md gets the name "r-2". Both "s" are ../s.pdf from src, so "s" keeps its name.
 embed_ref_links = {
     True: ["[x](http://parent.example/) and [s](../s.pdf)", "", "[y](http://child.example/) and [s](../s.pdf)"],
-    False: ["[x][r] and [s][]", "", "[y][r-2] and [s][]"],
+    False: ["[x][r] and [s][s]", "", "[y][r-2] and [s][s]"],
 }
 
 # URLs in sub/c/d.md, which a.md embeds through sub/b.md, as (URL, the URL after embedding).
@@ -524,13 +524,6 @@ meaning_changes = {
 # the meaning of the example, as number: what mistune reads.
 render_misreads = {
     247: "the empty last item, before the blank lines that end the output, as an item of a loose list",
-}
-
-# The examples above whose meaning the joined chunks of Article.chunks() change, besides meaning_changes,
-# as number: what changes.
-chunk_changes = {
-    161: "the kept reference [Foo*bar\\]] is written as [Foo\\*bar\\]], whose label matches no definition",
-    535: "the kept reference [foo*] is written as [foo\\*], whose label matches no definition",
 }
 
 # The CommonMark examples whose output of Article.render() pandoc reads with another meaning, as number: what pandoc
@@ -1812,7 +1805,7 @@ def test_example_chunks_keep_meaning(tmp_path):
         if got != want:
             changed.append(number)
 
-    assert changed == sorted({**meaning_changes, **chunk_changes})
+    assert changed == sorted(meaning_changes)
 
 
 def loose(nodes):
