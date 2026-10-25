@@ -603,15 +603,6 @@ platform_changes = {
     ),
 }
 
-# The small cases whose joined chunks of Article.chunks() pandoc reads with another meaning on some platforms,
-# besides the cases of platform_changes, as name: (those platforms, what changes).
-platform_chunk_changes = {
-    "refs-placement": (
-        ["simple", "wechat", "weibo", "zhihu"],
-        "the reference [slim][] in the table shows as text, as the converter gets the table without the definition",
-    ),
-}
-
 # The examples above whose URL has an unpaired "(" or ")", as number: the markdown that md2zhihu writes.
 # md2zhihu percent-encodes each parenthesis, so that the written link parses back as one link.
 encoded_destinations = {
@@ -1075,6 +1066,23 @@ def test_linked_file_in_table(tmp_path, monkeypatch):
         md2zhihu.Article(parser_config, conf, md_text).render()
     want = "linked files 'old/x.pdf' and 'new/x.pdf' differ, but both would be copied to 'out/a/x.pdf', used in 'a.md'"
     assert str(e.value) == want
+
+
+def test_kept_reference_in_table(tmp_path, monkeypatch):
+    (tmp_path / "x.pdf").write_bytes(b"pdf")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(k3down2, "convert", fake_convert)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+    md_text = "| link |\n| --- |\n| [slim][] and [doc][d] |\n\n[slim]: https://github.com/openacid/slim\n[d]: x.pdf\n"
+
+    chunks = list(md2zhihu.Article(md2zhihu.ParserConfig(False, []), conf, md_text).chunks())
+
+    # The converter gets the table without the definitions at the end of the output, so the definitions of the references
+    # in the table follow it, and a reference points at the copy of a local file, as a link in a table does.
+    definitions = "[d]: a/x.pdf\n[slim]: https://github.com/openacid/slim"
+    table = "| link |\n| --- |\n| [slim][slim] and [doc][d] |\n\n" + definitions
+    assert chunks == [("content", "table", "{table:html}" + table + "{/table}\n"), ("ref_def", "", definitions)]
 
 
 @pytest.mark.parametrize("name", sorted(files_in_place))
@@ -1990,10 +1998,7 @@ def test_cases_keep_meaning_on_platforms(api, tmp_path, monkeypatch):
             if got != want:
                 changed.setdefault(name, []).append(platform)
 
-    declared = platform_changes
-    if api == "chunks":
-        declared = {**platform_changes, **platform_chunk_changes}
-    want_changed = {name: platforms for name, (platforms, _) in declared.items()}
+    want_changed = {name: platforms for name, (platforms, _) in platform_changes.items()}
     assert changed == want_changed
 
 

@@ -6,8 +6,9 @@ The text fields of the AST hold:
 - markdown as written, with its backslash escapes and character references: the text of a text node,
   the name of a reference in a ref_label node, the alt of an image, and the TeX of math;
 - plain chars: the code of a code span, whose line endings are spaces, and the code and the info of a code block;
-- chars without the backslash escapes, but with the character references as written: the title of a link or an image;
-- a percent-encoded URL: the URL of a link or an image.
+- chars without the backslash escapes, but with the character references as written: the title of a link, an image or
+  a ref_label node;
+- a percent-encoded URL: the URL of a link, an image or a ref_label node.
 """
 
 import re
@@ -43,6 +44,7 @@ Token = Dict[str, Any]
 # For each token type: the mistune 3 attributes that md2zhihu reads, and md2zhihu's field name for each.
 attr_fields = {
     "link": {"url": "link", "title": "title"},
+    "ref_label": {"url": "link", "title": "title"},
     "heading": {"level": "level"},
     "list": {"ordered": "ordered", "start": "start"},
     "table_cell": {"align": "align"},
@@ -223,9 +225,11 @@ def use_ref(state: InlineState, index: int) -> None:
         # The text keeps its tokens, so that md2zhihu converts the math in it, such as in "[$x$][name]".
         # The renderer escapes the text, such as "foo\*" for "foo*", but a definition matches a name without decoding its
         # escapes, so the name follows the text, in a token that the renderer writes as it is, such as in "[foo\*][foo*]".
+        # The token also holds the definition, for a converter that gets a part of the output without the definitions at
+        # its end, such as a table.
         opening = {"type": "text", "raw": "["}
         middle = {"type": "text", "raw": "]["}
-        label = {"type": "ref_label", "raw": name}
+        label = {"type": "ref_label", "raw": name, "attrs": {"url": used.url, "title": used.title}}
         closing = {"type": "text", "raw": "]"}
         source = [opening] + state.tokens[index]["children"] + [middle, label, closing]
         for tok in source:

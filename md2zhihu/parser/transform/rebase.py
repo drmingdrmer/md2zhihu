@@ -14,7 +14,7 @@ def rebase_url_in_ast(frm: str, to: str, nodes: ASTNodes) -> None:
             n["src"] = rebase_url(frm, to, n["src"])
             continue
 
-        if n["type"] == "link":
+        if n["type"] in ("link", "ref_label"):
             n["link"] = rebase_url(frm, to, n["link"])
             continue
 

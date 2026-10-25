@@ -16,12 +16,16 @@ import k3proc
 
 from ..asset import save_image_to_asset_dir
 from ..asset import save_linked_file_to_asset_dir
+from ..asset import store_linked_file
 from ..errors import MissingToolError
 from ..errors import RenderError
 from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..renderer.md_render import escape_plain
 from ..renderer.md_render import inline_children
+from ..renderer.refs import render_ref_definitions
+from ..types import Ref
+from ..types import RefDict
 from ..utils import asset_fn
 from ..utils import code_block_lines
 from ..utils import fwrite
@@ -263,6 +267,12 @@ def table_to_barehtml(mdrender, rnode) -> List[str]:
     mdr = MDRender(mdrender.conf, features=importer_features, linked_files=mdrender.linked_files)
 
     md = mdr.render_node(rnode)
+    # The definition of a reference in the table points at the copy of a local file, as a link in the table does.
+    refs: RefDict = {}
+    for name, ref in kept_refs([rnode.node]).items():
+        url = store_linked_file(mdrender.conf, ref.url, mdrender.linked_files)
+        refs[name] = Ref(url, ref.title)
+    md += render_ref_definitions(refs)
     md = "\n".join(md)
 
     table_html = k3down2_convert(mdrender, "table", md, "html")
@@ -274,6 +284,8 @@ def table_to_jpg(mdrender, rnode):
     mdr = MDRender(mdrender.conf, features={})
 
     md = mdr.render_node(rnode)
+    refs = kept_refs([rnode.node])
+    md += render_ref_definitions(refs)
     md = "\n".join(md)
 
     md_base_path = os.path.split(mdrender.conf.src_path)[0]
@@ -291,6 +303,22 @@ def table_to_jpg(mdrender, rnode):
         },
         shown_files=shown_files,
     )
+
+
+def kept_refs(nodes: List[dict]) -> RefDict:
+    """
+    Return the definition of each reference that the AST `nodes` keep, by name, from their ref_label nodes,
+    such as of "slim" for the text "[slim][slim]" that `ParserConfig(False, ...)` keeps.
+    A converter gets a table without the definitions at the end of the output, so they follow the table,
+    or the reference shows as its text.
+    """
+    refs: RefDict = {}
+    for n in nodes:
+        if "children" in n:
+            refs.update(kept_refs(n["children"]))
+        if n["type"] == "ref_label":
+            refs[n["text"]] = Ref(n["link"], n["title"])
+    return refs
 
 
 def local_images(conf: "Config", nodes: List[dict]) -> List[str]:
