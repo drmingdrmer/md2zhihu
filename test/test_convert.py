@@ -2,7 +2,8 @@
 Fast golden tests of md2zhihu's markdown output.
 
 They run md2zhihu in the test process, and need no browser, LaTeX tool, network or git remote,
-except the integration tests, which check the meaning of the output with another renderer, such as pandoc or MathJax.
+except the integration tests, which check the meaning of the output with another renderer, such as pandoc or MathJax,
+or run a real converter, such as chromium.
 Run them with MD2ZHIHU_UPDATE_GOLDEN=1 to rewrite the golden files from the current output.
 """
 
@@ -23,7 +24,9 @@ import threading
 import urllib.parse
 
 import k3down2
+import numpy
 import pytest
+import skimage.io
 import urllib3
 
 import md2zhihu
@@ -171,6 +174,16 @@ local_images = {
     "percent": ("100%.png", "100%25.png", "100-.png", "100-.png"),
     "encoded-hash": ("C#.png", "C%23.png", "C-.png", "C-.png"),
     "unmatched-parenthesis": ("x).png", "<x).png>", "x).png", "x%29.png"),
+}
+
+# Tables that show a local image, as markdown: the path of the image, from the folder of the article.
+table_images = {
+    "| image |\n| --- |\n| ![](x.png) |\n": "x.png",
+    "| image |\n| --- |\n| ![](sub/x.png) |\n": "sub/x.png",
+    "| image |\n| --- |\n| ![](%E5%9B%BE.png) |\n": "图.png",
+    "| image |\n| --- |\n| ![](x.png?v=1) |\n": "x.png",
+    "| image |\n| --- |\n| ![](x.png#part) |\n": "x.png",
+    "| image |\n| --- |\n| ![][x] |\n\n[x]: x.png\n": "x.png",
 }
 
 # Links to a local file that is already its copy in a/, the asset folder of a.md in the output folder ".",
@@ -574,6 +587,9 @@ written_math = re.compile(r"\\\[(?P<block>.*)\\\]|\$\$(?P<inline>.*)\$\$")
 # A backslash escape or a character reference in markdown text, each of which writes one char, such as "\*" or "&#96;".
 char_escape = re.compile(r"\\[!-/:-@\[-`{-~]|&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]*);")
 
+# The URL of an image in markdown or in HTML, such as "x.png" of "![](x.png)" or of '<img src="x.png">'.
+shown_image_url = re.compile(r'!\[[^\]]*\]\(([^)\s]+)\)|<img [^>]*src="([^"]+)"')
+
 
 def fake_convert(input_typ, content, output_typ, opt=None):
     """
@@ -596,6 +612,22 @@ def fake_convert(input_typ, content, output_typ, opt=None):
     if output_typ == "jpg":
         return marker.encode("utf-8")
     return marker
+
+
+def show_local_images(input_typ, content, output_typ, opt=None):
+    """
+    Replace ``k3down2.convert`` for the image of a table, whose markdown is `content`.
+    As a browser does, the image shows each local image of the table, from the folder that the html option asset_base
+    names, and it holds the bytes of these images.
+    """
+    shown = []
+    for md_url, html_url in shown_image_url.findall(content):
+        url = md_url or html_url
+        url_path = urllib.parse.urlsplit(url).path
+        path = urllib.parse.unquote(url_path)
+        with open(os.path.join(opt["html"]["asset_base"], path), "rb") as f:
+            shown.append(f.read())
+    return b"".join(shown)
 
 
 def file_contents(folder):
@@ -1336,13 +1368,7 @@ def test_repeated_conversion(tmp_path, monkeypatch):
 def test_table_image_of_each_folder(tmp_path, monkeypatch):
     # Two articles in two folders hold one table, which shows the x.png of its folder. Both store images in out/post/.
     monkeypatch.chdir(tmp_path)
-
-    def show_x_png(input_typ, content, output_typ, opt=None):
-        # As a browser does, the image shows the x.png of the folder that the html option asset_base names.
-        with open(os.path.join(opt["html"]["asset_base"], "x.png"), "rb") as f:
-            return f.read()
-
-    monkeypatch.setattr(k3down2, "convert", show_x_png)
+    monkeypatch.setattr(k3down2, "convert", show_local_images)
     md_text = "| image |\n| --- |\n| ![](x.png) |\n"
     # The first article is rendered again after its x.png changes.
     renders = [
@@ -1363,6 +1389,55 @@ def test_table_image_of_each_folder(tmp_path, monkeypatch):
     # Each table links to an image of the x.png that it showed.
     got = [(tmp_path / "out" / url).read_bytes() for url in urls]
     assert got == [b"red", b"blue", b"green"]
+
+
+@pytest.mark.parametrize("md_text", sorted(table_images))
+def test_table_image_of_changed_image(md_text, tmp_path, monkeypatch):
+    # An article is rendered again after the image in its table changes, and each render links to what it showed.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(k3down2, "convert", show_local_images)
+    os.makedirs("sub")
+    conf = md2zhihu.Config("a.md", "simple", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+
+    urls = []
+    for image in [b"red", b"blue"]:
+        with open(table_images[md_text], "wb") as f:
+            f.write(image)
+        lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
+        urls.extend(re.findall(r"!\[\]\((.*?)\)", "\n".join(lines)))
+
+    got = [(tmp_path / "out" / url).read_bytes() for url in urls]
+    assert got == [b"red", b"blue"]
+
+
+@pytest.mark.integration
+def test_table_image_shows_local_images(tmp_path, monkeypatch):
+    # pandoc and chromium render a table of the article sub/a.md, which shows the red sub/red.png by markdown
+    # and the blue sub/blue.png by HTML. The image of the table shows both.
+    monkeypatch.chdir(tmp_path)
+    os.makedirs("sub")
+    side = 40
+    colors = {"red.png": [255, 0, 0], "blue.png": [0, 0, 255]}
+    for fn, color in colors.items():
+        image = numpy.full((side, side, 3), color, dtype=numpy.uint8)
+        skimage.io.imsave(os.path.join("sub", fn), image, check_contrast=False)
+    md_text = '| markdown | html |\n| --- | --- |\n| ![](red.png) | <img src="blue.png"> |\n'
+    conf = md2zhihu.Config("sub/a.md", "simple", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
+    [url] = re.findall(r"!\[\]\((.*?)\)", "\n".join(lines))
+    table_image = skimage.io.imread(os.path.join("out", url))
+
+    # chromium draws each pixel of the page as 2x2 pixels, and JPEG changes the colors a little, most at the edges.
+    drawn = (2 * side) ** 2
+    shown = {}
+    for fn, color in colors.items():
+        distance = numpy.abs(table_image.astype(int) - color)
+        is_near = numpy.all(distance < 64, axis=2)
+        shown[fn] = int(is_near.sum()) > 0.9 * drawn
+    assert shown == {"red.png": True, "blue.png": True}
 
 
 def test_converter_failure(tmp_path, monkeypatch):
