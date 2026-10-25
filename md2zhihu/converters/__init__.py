@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import re
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import List
@@ -27,6 +28,20 @@ from ..utils import split_url
 
 if TYPE_CHECKING:
     from ..config import Config
+
+# A part of TeX that tex_one_line() reads as a whole, tried in this order:
+# a "\verb" span, which ends on its line as in LaTeX, and in which "%" starts no comment, such as "\verb|a%b|";
+# a gap, which is a run of white space and comments, with the control word right before it if there is one;
+# or a control sequence, such as "\alpha", "\%", or the control space "\ ", whose space belongs to it, not to a gap.
+# A comment runs from "%" to the end of its line.
+tex_parts = re.compile(
+    r"\\verb\*?(?P<delimiter>[^a-zA-Z \t\n]).*?(?P=delimiter)"
+    r"|(?P<word>\\[a-zA-Z]+)?(?P<gap>(?:[ \t\n]|%.*)+)"
+    r"|\\(?:[a-zA-Z]+|[\s\S])"
+)
+
+# A TeX comment, with the line break that ends it, which TeX also drops.
+tex_comment = re.compile(r"%.*\n?")
 
 
 def code_join(n: dict) -> str:
@@ -182,29 +197,41 @@ def alone_in_paragraph(rnode: "RenderNode") -> bool:
 
 
 def tex_one_line(tex: str) -> str:
-    """
-    Return the TeX `tex` on one line: each line without its comment and its spaces at both ends, joined with a space.
-    TeX reads a line break as a space, and a comment ends at the end of its line,
-    so the line breaks can become spaces once the comments are gone.
-    """
-    parts = []
-    for line in tex.split("\n"):
-        code = strip_tex_comment(line).strip()
-        if code != "":
-            parts.append(code)
-    return " ".join(parts)
-
-
-def strip_tex_comment(line: str) -> str:
     r"""
-    Return `line` up to its first "%" that is not escaped as "\%", which starts a TeX comment.
+    Return the TeX `tex` on one line, which MathJax and KaTeX draw as they draw `tex`, except for some white space in
+    text: TeX reads one space in both "\text{a % one\n b}" and its one-line form "\text{a b}", but they draw two in
+    the first.
     """
-    escaped = False
-    for i, c in enumerate(line):
-        if c == "%" and not escaped:
-            return line[:i]
-        escaped = c == "\\" and not escaped
-    return line
+    return tex_parts.sub(tex_part_on_one_line, tex)
+
+
+def tex_part_on_one_line(m: re.Match[str]) -> str:
+    r"""
+    Return the match of `tex_parts` as it goes on one line.
+    MathJax and KaTeX read a comment and the line break after it as nothing, and any other line break as a space.
+    So a gap that holds a line break or a comment becomes one space, or nothing if it holds only comments,
+    as "ab% one\ncd" becomes "abcd".
+    After a control word, such a gap still becomes a space, as "\alpha% one\nbeta" becomes "\alpha beta".
+    A gap at either end of the TeX is dropped.
+    """
+    gap = m.group("gap")
+    if gap is None:
+        # TeX reads "\" at the end of a line as the control space "\ ".
+        if m.group(0) == "\\\n":
+            return "\\ "
+        return m.group(0)
+
+    word = m.group("word") or ""
+    at_end = m.start("gap") == 0 or m.end() == len(m.string)
+    if at_end:
+        return word
+    within_line = "\n" not in gap and "%" not in gap
+    if within_line:
+        return m.group(0)
+    spaces = tex_comment.sub("", gap)
+    if spaces == "" and word == "":
+        return ""
+    return word + " "
 
 
 def math_block_to_jpg(mdrender, rnode):

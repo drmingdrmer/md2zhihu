@@ -692,6 +692,16 @@ hugo_math = {
     "$$x$$\n": "\\[x\\]\n",
     # A "%" starts a comment, but "\%" does not.
     "$$\na % one\n+ b \\% 2\n$$\n": "\\[a + b \\% 2\\]\n",
+    # A comment also takes its line break, but the white space around it still makes a space.
+    "$$\n\\text{ab% one\ncd}\n$$\n": "\\[\\text{abcd}\\]\n",
+    "$$\n\\text{ab% one\n  cd}\n$$\n": "\\[\\text{ab cd}\\]\n",
+    # A control word stays apart from the line after its comment.
+    "$$\n\\alpha% one\nbeta\n$$\n": "\\[\\alpha beta\\]\n",
+    # A "%" in a "\verb" span starts no comment.
+    "Math: $\\verb|a%b|$.\n": "Math: $$\\verb|a%b|$$.\n",
+    # The control space "\ " keeps its space, before the line break that also makes a space.
+    "$$\n\\text{a\\ \nb}\n$$\n": "\\[\\text{a\\  b}\\]\n",
+    "$$\na\\ \n$$\n": "\\[a\\ \\]\n",
     # md2zhihu reads "$x$" alone in its paragraph as a math block.
     "$x$\n": "\\[x\\]\n",
     # On one line, the math crosses no blank line and holds no ">" of a quote.
