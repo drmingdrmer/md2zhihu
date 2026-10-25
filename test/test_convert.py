@@ -193,6 +193,7 @@ table_images = {
     "| image |\n| --- |\n| ![](x.png?v=1) |\n": "x.png",
     "| image |\n| --- |\n| ![](x.png#part) |\n": "x.png",
     "| image |\n| --- |\n| ![][x] |\n\n[x]: x.png\n": "x.png",
+    '| image |\n| --- |\n| <img src="x.png"> |\n': "x.png",
 }
 
 # Links to a local file that is already its copy in a/, the asset folder of a.md in the output folder ".",

@@ -2,11 +2,13 @@ import hashlib
 import json
 import os
 import re
+from html.parser import HTMLParser
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
 from urllib.parse import unquote
 
 import k3down2
@@ -289,23 +291,55 @@ def table_to_jpg(mdrender, rnode):
 def local_images(conf: "Config", nodes: List[dict]) -> List[str]:
     """
     Return the path from the working dir of each image in the AST `nodes` that is a local file,
-    such as "a/x.png" for "![](x.png)" in "a/b.md".
+    such as "a/x.png" for "![](x.png)" or '<img src="x.png">' in "a/b.md".
     """
     paths = []
     for n in nodes:
         if "children" in n:
             paths.extend(local_images(conf, n["children"]))
-        if n["type"] != "image":
-            continue
-        if not is_path_url(n["src"]):
-            continue
-        parts = split_url(n["src"])
-        # mistune percent-encodes the URL, such as "图片/a.png" to "%E5%9B%BE%E7%89%87/a.png".
-        path = unquote(parts.head)
-        path = conf.relpath_from_cwd(path)
-        if os.path.isfile(path):
-            paths.append(path)
+        for url in image_urls(n):
+            if not is_path_url(url):
+                continue
+            parts = split_url(url)
+            # mistune percent-encodes the URL, such as "图片/a.png" to "%E5%9B%BE%E7%89%87/a.png",
+            # and a browser decodes the src of an <img> in the same way.
+            path = unquote(parts.head)
+            path = conf.relpath_from_cwd(path)
+            if os.path.isfile(path):
+                paths.append(path)
     return paths
+
+
+def image_urls(n: dict) -> List[str]:
+    """
+    Return the URL of each image that the AST node `n` shows, without its children:
+    the URL of an image node, or the src of each <img> tag of an HTML node.
+    """
+    if n["type"] == "image":
+        return [n["src"]]
+    if n["type"] in ("inline_html", "block_html"):
+        sources = ImageSources()
+        sources.feed(n["text"])
+        sources.close()
+        return sources.urls
+    return []
+
+
+class ImageSources(HTMLParser):
+    """The src of each <img> tag in the HTML fed to it, in `urls`, with its character references decoded."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.urls: List[str] = []
+
+    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+        if tag != "img":
+            return
+        # A browser uses the first src of a tag.
+        for name, value in attrs:
+            if name == "src" and value is not None:
+                self.urls.append(value)
+                return
 
 
 # Importer is only used to copy local images and linked files to output dir and update their urls.
