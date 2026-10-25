@@ -348,6 +348,15 @@ ref_definitions = {
     ),
 }
 
+# Adjacent lists of one item each, as markdown: the item that Article.chunks() writes for each list.
+# A list right after a list of its kind takes the other marker, so that the joined chunks keep the lists apart.
+chunked_lists = {
+    "- a\n+ b\n": ["-   a\n", "+   b\n"],
+    "1. a\n1) b\n": ["1.  a\n", "1)  b\n"],
+    "- a\n+ b\n- c\n": ["-   a\n", "+   b\n", "-   c\n"],
+    "- a\n+ b\n1. c\n1) d\n": ["-   a\n", "+   b\n", "1.  c\n", "1)  d\n"],
+}
+
 # The inputs of the examples of mistune's test fixtures, as name: markdown.
 with open(os.path.join(test_data, "robust", "examples.json"), encoding="utf-8") as f:
     robust_examples = json.load(f)
@@ -936,6 +945,29 @@ def test_ordered_list_start(start, tmp_path):
     want, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
     got, _, _ = md2zhihu.parser.mistune3.parse("\n".join(lines), {}, True)
     assert got == want
+
+
+@pytest.mark.parametrize("md_text", sorted(chunked_lists))
+def test_chunks_of_adjacent_lists(md_text, tmp_path):
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", out_dir, out_dir, md_output_path=out_dir + "/")
+    article = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text)
+
+    got = list(article.chunks())
+
+    # chunks() writes each item of a list, then a new_line chunk.
+    want = []
+    for item in chunked_lists[md_text]:
+        want.append(("content", "list_item", item))
+        want.append(("content", "new_line", ""))
+    want.append(("ref_def", "", ""))
+    assert got == want
+
+    # The joined chunks parse to the same lists.
+    joined = "\n".join(content for _, _, content in got)
+    want_ast, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
+    got_ast, _, _ = md2zhihu.parser.mistune3.parse(joined, {}, True)
+    assert got_ast == want_ast
 
 
 def test_render_twice(tmp_path, monkeypatch):

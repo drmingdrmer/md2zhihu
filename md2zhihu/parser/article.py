@@ -225,24 +225,21 @@ class Article(object):
         # The renderer changes nodes, such as the URL of a local image to the URL of its copy,
         # so it renders a copy, and the next render reads the AST as parsed.
         ast = copy.deepcopy(self.ast)
+        # One root holds every block, as in render(), so that each block is rendered among its siblings,
+        # such as a list right after a list of its kind, which takes the other marker.
+        root_node = RenderNode({"type": "ROOT", "children": ast})
         for node in ast:
+            block = root_node.new_child(node)
             # render list items separately
             if node["type"] == "list":
-                root_node = RenderNode(node)
                 for n in node["children"]:
-                    child = root_node.new_child(n)
+                    child = block.new_child(n)
                     output_lines = mdr.render_node(child)
                     output_lines = add_paragraph_end(output_lines)
                     yield "content", n["type"], "\n".join(output_lines)
                 yield "content", "new_line", ""
             else:
-                root_node = RenderNode(
-                    {
-                        "type": "ROOT",
-                        "children": [node],
-                    }
-                )
-                output_lines = mdr.render(root_node)
+                output_lines = mdr.render_node(block)
                 yield "content", node["type"], "\n".join(output_lines)
 
         used_refs = self.stored_refs(mdr.linked_files)
