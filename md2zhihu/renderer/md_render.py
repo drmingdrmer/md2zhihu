@@ -28,6 +28,14 @@ block_closing_line = re.compile(r" *(?:`{3,}|#{1,6}(?: .*)?|(?:- *){3,}|(?:\* *)
 # The quote markers, with their indent, at the start of a line in a quote, such as "    > >" in "    > > a".
 quote_markers = re.compile(r" *>(?: *>)*")
 
+# The start of an HTML block that, as mistune reads it, ends only at a line with its end marker: "<!--", "<?", "<![CDATA[",
+# "<!" before a capital letter, such as "<!DOCTYPE", or the open tag of pre, script, style or textarea.
+# Any open tag matches, so that html_block_end() checks the whole name, as mistune does, such as "styles" of "<styles>".
+html_block_start = re.compile(r" {0,3}(?:<!--|<\?|<!\[CDATA\[|<![A-Z]|<([A-Za-z][A-Za-z0-9-]*))")
+
+# The end marker of each start in html_block_start other than a tag. A start of "<!" and a capital letter ends at ">".
+html_block_ends = {"<!--": "-->", "<?": "?>", "<![CDATA[": "]]>"}
+
 # The start of a line that, after a line of a paragraph, starts a block or underlines the paragraph as a heading.
 # It also matches a few lines that start no block, such as "+ " of an empty item, which only get an indent they do not need.
 paragraph_breaker = re.compile(
@@ -248,7 +256,12 @@ class MDRender(object):
 
         if typ == "block_html":
             # A quote or a list item puts its marker or indent before each of its lines, so each line of the HTML is one.
-            return add_paragraph_end(n["text"].split("\n"))
+            lines = n["text"].split("\n")
+            end = html_block_end(n["text"])
+            if end is not None:
+                # Without it, the block would hold the lines after it in the output, such as the references.
+                lines.append(end)
+            return add_paragraph_end(lines)
 
         if typ == "link":
             lines = self.render(rnode)
@@ -618,6 +631,32 @@ def end_block_in_tight_item(lines: List[str]) -> List[str]:
         return stripped + [quote.group(0)]
 
     return lines
+
+
+def html_block_end(text: str) -> Optional[str]:
+    """
+    Return the end marker that the HTML block `text` lacks, such as "</style>" for "<style>\\np {}", or None.
+    Such a block, without the line of its end marker, holds the rest of the markdown.
+    It lacks the marker as mistune reads it: mistune searches the marker only after the start,
+    and the end tag only in lower case, such as "</style>" for "<STYLE>".
+    """
+    m = html_block_start.match(text)
+    if m is None:
+        return None
+
+    tag = m.group(1)
+    if tag is None:
+        start = m.group(0).lstrip(" ")
+        end = html_block_ends.get(start, ">")
+    elif tag.lower() in PRE_TAGS:
+        end = "</" + tag.lower() + ">"
+    else:
+        # A blank line ends the block of any other tag, such as "<div>".
+        return None
+
+    if end in text[m.end() :]:
+        return None
+    return end
 
 
 def link_title(title: Optional[str]) -> str:

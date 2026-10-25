@@ -269,6 +269,18 @@ fenced_codes = {
     "escaped-backslash-in-info": ("``` a\\\\*b\nx\n```\n", "a\\*b", "x\n"),
 }
 
+# HTML blocks that no line with their end marker closes, as markdown: the HTML block that md2zhihu writes.
+# Such a block holds the rest of the markdown, so it would also hold the references that the output appends.
+# mistune ends a block of "<STYLE>" only at "</style>".
+unclosed_html_blocks = {
+    "<style>\np { color: red }\n": "<style>\np { color: red }\n</style>",
+    "<STYLE>\np {}\n</STYLE>\n": "<STYLE>\np {}\n</STYLE>\n</style>",
+    "<!-- a\n": "<!-- a\n-->",
+    "<?php\necho 1;\n": "<?php\necho 1;\n?>",
+    "<![CDATA[\nx\n": "<![CDATA[\nx\n]]>",
+    "<!DOCTYPE html\n": "<!DOCTYPE html\n>",
+}
+
 # Markdown files that embed themselves, as name: ({path: content}, the error message).
 # md2zhihu reads src/a.md, and a content of None makes the path a symlink to src/a.md.
 embed_cycles = {
@@ -536,7 +548,7 @@ pandoc_changes = {
     96: "no last line end in the code, which the example does not close, and pandoc ends such code with one",
     106: "no last line end in the code, which the example does not close, and pandoc ends such code with one",
     108: "no last line end in the code, which the example does not close, and pandoc ends such code with one",
-    140: "the blank lines that end the output, in the HTML block, which no </style> closes",
+    140: "a </style> at the end of the HTML block, which md2zhihu writes, as no </style> ends the block of the example",
     259: '"." after the number of the ordered list, for the ")" of the example',
     260: '"." after the number of the ordered list, for the ")" of the example',
     318: "the spaces that start the second line of the code span, which mistune keeps, and pandoc drops",
@@ -974,6 +986,20 @@ def test_fenced_code(name, tmp_path):
     joined = md2zhihu.converters.code_join(src[0])
     got, _, _ = md2zhihu.parser.mistune3.parse(joined, {}, True)
     assert got == want
+
+
+@pytest.mark.parametrize("html", sorted(unclosed_html_blocks))
+def test_unclosed_html_block(html, tmp_path):
+    out_dir = str(tmp_path)
+    conf = md2zhihu.Config("a.md", "null", out_dir, out_dir, md_output_path=out_dir + "/")
+    # The kept reference matches a definition only if the definitions stay out of the HTML block.
+    md_text = "[a][r]\n\n[r]: https://example.com\n\n" + html
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(False, []), conf, md_text).render()
+
+    refs = ["Reference:", "", "- r : [https://example.com](https://example.com)", "", "", "[r]: https://example.com"]
+    want = ["[a][r]", "", *unclosed_html_blocks[html].split("\n"), "", "", "", *refs]
+    assert lines == want
 
 
 def test_linked_file(tmp_path, monkeypatch):
