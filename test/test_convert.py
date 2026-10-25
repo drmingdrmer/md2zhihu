@@ -1121,6 +1121,38 @@ def test_repeated_conversion(tmp_path, monkeypatch):
     assert file_contents("out") == {img: '{code:jpg {"html": {"width": 1000}}}```\nx\n```\n{/code}'}
 
 
+def test_table_image_of_each_folder(tmp_path, monkeypatch):
+    # Two articles in two folders hold one table, which shows the x.png of its folder. Both store images in out/post/.
+    monkeypatch.chdir(tmp_path)
+
+    def show_x_png(input_typ, content, output_typ, opt=None):
+        # As a browser does, the image shows the x.png of the folder that the html option asset_base names.
+        with open(os.path.join(opt["html"]["asset_base"], "x.png"), "rb") as f:
+            return f.read()
+
+    monkeypatch.setattr(k3down2, "convert", show_x_png)
+    md_text = "| image |\n| --- |\n| ![](x.png) |\n"
+    # The first article is rendered again after its x.png changes.
+    renders = [
+        ("first", "2026-01-01-post.md", b"red"),
+        ("second", "2026-01-02-post.md", b"blue"),
+        ("first", "2026-01-01-post.md", b"green"),
+    ]
+
+    urls = []
+    for folder, fn, image in renders:
+        (tmp_path / folder).mkdir(exist_ok=True)
+        (tmp_path / folder / "x.png").write_bytes(image)
+        conf = md2zhihu.Config(folder + "/" + fn, "simple", "out", "out", md_output_path="out/")
+        os.makedirs(conf.asset_output_dir, exist_ok=True)
+        lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
+        urls.extend(re.findall(r"!\[\]\((.*?)\)", "\n".join(lines)))
+
+    # Each table links to an image of the x.png that it showed.
+    got = [(tmp_path / "out" / url).read_bytes() for url in urls]
+    assert got == [b"red", b"blue", b"green"]
+
+
 def test_converter_failure(tmp_path, monkeypatch):
     # A failed conversion stops md2zhihu before it writes an image, or a markdown that would refer to the image.
     def convert(input_typ, content, output_typ, opt=None):

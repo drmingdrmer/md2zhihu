@@ -1,8 +1,13 @@
+import hashlib
 import json
 import os
+from typing import TYPE_CHECKING
 from typing import Any
 from typing import List
 from typing import Optional
+from typing import Sequence
+from urllib.parse import unquote
+from urllib.parse import urlsplit
 
 import k3down2
 import k3proc
@@ -19,6 +24,9 @@ from ..utils import code_block_lines
 from ..utils import escape
 from ..utils import fwrite
 
+if TYPE_CHECKING:
+    from ..config import Config
+
 
 def code_join(n: dict) -> str:
     lines = code_block_lines(n["text"], n["info"] or "")
@@ -31,10 +39,13 @@ def to_plaintext(mdrender, rnode):
     return [escape(n["text"])]
 
 
-def typ_text_to_jpg(mdrender: "MDRender", typ: str, txt: str, opt: Optional[dict] = None) -> List[str]:
+def typ_text_to_jpg(
+    mdrender: "MDRender", typ: str, txt: str, opt: Optional[dict] = None, shown_files: Sequence[str] = ()
+) -> List[str]:
+    """`shown_files` are the local files that the image of `txt` shows, such as the images of a table."""
     d = k3down2_convert(mdrender, typ, txt, "jpg", opt=opt)
     # One text can make different images, such as x in $x$ and in $$x$$, so the name also has the converter.
-    fn = asset_fn(txt, "jpg", conversion_key(typ, opt))
+    fn = asset_fn(txt, "jpg", conversion_key(typ, opt, shown_files))
     fwrite(mdrender.conf.asset_output_dir, fn, d)
 
     return [r"![]({})".format(mdrender.conf.img_url(fn)), ""]
@@ -57,18 +68,26 @@ def k3down2_convert(mdrender: "MDRender", typ: str, txt: str, output_typ: str, o
         raise RenderError(f"rendering {typ} in {mdrender.conf.src_path!r} failed: {reason}") from e
 
 
-def conversion_key(typ: str, opt: Optional[dict]) -> str:
+def conversion_key(typ: str, opt: Optional[dict], shown_files: Sequence[str] = ()) -> str:
     """
-    Return the converter `typ` and its options `opt`, which make an image from a text.
+    Return the converter `typ` and its options `opt`, which make an image from a text, and the md5 of each of
+    `shown_files`, the local files that the image shows.
     The html option asset_base is left out: it is the absolute path of the folder of the article,
     the same for each table of the article, and with it the name of an image would depend on where the article is.
+    The files that the image shows from that folder take its place, such as x.png of "| ![](x.png) |",
+    because two folders can each have their own x.png.
     """
     key_opt = dict(opt or {})
     if "html" in key_opt:
         html = dict(key_opt["html"])
         html.pop("asset_base", None)
         key_opt["html"] = html
-    return json.dumps([typ, key_opt], sort_keys=True)
+    key = json.dumps([typ, key_opt], sort_keys=True)
+    for path in shown_files:
+        with open(path, "rb") as f:
+            content = f.read()
+        key += hashlib.md5(content).hexdigest()
+    return key
 
 
 def block_code_to_jpg(mdrender: "MDRender", rnode: "RenderNode", width: Optional[int] = None) -> List[str]:
@@ -223,6 +242,8 @@ def table_to_jpg(mdrender, rnode):
     md = "\n".join(md)
 
     md_base_path = os.path.split(mdrender.conf.src_path)[0]
+    # The browser shows the local images of the table from the folder of the markdown.
+    shown_files = local_images(mdrender.conf, [rnode.node])
 
     return typ_text_to_jpg(
         mdrender,
@@ -233,7 +254,31 @@ def table_to_jpg(mdrender, rnode):
                 "asset_base": os.path.abspath(md_base_path),
             }
         },
+        shown_files=shown_files,
     )
+
+
+def local_images(conf: "Config", nodes: List[dict]) -> List[str]:
+    """
+    Return the path from the working dir of each image in the AST `nodes` that is a local file,
+    such as "a/x.png" for "![](x.png)" in "a/b.md".
+    """
+    paths = []
+    for n in nodes:
+        if "children" in n:
+            paths.extend(local_images(conf, n["children"]))
+        if n["type"] != "image":
+            continue
+        parts = urlsplit(n["src"])
+        is_path = parts.scheme == "" and parts.netloc == ""
+        if not is_path:
+            continue
+        # mistune percent-encodes the URL, such as "图片/a.png" to "%E5%9B%BE%E7%89%87/a.png".
+        path = unquote(parts.path)
+        path = conf.relpath_from_cwd(path)
+        if os.path.isfile(path):
+            paths.append(path)
+    return paths
 
 
 # Importer is only used to copy local images and linked files to output dir and update their urls.

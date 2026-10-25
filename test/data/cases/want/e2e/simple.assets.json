@@ -1,5 +1,5 @@
 {
-  "dst/simple/---assetsslimjpgfobarabc-3adb638a9c82b464.jpg": "{md:jpg {\"html\": {\"asset_base\": \"src\"}}}| 源文件 | 转换后 | 导入后 |\n| :-: | :-: | :-: |\n| ![](assets/slim.jpg) | fo | bar |\n| a | b | c |\n{/md}",
+  "dst/simple/---assetsslimjpgfobarabc-6884a8f10bf455c8.jpg": "{md:jpg {\"html\": {\"asset_base\": \"src\"}}}| 源文件 | 转换后 | 导入后 |\n| :-: | :-: | :-: |\n| ![](assets/slim.jpg) | fo | bar |\n| a | b | c |\n{/md}",
   "dst/simple/18b61671112f3aeb-slim.jpg": "md5 18b61671112f3aebf1a9d8d5bbe9596e",
   "dst/simple/D=Ccupx-46797a7c1f9ac267.jpg": "{tex_inline:jpg} D = C \\cup \\{x\\} {/tex_inline}",
   "dst/simple/DatasizeDataSetgzipsizeslimarrys-7e3fcca07ea8c4b2.jpg": "{md:jpg {\"html\": {\"asset_base\": \"src\"}}}| Data size | Data Set | gzip size | slimarry size | avg size | ratio |\n| --: | :-- | --: | :-- | --: | --: |\n| 1,000 | rand u32: [0, 1000] | x | 824 byte | 6 bit/elt | 18% |\n| 1,000,000 | rand u32: [0, 1000,000] | x | 702 KB | 5 bit/elt | 15% |\n| 1,000,000 | IPv4 DB | 2 MB | 2 MB | 16 bit/elt | 50% |\n| 600 | [slim](https://github.com/openacid/slim \"slim\") star count | 602 byte | 832 byte | 10 bit/elt | 26% |\n{/md}",
