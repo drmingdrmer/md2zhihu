@@ -133,6 +133,9 @@ class Article(object):
     def embed(self, nodes, used_refs):
         """
         Embed the content of url in ![](url) if url matches specified regex
+        The blocks of the markdown replace the block that holds only the image: a paragraph, or the text of an item of
+        a tight list, which mistune makes a block_text. An image among other text stays an image, because a line of
+        text can not hold blocks.
         """
 
         children = []
@@ -141,7 +144,8 @@ class Article(object):
             if "children" in n:
                 n["children"] = self.embed(n["children"], used_refs)
 
-            if n["type"] != "paragraph" or len(n.get("children", [])) != 1:
+            is_text_block = n["type"] in ("paragraph", "block_text")
+            if not is_text_block or len(n.get("children", [])) != 1:
                 children.append(n)
                 continue
 

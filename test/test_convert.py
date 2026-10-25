@@ -169,6 +169,17 @@ backslash_files = [
 # Fragments of the URL of a downloaded image, which select a part of it, such as a view of an SVG. "" is no fragment.
 download_fragments = ["", "#left", "#svgView(viewBox(0,0,5,10))"]
 
+# Markdown that embeds src/b.md, which holds "# Child\n\nbody\n", as name: (markdown, the output).
+# The blocks of b.md replace an image that is the whole text of a block, and stay in the list item or the quote.
+embed_blocks = {
+    "tight-list": ("- ![](b.md)\n- next\n", ["-   # Child", "    body", "-   next", "", "", ""]),
+    "loose-list": ("- ![](b.md)\n\n- next\n", ["-   # Child", "", "    body", "", "-   next", "", "", ""]),
+    "ordered-list": ("1. ![](b.md)\n2. next\n", ["1.  # Child", "    body", "1.  next", "", "", ""]),
+    "quote": ("> ![](b.md)\n", ["> # Child", "> ", "> body", "", "", ""]),
+    "list-in-quote": ("> - ![](b.md)\n> - next\n", ["> -   # Child", ">     body", "> -   next", "", "", ""]),
+    "quote-in-list": ("- > ![](b.md)\n- next\n", ["-   > # Child", "    > ", "    > body", "-   next", "", "", ""]),
+}
+
 # Markdown that starts with front matter, as name: (markdown, the text of the front matter, the body after it,
 # the output of the body).
 front_matters = {
@@ -830,6 +841,34 @@ def test_embed_same_file_twice(tmp_path, monkeypatch):
     article = md2zhihu.Article(md2zhihu.ParserConfig(True, [r"[.]md$"]), conf, "![](b.md)\n\n![](b.md)\n")
 
     assert article.render() == ["b", "", "b", "", "", ""]
+
+
+@pytest.mark.parametrize("name", sorted(embed_blocks))
+def test_embed_in_container(name, tmp_path, monkeypatch):
+    md_text, want = embed_blocks[name]
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "b.md").write_text("# Child\n\nbody\n")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("src/a.md", "zhihu", "out", "out", md_output_path="out/")
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, [r"[.]md$"]), conf, md_text).render()
+
+    assert lines == want
+
+
+def test_embed_image_in_text(tmp_path, monkeypatch):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "b.md").write_text("# Child\n\nbody\n")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("src/a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+    md_text = "see ![](b.md) here\n\n- see ![](b.md)\n- next\n"
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, [r"[.]md$"]), conf, md_text).render()
+
+    # An image among other text stays an image, of the copy of b.md, because a line of text can not hold blocks.
+    url = "a/" + hashlib.md5(b"# Child\n\nbody\n").hexdigest()[:16] + "-b.md"
+    assert lines == ["see ![](" + url + ") here", "", "-   see ![](" + url + ")", "-   next", "", "", ""]
 
 
 @pytest.mark.parametrize("populate", sorted(embed_ref_links))
