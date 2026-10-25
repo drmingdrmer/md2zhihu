@@ -94,10 +94,11 @@ class MDRender(object):
 
     def render_node(self, rnode):
         """
-        Render a AST node into lines of text
-
-        Args:
-            rnode is a RenderNode instance
+        Render the AST node of the RenderNode `rnode` into lines of text.
+        A block, such as a paragraph or a list, renders into lines of the output, none of which holds a line end,
+        so that a quote or a list item puts its marker or its indent before each line.
+        An inline node, such as a text or a link, renders into parts of a line, which can hold line ends,
+        and paragraph_lines() joins the parts of a paragraph and splits them into lines.
         """
 
         n = rnode.node

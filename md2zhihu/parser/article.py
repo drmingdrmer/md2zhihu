@@ -221,15 +221,8 @@ class Article(object):
         if self.front_matter is not None:
             yield "front_matter", "", "---\n" + self.front_matter.text + "\n---"
 
-        mdr = MDRender(self.conf, features=self.conf.features)
-
-        # The renderer changes nodes, such as the URL of a local image to the URL of its copy,
-        # so it renders a copy, and the next render reads the AST as parsed.
-        ast = copy.deepcopy(self.ast)
-        # One root holds every block, as in render(), so that each block is rendered among its siblings,
-        # such as a list right after a list of its kind, which takes the other marker.
-        root_node = RenderNode({"type": "ROOT", "children": ast})
-        for node in ast:
+        mdr, root_node = self.render_root()
+        for node in root_node.node["children"]:
             block = root_node.new_child(node)
             # render list items separately
             if node["type"] == "list":
@@ -249,15 +242,8 @@ class Article(object):
         yield "ref_def", "", "\n".join(ref_lines)
 
     def render(self):
-        mdr = MDRender(self.conf, features=self.conf.features)
-
-        # As in chunks(), the renderer changes the nodes of a copy.
-        ast = copy.deepcopy(self.ast)
-        root_node = {
-            "type": "ROOT",
-            "children": ast,
-        }
-        output_lines = mdr.render(RenderNode(root_node))
+        mdr, root_node = self.render_root()
+        output_lines = mdr.render(root_node)
 
         if self.conf.options.keep_meta and self.front_matter is not None:
             output_lines = ["---", self.front_matter.text, "---"] + output_lines
@@ -274,6 +260,19 @@ class Article(object):
         output_lines.extend(ref_lines)
 
         return output_lines
+
+    def render_root(self) -> Tuple[MDRender, RenderNode]:
+        """
+        Return a renderer for the platform, and the root that render() and chunks() render: one root holds every block,
+        so that each block is rendered among its siblings, such as a list right after a list of its kind,
+        which takes the other marker.
+        The renderer changes nodes, such as the URL of a local image to the URL of its copy,
+        so the root holds a copy of the AST, and the next render reads the AST as parsed.
+        """
+        mdr = MDRender(self.conf, features=self.conf.features)
+        ast = copy.deepcopy(self.ast)
+        root_node = RenderNode({"type": "ROOT", "children": ast})
+        return mdr, root_node
 
     def stored_refs(self, linked_files: Dict[str, str]) -> RefDict:
         """
