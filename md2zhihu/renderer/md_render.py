@@ -511,10 +511,13 @@ def link_destination(url: str) -> str:
     r"""
     Return `url` as written as the destination of a link or an image, which a markdown parser reads to its end.
     Each space or control character is percent-encoded, and so is each parenthesis, if they do not pair up, such as in "x).png".
+    Each backslash is percent-encoded too, because a markdown parser reads a backslash before a punctuation as an escape,
+    such as "x\_.png" as "x_.png". md2zhihu builds such a URL from a file name, which keeps the backslash.
     An "&" that starts a character reference is written as "&amp;", such as "&amp;copy;" for "&copy;".
     mistune reads "&amp;" back as "&", but it reads "\&copy;" in a URL as "©".
     """
     url = url_breakers.sub(percent_encode, url)
+    url = url.replace("\\", "%5C")
     url = char_reference_start.sub("&amp;", url)
 
     depth = 0

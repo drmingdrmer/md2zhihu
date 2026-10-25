@@ -18,6 +18,7 @@ import shutil
 import socket
 import sys
 import threading
+import urllib.parse
 
 import k3down2
 import pytest
@@ -153,6 +154,16 @@ link_destinations = [
     ("my dir/x.png", "my%20dir/x.png"),
     ("https://a.com/?a=1&b=2", "https://a.com/?a=1&b=2"),
     ("https://a.com/?q=&copy;&#169;", "https://a.com/?q=&amp;copy;&amp;#169;"),
+    ("a/x\\_.png", "a/x%5C_.png"),
+]
+
+# Local files whose names hold a backslash, as (file name, its URL in the markdown).
+# The copy keeps the name, and a markdown parser reads a backslash before a punctuation as an escape.
+backslash_files = [
+    ("x\\_.png", "x%5C_.png"),
+    ("x\\a.png", "x%5Ca.png"),
+    ("图\\[1].png", "%E5%9B%BE%5C%5B1%5D.png"),
+    ("x\\_.pdf", "x%5C_.pdf"),
 ]
 
 # Markdown files that embed themselves, as name: ({path: content}, the error message).
@@ -645,6 +656,24 @@ def test_local_image(name, tmp_path, monkeypatch):
     ast, _, _ = md2zhihu.parser.mistune3.parse("\n".join(lines), {}, True)
     image = ast[0]["children"][0]
     assert image["src"] == "a/" + content_md5 + "-" + stored_url
+
+
+@pytest.mark.parametrize("fn, url", backslash_files)
+@pytest.mark.parametrize("markdown, key", [("![]({})", "src"), ("[f]({})", "link")])
+def test_backslash_in_file_name(fn, url, markdown, key, tmp_path, monkeypatch):
+    (tmp_path / fn).write_bytes(b"x")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/")
+    os.makedirs(conf.asset_output_dir)
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, markdown.format(url) + "\n").render()
+
+    # A markdown parser reads the URL of the image or the link back from the output, and the URL names the copy.
+    ast, _, _ = md2zhihu.parser.mistune3.parse("\n".join(lines), {}, True)
+    got = ast[0]["children"][0][key]
+    stored = urllib.parse.unquote(got)
+    assert os.listdir("out/a") == [os.path.basename(stored)]
+    assert (tmp_path / "out" / stored).read_bytes() == b"x"
 
 
 @pytest.mark.parametrize("url", ["data:image/png;base64,iVBORw0KGgo=", "//example.com/x.png"])
