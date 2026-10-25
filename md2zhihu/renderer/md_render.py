@@ -82,6 +82,9 @@ underscore_runs = re.compile(r"_+")
 # a char of `text_specials`, or an "&" that starts a character reference.
 plain_specials = re.compile(text_specials.pattern + "|" + char_reference_start.pattern)
 
+# The types of the nodes that md2zhihu writes between markers of "*" or "_", which emphasis_marker() chooses.
+emphasis_types = ("strong", "emphasis")
+
 
 class MDRender(object):
     # platform specific renderer
@@ -138,8 +141,9 @@ class MDRender(object):
 
         if typ == "strong":
             lines = self.render(rnode)
-            lines[0] = "**" + lines[0]
-            lines[-1] = lines[-1] + "**"
+            markers = emphasis_marker(rnode) * 2
+            lines[0] = markers + lines[0]
+            lines[-1] = lines[-1] + markers
             return lines
 
         if typ == "math_block":
@@ -267,7 +271,7 @@ class MDRender(object):
 
         if typ == "emphasis":
             lines = self.render(rnode)
-            char = emphasis_marker(self, rnode)
+            char = emphasis_marker(rnode)
             lines[0] = char + lines[0]
             lines[-1] = lines[-1] + char
             return lines
@@ -281,6 +285,12 @@ class MDRender(object):
         raise TypeError(f"MDRender can not render a node of type {typ!r}, at {rnode.to_str()}")
 
     def render(self, rnode) -> List[str]:
+        # An emphasis chooses its marker by the chars of the nodes next to it, so those are rendered before it.
+        for n in rnode.node["children"]:
+            if n["type"] not in emphasis_types:
+                child = rnode.new_child(n)
+                self.render_child(child)
+
         rst = []
         for n in rnode.node["children"]:
             child = rnode.new_child(n)
@@ -293,7 +303,7 @@ class MDRender(object):
         """
         Return the lines of `rnode`, and keep them in its parent, so that render() renders it once,
         because rendering can write a file, such as the image of math.
-        touches_letter() renders the node next to an emphasis this way before render() reaches it.
+        emphasis_marker() reads the chars next to an emphasis from these lines.
         """
         cache = rnode.parent.child_lines
         key = id(rnode.node)
@@ -460,26 +470,49 @@ def has_emphasis_pair(text: str) -> bool:
     return False
 
 
-def emphasis_marker(mdrender, rnode) -> str:
+def emphasis_marker(rnode) -> str:
     """
-    Return the char that marks the emphasis `rnode`: "_" if it starts or ends a strong emphasis or an emphasis marked
-    with "*", else "*".
+    Return the char that marks the emphasis or the strong emphasis `rnode`, "*" or "_".
+    An emphasis takes "_" if it starts or ends a strong emphasis or an emphasis marked with "*", else "*".
     With "*" for both, their markers would join into one run, which a parser reads another way:
     "**foo**" for "*_foo_*" is a strong emphasis, and "***x***" for "**_x_**" is an emphasis that holds a strong emphasis.
+    The markers of two nodes of one type next to each other join too, as in "*a**b*" for "*a*_b_", which is one emphasis.
+    So the second node takes the other char. Two nodes of two types next to each other can both take "*",
+    as in "**a***b*", but not both "_": "__a___b_" for "__a__*b*" is "_" and the emphasis "a___b".
     But "_" opens or closes nothing next to a letter or digit, such as the "_" after "b" in "*_b_c*" for "_*b*c_".
-    So an emphasis whose other marker touches one takes "*", and its parent emphasis takes "_".
+    So a node with one right before or after it takes "*", and the node that its marker touches takes "_".
     """
-    if touches_letter(mdrender, rnode):
+    if touches_letter(rnode):
+        return "*"
+
+    # render() renders the children of a node in order, so the node before `rnode` already ends with its marker.
+    before = next_to(rnode, -1)
+    if before is not None and before["type"] in emphasis_types:
+        before_lines = rnode.parent.child_lines[id(before)]
+        before_char = before_lines[-1][-1]
+        if before_char == "_":
+            return "*"
+        if before["type"] == rnode.node["type"]:
+            return "_"
+
+    # The node after `rnode` takes "*" next to a letter, so `rnode`, of the same type, takes "_".
+    after = next_to(rnode, 1)
+    if after is not None and after["type"] == rnode.node["type"]:
+        if touches_letter(rnode.parent.new_child(after)):
+            return "_"
+
+    # A strong emphasis keeps "**" in or around an emphasis that touches it, such as in "***b*c**" and "***x***".
+    if rnode.node["type"] == "strong":
         return "*"
 
     if touches_parent_marker(rnode):
-        parent = rnode.parent
-        if parent.node["type"] == "emphasis" and emphasis_marker(mdrender, parent) == "_":
+        if emphasis_marker(rnode.parent) == "_":
             return "*"
         return "_"
 
     for n in inline_children(rnode.node):
-        if n["type"] == "emphasis" and touches_letter(mdrender, rnode.new_child(n)):
+        child = rnode.new_child(n)
+        if n["type"] == "emphasis" and touches_parent_marker(child) and touches_letter(child):
             return "_"
     return "*"
 
@@ -489,43 +522,62 @@ def touches_parent_marker(rnode) -> bool:
     Return whether the node `rnode` starts or ends its parent, a strong emphasis or an emphasis.
     """
     parent = rnode.parent
-    if parent is None or parent.node["type"] not in ("strong", "emphasis"):
+    if parent is None or parent.node["type"] not in emphasis_types:
         return False
 
     siblings = inline_children(parent.node)
     return siblings[0] is rnode.node or siblings[-1] is rnode.node
 
 
-def touches_letter(mdrender, rnode) -> bool:
+def touches_letter(rnode) -> bool:
     """
-    Return whether the node `rnode` starts or ends its parent, a strong emphasis or an emphasis, but not both,
-    and its other end touches a letter or digit, such as the end of "*b*" in "_*b*c_".
-    The node next to it is rendered to find the char, because a platform can write a node as plain text,
-    such as a code span on weibo.
+    Return whether a letter or digit is right before or right after the node `rnode`, such as after "*b*" in "_*b*c_".
     """
-    if not touches_parent_marker(rnode):
+    before = letter_next_to(rnode, -1)
+    after = letter_next_to(rnode, 1)
+    return before or after
+
+
+def letter_next_to(rnode, step: int) -> bool:
+    """
+    Return whether a letter or digit is right before the node `rnode`, if `step` is -1, or right after it, if `step` is 1.
+    The char is read from the lines of the node next to it, because a platform can write a node as plain text,
+    such as a code span on weibo. render() renders the node there before an emphasis.
+    """
+    neighbor = next_to(rnode, step)
+    if neighbor is None:
+        # The marker of `rnode` touches the marker of its parent. A letter next to the parent makes both take "*",
+        # so that they join into one run, such as "***" in "x***a*_b_**", as "**" between a letter and "_" opens nothing.
+        parent = rnode.parent
+        if parent.node["type"] not in emphasis_types:
+            return False
+        return letter_next_to(parent, step)
+
+    # A strong emphasis or an emphasis starts and ends with its marker.
+    if neighbor["type"] in emphasis_types:
         return False
 
-    siblings = inline_children(rnode.parent.node)
-    if len(siblings) == 1:
-        return False
-
-    if siblings[0] is rnode.node:
-        neighbor = siblings[1]
-        side = 0
-    else:
-        neighbor = siblings[-2]
-        side = -1
-
-    # A strong emphasis or an emphasis starts and ends with its marker, and rendering it early could render `rnode` again.
-    if neighbor["type"] in ("strong", "emphasis"):
-        return False
-
-    lines = mdrender.render_child(rnode.parent.new_child(neighbor))
+    lines = rnode.parent.child_lines[id(neighbor)]
     text = "".join(lines)
     if text == "":
         return False
-    return text[side].isalnum()
+    # The char next to `rnode` is the last char of the node before it, or the first char of the node after it.
+    char = text[-1] if step == -1 else text[0]
+    return char.isalnum()
+
+
+def next_to(rnode, step: int) -> Optional[dict]:
+    """
+    Return the node right before the node `rnode`, if `step` is -1, or right after it, if `step` is 1,
+    in the children of its parent without the empty texts, or None if `rnode` starts or ends its parent there.
+    """
+    siblings = inline_children(rnode.parent.node)
+    ids = [id(n) for n in siblings]
+    i = ids.index(id(rnode.node)) + step
+    is_inside = 0 <= i < len(siblings)
+    if not is_inside:
+        return None
+    return siblings[i]
 
 
 def inline_children(node) -> List[dict]:

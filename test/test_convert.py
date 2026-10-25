@@ -620,6 +620,30 @@ nested_emphases = {
     "*__*x*__*\n": "***_x_***\n",
 }
 
+# Emphases and strong emphases next to each other, as markdown: the markdown that md2zhihu writes.
+# The second of two of one type takes the other char, as with one char their markers would join into one run.
+adjacent_emphases = {
+    "*a*_b_\n": "*a*_b_\n",
+    "_a_*b*\n": "*a*_b_\n",
+    "**a**__b__\n": "**a**__b__\n",
+    "*a*_b_*c*\n": "*a*_b_*c*\n",
+    "*a,*_b_\n": "*a,*_b_\n",
+    "*强调*_文字_\n": "*强调*_文字_\n",
+    # A space between them keeps their markers apart.
+    "*a* _b_\n": "*a* *b*\n",
+    # The node next to a letter takes "*", so the other one takes "_".
+    "x*a*_b_\n": "x*a*_b_\n",
+    "_a_*b*c\n": "_a_*b*c\n",
+    "__a__**b**c\n": "__a__**b**c\n",
+    "**_a_*b***\n": "**_a_*b***\n",
+    "***a**__b__*\n": "***a**__b__*\n",
+    # A strong emphasis and an emphasis can both take "*".
+    "*a***b**\n": "*a***b**\n",
+    # The node that starts or ends one next to a letter takes "*" too, and their markers join into one run.
+    "x***a*_b_**\n": "x***a*_b_**\n",
+    "*__a__**b***y\n": "*__a__**b***y\n",
+}
+
 # Emphases in an emphasis next to a code span or math that the platform writes as plain text,
 # as (platform, markdown): the markdown that md2zhihu writes.
 plain_text_neighbors = {
@@ -627,6 +651,9 @@ plain_text_neighbors = {
     ("weibo", "_*b*`c`_\n"): "_*b*c_\n",
     ("weibo", "_`c`*b*_\n"): "_c*b*_\n",
     ("weibo", "_*b*$x$_\n"): "_*b*x_\n",
+    # The letter of the code span next to two emphases makes the one next to it take "*".
+    ("weibo", "`x`*a*_b_\n"): "x*a*_b_\n",
+    ("weibo", "*a*_b_`y`\n"): "_a_*b*y\n",
 }
 
 # Text that would become markdown where md2zhihu writes it, as (platform, markdown): the markdown that md2zhihu writes.
@@ -2227,6 +2254,30 @@ def test_nested_emphasis(md_text, tmp_path):
     assert got == want
 
 
+@pytest.mark.parametrize("md_text", sorted(adjacent_emphases))
+def test_adjacent_emphasis(md_text, tmp_path):
+    got_md = write_example(md_text, tmp_path)
+
+    assert got_md == adjacent_emphases[md_text]
+
+    want, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
+    got, _, _ = md2zhihu.parser.mistune3.parse(got_md, {}, True)
+    want = plain_text(want)
+    got = plain_text(got)
+    assert got == want
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("md_text", sorted(adjacent_emphases))
+def test_adjacent_emphasis_in_pandoc(md_text, tmp_path):
+    # pandoc, a parser apart from mistune, reads the output as it reads the input.
+    got_md = write_example(md_text, tmp_path)
+
+    want = pandoc_blocks(md_text)
+    got = pandoc_blocks(got_md)
+    assert got == want
+
+
 @pytest.mark.parametrize("platform, md_text", sorted(plain_text_neighbors))
 def test_emphasis_next_to_plain_text(platform, md_text, tmp_path):
     got = write_example(md_text, tmp_path, platform)
@@ -2288,7 +2339,7 @@ def math_texts(nodes):
 
 
 def test_emphasis_neighbor_converted_once(tmp_path, monkeypatch):
-    # md2zhihu renders the math after the inner emphasis early, to read the char next to its marker,
+    # md2zhihu renders the math before the inner emphasis, to read the char next to its marker,
     # and reuses that render, so that it converts the math once.
     monkeypatch.chdir(tmp_path)
     requests = []
