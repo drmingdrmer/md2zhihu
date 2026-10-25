@@ -77,18 +77,33 @@ def strip_paragraph_end(lines: List[str]) -> List[str]:
     return lines
 
 
-def code_fence(code: str) -> str:
+def code_block_lines(code: str, info: str) -> List[str]:
+    r"""
+    Return the lines of a fenced code block that holds `code`, which ends with "\n", and has the info string `info`.
+    The fence is a run of "~" if `info` has a "`", which a markdown parser does not allow after a fence of "`",
+    else a run of "`". No run in `code` closes it: it is 1 longer than the longest run of its char in `code`,
+    and at least 3 long.
+    A space keeps an `info` that starts with the fence char, such as "~a`b", apart from the fence.
     """
-    Return the fence for a code block that holds `code`: a run of "`" that no run of "`" in `code` closes.
-    It is 1 longer than the longest run in `code`, and at least 3 long.
-    """
-    longest = longest_backtick_run(code)
-    return "`" * max(3, longest + 1)
+    char = "`"
+    if "`" in info:
+        char = "~"
+    longest = longest_run(code, char)
+    fence = char * max(3, longest + 1)
+
+    opening = fence + info
+    if info.startswith(char):
+        opening = fence + " " + info
+
+    # remove the last \n
+    lines = code[:-1].split("\n")
+    return [opening] + lines + [fence]
 
 
-def longest_backtick_run(text: str) -> int:
-    """Return the length of the longest run of "`" in `text`, or 0."""
-    runs = re.findall("`+", text)
+def longest_run(text: str, char: str) -> int:
+    """Return the length of the longest run of `char` in `text`, or 0."""
+    pattern = re.escape(char) + "+"
+    runs = re.findall(pattern, text)
     return max([len(r) for r in runs], default=0)
 
 

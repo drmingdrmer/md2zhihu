@@ -189,6 +189,18 @@ front_matters = {
     "meta-only-no-final-newline": ("---\ntitle: x\n---", "title: x", "", ["", ""]),
 }
 
+# Fenced code blocks, as name: (markdown, its info string, its code).
+# Only a fence of "~" allows a "`" in its info string, so md2zhihu writes a block whose info string has one with "~".
+fenced_codes = {
+    "backticks": ("```python\nprint(1)\n```\n", "python", "print(1)\n"),
+    "tildes": ("~~~python\nprint(1)\n~~~\n", "python", "print(1)\n"),
+    "backtick-in-info": ("~~~lang`name\nprint(1)\n~~~\n", "lang`name", "print(1)\n"),
+    "info-starts-with-tilde": ("~~~ ~a`b\nx\n~~~\n", "~a`b", "x\n"),
+    "long-tilde-run": ("~~~~~ a`b\n~~~~\n~~~~~\n", "a`b", "~~~~\n"),
+    "nested-backticks": ("````markdown\n```python\nprint(1)\n```\n````\n", "markdown", "```python\nprint(1)\n```\n"),
+    "nested-tildes": ("~~~~md`x\n~~~python\nprint(1)\n~~~\n~~~~\n", "md`x", "~~~python\nprint(1)\n~~~\n"),
+}
+
 # Markdown files that embed themselves, as name: ({path: content}, the error message).
 # md2zhihu reads src/a.md, and a content of None makes the path a symlink to src/a.md.
 embed_cycles = {
@@ -622,6 +634,24 @@ def test_code_join():
     node = {"type": "block_code", "info": "markdown", "text": "```python\nprint(1)\n```\n"}
     got = md2zhihu.converters.code_join(node)
     assert got == "````markdown\n```python\nprint(1)\n```\n````\n"
+
+
+@pytest.mark.parametrize("name", sorted(fenced_codes))
+def test_fenced_code(name, tmp_path):
+    md_text, info, code = fenced_codes[name]
+    want = [{"type": "block_code", "text": code, "info": info}]
+    src, _, _ = md2zhihu.parser.mistune3.parse(md_text, {}, True)
+    assert src == want
+
+    # The markdown that md2zhihu writes keeps the info string and the code.
+    written = write_example(md_text, tmp_path)
+    got, _, _ = md2zhihu.parser.mistune3.parse(written, {}, True)
+    assert got == want
+
+    # So does the markdown of a code image, as wechat makes one.
+    joined = md2zhihu.converters.code_join(src[0])
+    got, _, _ = md2zhihu.parser.mistune3.parse(joined, {}, True)
+    assert got == want
 
 
 def test_linked_file(tmp_path, monkeypatch):

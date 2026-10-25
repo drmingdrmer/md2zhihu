@@ -15,16 +15,14 @@ from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..renderer.md_render import inline_children
 from ..utils import asset_fn
-from ..utils import code_fence
+from ..utils import code_block_lines
 from ..utils import escape
 from ..utils import fwrite
 
 
 def code_join(n: dict) -> str:
-    lang = n["info"] or ""
-    lines = n["text"][:-1].split("\n")
-    fence = code_fence(n["text"])
-    txt = "\n".join([fence + lang] + lines + [fence, ""])
+    lines = code_block_lines(n["text"], n["info"] or "")
+    txt = "\n".join(lines + [""])
     return txt
 
 
