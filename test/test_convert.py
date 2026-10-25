@@ -166,6 +166,9 @@ backslash_files = [
     ("x\\_.pdf", "x%5C_.pdf"),
 ]
 
+# Fragments of the URL of a downloaded image, which select a part of it, such as a view of an SVG. "" is no fragment.
+download_fragments = ["", "#left", "#svgView(viewBox(0,0,5,10))"]
+
 # Markdown files that embed themselves, as name: ({path: content}, the error message).
 # md2zhihu reads src/a.md, and a content of None makes the path a symlink to src/a.md.
 embed_cycles = {
@@ -972,6 +975,29 @@ def test_download_image_name(tmp_path, monkeypatch, www):
     assert os.listdir("out/a") == [stored]
     assert (tmp_path / "out" / "a" / stored).read_bytes() == b"png"
     assert lines[0] == "![](a/" + stored + ")"
+
+
+@pytest.mark.parametrize("fragment", download_fragments)
+def test_download_image_fragment(fragment, tmp_path, monkeypatch, www):
+    folder, base_url = www
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg"><view id="left" viewBox="0 0 5 10"/></svg>'
+    (folder / "diagram.svg").write_bytes(svg)
+    url = base_url + "/diagram.svg" + fragment
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", "out", "out", md_output_path="out/", download=True)
+    os.makedirs(conf.asset_output_dir)
+
+    # The second image reuses the file that md2zhihu downloads for the first one.
+    md_text = "![](" + url + ") ![](" + url + ")"
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, md_text).render()
+
+    # The URL of the copy keeps the fragment, for the downloaded file and for the reused one.
+    url_md5 = hashlib.md5(url.encode()).hexdigest()[:16]
+    stored = url_md5 + "-diagram.svg"
+    assert os.listdir("out/a") == [stored]
+    assert (tmp_path / "out" / "a" / stored).read_bytes() == svg
+    stored_url = "a/" + stored + fragment
+    assert lines[0] == "![](" + stored_url + ") ![](" + stored_url + ")"
 
 
 def test_download_missing_image(tmp_path, monkeypatch, www):

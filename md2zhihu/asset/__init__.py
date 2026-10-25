@@ -72,7 +72,12 @@ def save_image_to_asset_dir(mdrender: "MDRender", rnode: "RenderNode") -> Option
             with open(target, "wb") as f:
                 f.write(r.data)
 
-        n["src"] = mdrender.conf.img_url(fn)
+        url = mdrender.conf.img_url(fn)
+        # A fragment selects a part of the image, such as the view "#left" of an SVG, so the URL of the copy keeps it.
+        fragment = urlsplit(src).fragment
+        if fragment != "":
+            url += "#" + fragment
+        n["src"] = url
 
         return None
 
