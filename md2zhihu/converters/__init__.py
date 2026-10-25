@@ -224,9 +224,8 @@ def math_inline_to_plaintext(mdrender, rnode):
 
 def table_to_barehtml(mdrender, rnode) -> List[str]:
     # create a markdown render to recursively deal with images etc.
-    mdr = MDRender(mdrender.conf, features=importer_features)
-    # The links in the table and the links outside it are copied in one conversion, which finds two files of one name.
-    mdr.linked_files = mdrender.linked_files
+    # The table shares the copies of the run, so that store_linked_file finds two files that would be copied to one path.
+    mdr = MDRender(mdrender.conf, features=importer_features, linked_files=mdrender.linked_files)
 
     md = mdr.render_node(rnode)
     md = "\n".join(md)

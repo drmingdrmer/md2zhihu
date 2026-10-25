@@ -401,6 +401,36 @@ def test_output(tmp_path, monkeypatch, capsys):
     )
 
 
+@pytest.mark.parametrize("order", [["first", "second"], ["second", "first"]])
+def test_linked_files_of_two_articles(order, tmp_path, monkeypatch, capsys):
+    # With --jekyll, the posts of one name share the asset folder _md2/post, and each keeps its date in its markdown.
+    monkeypatch.chdir(tmp_path)
+    paths = {"first": "first/2026-01-01-post.md", "second": "second/2026-01-02-post.md"}
+    for name, path in paths.items():
+        (tmp_path / name).mkdir()
+        (tmp_path / path).write_text("[paper](paper.pdf)\n")
+        (tmp_path / name / "paper.pdf").write_bytes(name.encode())
+    converted, conflicting = order
+    args = [paths[converted], paths[conflicting], "-p", "transparent", "--jekyll"]
+
+    code, err = run_failing(monkeypatch, capsys, args)
+
+    assert code == 1
+    md_name = os.path.basename(paths[converted])
+    assert err == (
+        f"{paths[converted]} -> _md2/{md_name}\n"
+        f"md2zhihu: error: linked files '{converted}/paper.pdf' and '{conflicting}/paper.pdf' differ,"
+        f" but both would be copied to '_md2/post/paper.pdf', used in '{paths[conflicting]}'\n"
+    )
+    # The conflicting article fails before it replaces the document of the article before it.
+    out_dir = tmp_path / "_md2"
+    files = {str(p.relative_to(out_dir)): p.read_bytes() for p in out_dir.rglob("*") if p.is_file()}
+    assert files == {
+        md_name: b"[paper](post/paper.pdf)\n\n\n",
+        "post/paper.pdf": converted.encode(),
+    }
+
+
 def test_main_twice(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text("# a\n")

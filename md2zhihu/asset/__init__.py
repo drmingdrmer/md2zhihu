@@ -122,7 +122,7 @@ def store_linked_file(conf: "Config", url: str, linked_files: Dict[str, str]) ->
     Copy the local file that the link URL `url` refers to into the asset dir, and return the URL of the copy.
     Return `url` as it is if it refers to no local file, such as a web page, a heading, a folder or a missing file,
     or if it refers to a markdown file.
-    `linked_files` maps the name of each copy that this conversion made to the path of its file, and gets the new copy.
+    `linked_files` maps the path of each copy that this run made to the path of its file, and gets the new copy.
     """
     parts = urlsplit(url)
     is_path = parts.scheme == "" and parts.netloc == "" and parts.query == ""
@@ -144,7 +144,7 @@ def store_linked_file(conf: "Config", url: str, linked_files: Dict[str, str]) ->
     target = pjoin(conf.asset_output_dir, fn)
 
     # Two files of one name, such as a/x.pdf and b/x.pdf, can share the copy only if they have the same content.
-    other = linked_files.setdefault(fn, path)
+    other = linked_files.setdefault(target, path)
     is_other_content = other != path and not filecmp.cmp(other, path, shallow=False)
     if is_other_content:
         raise NameClashError(

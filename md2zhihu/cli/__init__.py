@@ -58,13 +58,14 @@ def use_color(stream) -> bool:
     return stream.isatty() and not no_color
 
 
-def convert_md(parser_config, conf):
+def convert_md(parser_config, conf, linked_files: Optional[Dict[str, str]] = None):
+    """`linked_files` is the `MDRender.linked_files` of the run, which the articles of a run share."""
     os.makedirs(conf.asset_output_dir, exist_ok=True)
     os.makedirs(conf.md_output_base, exist_ok=True)
 
     md_text = fread(conf.src_path)
 
-    article = Article(parser_config, conf, md_text)
+    article = Article(parser_config, conf, md_text, linked_files=linked_files)
 
     output_lines = article.render()
 
@@ -264,9 +265,12 @@ def run():
 
     parser_config = ParserConfig(True, args.embed)
 
+    # With --jekyll, posts of one name and two dates share an asset folder,
+    # so the run keeps every copy of a linked file, and one copy can not replace another.
+    linked_files: Dict[str, str] = {}
     stat = []
     for conf in confs:
-        convert_md(parser_config, conf)
+        convert_md(parser_config, conf, linked_files)
 
         msg(conf.src_path, " -> ", conf.md_output_path)
 

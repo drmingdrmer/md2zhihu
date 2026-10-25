@@ -86,11 +86,17 @@ plain_specials = re.compile(text_specials.pattern + "|" + char_reference_start.p
 class MDRender(object):
     # platform specific renderer
 
-    def __init__(self, conf, features: dict):
+    def __init__(self, conf, features: dict, linked_files: Optional[Dict[str, str]] = None):
+        """
+        `linked_files` maps the path of each copy that store_linked_file makes in the run to the path of the file that
+        it copies. The articles of a run share it, because two articles can share an asset folder,
+        such as two posts of one name with --jekyll.
+        """
         self.conf = conf
         self.features = features
-        # The name of each copy that store_linked_file makes in this conversion, mapped to the path of the file that it copies.
-        self.linked_files: Dict[str, str] = {}
+        if linked_files is None:
+            linked_files = {}
+        self.linked_files: Dict[str, str] = linked_files
 
     def render_node(self, rnode):
         """

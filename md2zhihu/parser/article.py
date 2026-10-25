@@ -54,12 +54,14 @@ class Article(object):
         md_text: str,
         embedders: Tuple[str, ...] = (),
         ref_names: Optional[Dict[str, Ref]] = None,
+        linked_files: Optional[Dict[str, str]] = None,
     ):
         """
         `embedders` holds the paths of the markdown files that embed this one, outermost first.
         `ref_names` maps the key of each reference name in the output, such as "R" for "r", as markdown matches names,
         to its reference, whose path URL is from the working dir.
         The articles that embed one another share it, so that each name stays one reference.
+        `linked_files` is the `MDRender.linked_files` of the run, which the articles of a run share.
         """
         self.parser_config = parser_config
 
@@ -70,6 +72,8 @@ class Article(object):
         if ref_names is None:
             ref_names = {}
         self.ref_names = ref_names
+
+        self.linked_files = linked_files
 
         # init
 
@@ -269,7 +273,7 @@ class Article(object):
         The renderer changes nodes, such as the URL of a local image to the URL of its copy,
         so the root holds a copy of the AST, and the next render reads the AST as parsed.
         """
-        mdr = MDRender(self.conf, features=self.conf.features)
+        mdr = MDRender(self.conf, features=self.conf.features, linked_files=self.linked_files)
         ast = copy.deepcopy(self.ast)
         root_node = RenderNode({"type": "ROOT", "children": ast})
         return mdr, root_node
