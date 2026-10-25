@@ -30,10 +30,10 @@ inline math in codespan \$\$ ||X{\\vec {\\beta }}-Y||^{2} \$\$
 构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;
 
 读取一个数组元素平均花费 7 ns/op.
+
 构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;
 
 读取一个数组元素平均花费 7 ns/op.
-
 
 
 
@@ -42,6 +42,7 @@ inline math in codespan \$\$ ||X{\\vec {\\beta }}-Y||^{2} \$\$
 构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;
 
 读取一个数组元素平均花费 7 ns/op.
+
 构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;
 
 读取一个数组元素平均花费 7 ns/op.
@@ -110,7 +111,6 @@ formula in list:
 Q_{odd}(C) = M(C) = \{ q : q \subseteq C,  |q| > |C|/2 \}
 {/tex_block}
 
-
 对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,
 我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,
 
@@ -134,13 +134,11 @@ Q_{even}(D)_x = M(D) \cup M(D \setminus \{x\})
 Q' = M(abcd) ∪ {ab, bc, ca};
 
 
-
 table in list:
 
 链接列表:
 
 ![](simple/---assetsslimjpgfobarabc-6884a8f10bf455c8.jpg)
-
 
 
 

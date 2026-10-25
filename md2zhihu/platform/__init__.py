@@ -22,6 +22,7 @@ from ..converters import table_to_barehtml
 from ..converters import table_to_jpg
 from ..converters import to_plaintext
 from ..types import Features
+from ..utils import add_paragraph_end
 from ..utils import strip_paragraph_end
 
 
@@ -58,8 +59,10 @@ def weibo_specific(mdrender, rnode) -> Optional[List[str]]:
 
     if typ == "list_item":
         lines = []
-        lines.extend(mdrender.render(rnode))
-        lines.append("")
+        for child in n["children"]:
+            block = mdrender.render_node(rnode.new_child(child))
+            # A block without a blank line after it joins the next one, such as the text before a nested list.
+            lines.extend(add_paragraph_end(block))
         return lines
 
     if typ == "block_quote":

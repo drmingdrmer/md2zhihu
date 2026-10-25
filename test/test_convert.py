@@ -567,15 +567,6 @@ flat_block_platforms = {"weibo"}
 # The small cases whose output pandoc reads with another meaning on some platforms than on the platform null,
 # as name: (those platforms, what changes).
 platform_changes = {
-    "lists-syntax": (
-        ["weibo"],
-        "the nested items of the tight list join the text of their parent item into one paragraph",
-    ),
-    "lists-tight-blocks": (
-        ["weibo"],
-        "the image of the code in an item joins the text before it into one paragraph, as weibo writes the blocks of an item "
-        "with no blank line between them",
-    ),
     "math-block-blank-line": (
         ["hugo", "simple", "wechat", "weibo", "zhihu"],
         "pandoc ends null's formula at its blank line and reads it as text, though md2zhihu reads one formula",

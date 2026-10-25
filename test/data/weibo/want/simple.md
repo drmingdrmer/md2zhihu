@@ -31,10 +31,10 @@ inline math in codespan \$\$ ||X{\\vec {\\beta }}-Y||^{2} \$\$
 构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;
 
 读取一个数组元素平均花费 7 ns/op.
+
 构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;
 
 读取一个数组元素平均花费 7 ns/op.
-
 
 
 
@@ -43,6 +43,7 @@ inline math in codespan \$\$ ||X{\\vec {\\beta }}-Y||^{2} \$\$
 构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;
 
 读取一个数组元素平均花费 7 ns/op.
+
 构建 slimarray 时, 平均每秒可压缩 6百万 个数组元素;
 
 读取一个数组元素平均花费 7 ns/op.
@@ -85,7 +86,6 @@ formula in list:
 
 <img src="https://www.zhihu.com/equation?tex=%20Q_%7Bodd%7D%28C%29%20%3D%20M%28C%29%20%3D%20%5C%7B%20q%20%3A%20q%20%5Csubseteq%20C%2C%20%20%7Cq%7C%20%5Cgt%20%7CC%7C/2%20%5C%7D%20%5C%5C" alt=" Q_{odd}(C) = M(C) = \{ q : q \subseteq C,  |q| \gt |C|/2 \} \\" class="ee_img tr_noresize" eeimg="1">
 
-
 对偶数节点, n = 2k, **因为n/2个节点跟n/2+1个节点一定有交集**,
 我们可以向 M(C) 中加入几个大小为 n/2 的节点集合,
 
@@ -107,13 +107,11 @@ formula in list:
 Q' = M(abcd) ∪ {ab, bc, ca};
 
 
-
 table in list:
 
 链接列表:
 
 ![](https://gitee.com/drdrxp/bed/raw/_md2zhihu_foo/simple/---assetsslimjpgfobarabc-6884a8f10bf455c8.jpg)
-
 
 
 
