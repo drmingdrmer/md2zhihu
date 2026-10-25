@@ -133,6 +133,16 @@ local_images = {
     "unmatched-parenthesis": ("x).png", "<x).png>", "x).png", "x%29.png"),
 }
 
+# Links to a local file that is already its copy in a/, the asset folder of a.md in the output folder ".",
+# as name: (the link URL, what a/x.pdf is): the file itself, the file in docs/ that a/ is a symlink to,
+# or a hard link to docs/x.pdf.
+files_in_place = {
+    "same-path": ("a/x.pdf", "file"),
+    "dot-alias": ("./a/x.pdf", "file"),
+    "symlink": ("docs/x.pdf", "symlink"),
+    "hardlink": ("docs/x.pdf", "hardlink"),
+}
+
 # URLs, as (URL, the URL as md2zhihu writes it in a link or an image).
 link_destinations = [
     ("a/x.png", "a/x.png"),
@@ -595,6 +605,27 @@ def test_linked_file_in_table(tmp_path, monkeypatch):
         md2zhihu.Article(parser_config, conf, md_text).render()
     want = "linked files 'old/x.pdf' and 'new/x.pdf' differ, but both would be copied to 'out/a/x.pdf', used in 'a.md'"
     assert str(e.value) == want
+
+
+@pytest.mark.parametrize("name", sorted(files_in_place))
+def test_linked_file_in_place(name, tmp_path, monkeypatch):
+    url, kind = files_in_place[name]
+    folder = "a" if kind == "file" else "docs"
+    (tmp_path / folder).mkdir()
+    (tmp_path / folder / "x.pdf").write_bytes(b"pdf")
+    if kind == "symlink":
+        (tmp_path / "a").symlink_to("docs")
+    if kind == "hardlink":
+        (tmp_path / "a").mkdir()
+        os.link(tmp_path / "docs" / "x.pdf", tmp_path / "a" / "x.pdf")
+    monkeypatch.chdir(tmp_path)
+    conf = md2zhihu.Config("a.md", "zhihu", ".", ".", md_output_path="./")
+
+    lines = md2zhihu.Article(md2zhihu.ParserConfig(True, []), conf, "[x](" + url + ")\n").render()
+
+    # md2zhihu does not copy the file onto itself, and points the link at it in a/.
+    assert lines == ["[x](a/x.pdf)", "", "", ""]
+    assert (tmp_path / "a" / "x.pdf").read_bytes() == b"pdf"
 
 
 @pytest.mark.parametrize("name", sorted(local_images))

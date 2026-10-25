@@ -146,7 +146,11 @@ def store_linked_file(conf: "Config", url: str, linked_files: Dict[str, str]) ->
             f"linked files {other!r} and {path!r} differ, but both would be copied to {target!r}, used in {conf.src_path!r}"
         )
 
-    shutil.copyfile(path, target)
+    # The file may already be its copy, such as a/x.pdf that a.md links to with the asset folder ".".
+    # shutil cannot copy a file onto itself.
+    is_in_place = os.path.exists(target) and os.path.samefile(path, target)
+    if not is_in_place:
+        shutil.copyfile(path, target)
 
     stored_url = conf.img_url(fn)
     if parts.fragment != "":
