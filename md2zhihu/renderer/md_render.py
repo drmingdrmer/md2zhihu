@@ -9,8 +9,8 @@ from mistune.helpers import PRE_TAGS
 
 from ..utils import add_paragraph_end
 from ..utils import code_block_lines
+from ..utils import code_span
 from ..utils import indent
-from ..utils import longest_run
 from ..utils import msg
 from ..utils import strip_paragraph_end
 from .dispatch import render_with_features
@@ -196,15 +196,7 @@ class MDRender(object):
             return lines + [""]
 
         if typ == "codespan":
-            code = n["text"]
-            ticks = "`" * (longest_run(code, "`") + 1)
-            # A markdown parser removes one space from each side of the code, if it has one on both sides and is not all spaces.
-            # So a space keeps a "`" at either end apart from `ticks`, and keeps the spaces of the code.
-            touches_ticks = code.startswith("`") or code.endswith("`")
-            loses_spaces = code.startswith(" ") and code.endswith(" ") and code.strip() != ""
-            if touches_ticks or loses_spaces:
-                code = " " + code + " "
-            return [ticks + code + ticks]
+            return [code_span(n["text"])]
 
         if typ == "image":
             title = link_title(n["title"])

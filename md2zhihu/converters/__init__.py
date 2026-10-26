@@ -28,6 +28,7 @@ from ..types import Ref
 from ..types import RefDict
 from ..utils import asset_fn
 from ..utils import code_block_lines
+from ..utils import code_span
 from ..utils import fwrite
 from ..utils import is_path_url
 from ..utils import split_url
@@ -175,6 +176,17 @@ def math_inline_single_dolar(mdrender, rnode):
     return ["$" + n["text"].strip() + "$"]
 
 
+def codespan_in_table(mdrender, rnode) -> List[str]:
+    r"""
+    Write a code span of a table cell for pandoc's markdown reader, which makes the HTML or the image of a table.
+    A cell holds a "|" of its code as "\|", which pandoc keeps as it is in code, so each "\|" is written as "|":
+    pandoc reads a "|" in a code span as a char of the code.
+    """
+    n = rnode.node
+    code = n["text"].replace("\\|", "|")
+    return [code_span(code)]
+
+
 def math_in_table(mdrender, rnode) -> List[str]:
     r"""
     Write the math of a table cell for pandoc's markdown reader, which makes the HTML or the image of a table:
@@ -279,7 +291,7 @@ def math_inline_to_plaintext(mdrender, rnode):
 def table_to_barehtml(mdrender, rnode) -> List[str]:
     # create a markdown render to recursively deal with images etc.
     # The table shares the copies of the run, so that store_linked_file finds two files that would be copied to one path.
-    features = {**importer_features, **table_math_features}
+    features = {**importer_features, **table_features}
     mdr = MDRender(mdrender.conf, features=features, linked_files=mdrender.linked_files)
 
     md = mdr.render_node(rnode)
@@ -297,7 +309,7 @@ def table_to_barehtml(mdrender, rnode) -> List[str]:
 
 
 def table_to_jpg(mdrender, rnode):
-    mdr = MDRender(mdrender.conf, features=table_math_features)
+    mdr = MDRender(mdrender.conf, features=table_features)
 
     md = mdr.render_node(rnode)
     refs = kept_refs([rnode.node])
@@ -399,9 +411,10 @@ importer_features = dict(
     link=save_linked_file_to_asset_dir,
 )
 
-# The renderers of the math of a table, for pandoc's markdown reader. Math alone in a cell is a math block,
-# such as "$x$" in "| $x$ |".
-table_math_features = dict(
+# The renderers of the code and the math of a table, for pandoc's markdown reader. Math alone in a cell is a math
+# block, such as "$x$" in "| $x$ |".
+table_features = dict(
+    codespan=codespan_in_table,
     math_block=math_in_table,
     math_inline=math_in_table,
 )

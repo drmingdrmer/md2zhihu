@@ -106,6 +106,21 @@ def code_block_lines(code: str, info: str) -> List[str]:
     return [opening] + lines + [fence]
 
 
+def code_span(code: str) -> str:
+    """
+    Return the code span that holds `code`, between two runs of "`" that no run in `code` closes,
+    such as "``a`b``" for "a`b".
+    """
+    ticks = "`" * (longest_run(code, "`") + 1)
+    # A markdown parser removes one space from each side of the code, if it has one on both sides and is not all spaces.
+    # So a space keeps a "`" at either end apart from `ticks`, and keeps the spaces of the code.
+    touches_ticks = code.startswith("`") or code.endswith("`")
+    loses_spaces = code.startswith(" ") and code.endswith(" ") and code.strip() != ""
+    if touches_ticks or loses_spaces:
+        code = " " + code + " "
+    return ticks + code + ticks
+
+
 def longest_run(text: str, char: str) -> int:
     """Return the length of the longest run of `char` in `text`, or 0."""
     pattern = re.escape(char) + "+"
