@@ -628,6 +628,14 @@ nested_emphases = {
     "**_x_**\n": "**_x_**\n",
     # With "*", the markers would join into "****x****", two strong emphases.
     "*__*x*__*\n": "***_x_***\n",
+    # With "*" for both, "****b**c**" is "****b" and the strong emphasis "c". The inner strong emphasis keeps "*"
+    # next to the letter "c", so the outer one takes "_".
+    "__**b**c__\n": "__**b**c__\n",
+    "__c**b**__\n": "__c**b**__\n",
+    # The outer strong emphasis keeps "*" before the letter "x", so the inner one takes "_".
+    "**__b__ c**x\n": "**__b__ c**x\n",
+    # With no letter next to either, the inner strong emphasis takes "_", as an emphasis in an emphasis does.
+    "__**b** c__\n": "**__b__ c**\n",
 }
 
 # Emphases and strong emphases next to each other, as markdown: the markdown that md2zhihu writes.

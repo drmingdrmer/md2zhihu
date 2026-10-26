@@ -486,8 +486,10 @@ def emphasis_marker(rnode) -> str:
     """
     Return the char that marks the emphasis or the strong emphasis `rnode`, "*" or "_".
     An emphasis takes "_" if it starts or ends a strong emphasis or an emphasis marked with "*", else "*".
+    A strong emphasis takes "_" if it starts or ends a strong emphasis marked with "*", else "*".
     With "*" for both, their markers would join into one run, which a parser reads another way:
-    "**foo**" for "*_foo_*" is a strong emphasis, and "***x***" for "**_x_**" is an emphasis that holds a strong emphasis.
+    "**foo**" for "*_foo_*" is a strong emphasis, "***x***" for "**_x_**" is an emphasis that holds a strong emphasis,
+    and "****b**c**" for "__**b**c__" is "****b" and a strong emphasis.
     The markers of two nodes of one type next to each other join too, as in "*a**b*" for "*a*_b_", which is one emphasis.
     So the second node takes the other char. Two nodes of two types next to each other can both take "*",
     as in "**a***b*", but not both "_": "__a___b_" for "__a__*b*" is "_" and the emphasis "a___b".
@@ -513,18 +515,18 @@ def emphasis_marker(rnode) -> str:
         if touches_letter(rnode.parent.new_child(after)):
             return "_"
 
-    # A strong emphasis keeps "**" in or around an emphasis that touches it, such as in "***b*c**" and "***x***".
-    if rnode.node["type"] == "strong":
-        return "*"
-
-    if touches_parent_marker(rnode):
+    # A node that touches the marker of its parent takes the other char. A strong emphasis does so only in a strong
+    # emphasis, and keeps "**" in or around an emphasis that touches it, such as in "***b*c**" and "***x***".
+    typ = rnode.node["type"]
+    in_strong = rnode.parent.node["type"] == "strong"
+    if touches_parent_marker(rnode) and (typ == "emphasis" or in_strong):
         if emphasis_marker(rnode.parent) == "_":
             return "*"
         return "_"
 
     for n in inline_children(rnode.node):
         child = rnode.new_child(n)
-        if n["type"] == "emphasis" and touches_parent_marker(child) and touches_letter(child):
+        if n["type"] == typ and touches_parent_marker(child) and touches_letter(child):
             return "_"
     return "*"
 
