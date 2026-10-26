@@ -679,6 +679,13 @@ plain_text_neighbors = {
     ("weibo", "`x`_*b*c_\n"): "x*bc*\n",
     ("weibo", "_c*b*_`x`\n"): "*cb*x\n",
     ("weibo", "`x`_*b*_\n"): "x*b*\n",
+    # Two emphases of one type between letters are written as one also where an emphasis at the edge between them
+    # is written as a part of one of them, such as "_a_" of "*_a_*".
+    ("weibo", "`x`*_a_*_b_`y`\n"): "x*ab*y\n",
+    ("weibo", "`x`_a_*_b_*`y`\n"): "x*ab*y\n",
+    ("weibo", "`x`*a*_*b*c_`y`\n"): "x*abc*y\n",
+    ("weibo", "`x`_c*a*_*b*`y`\n"): "x*cab*y\n",
+    ("weibo", "`x`**__a__**__b__`y`\n"): "x**ab**y\n",
 }
 
 # Text that would become markdown where md2zhihu writes it, as (platform, markdown): the markdown that md2zhihu writes.

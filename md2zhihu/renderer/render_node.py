@@ -27,9 +27,19 @@ class RenderNode(object):
         # The lines of each child that MDRender.render_child() renders, by the id of its node.
         self.child_lines: Dict[int, List[str]] = {}
 
+        # The RenderNode of each child that new_child() returns, by the id of its node.
+        self.children: Dict[int, RenderNode] = {}
+
     def new_child(self, n: ASTNode) -> RenderNode:
-        c = RenderNode(n, parent=self)
-        c.level = self.level + 1
+        """
+        Return the RenderNode of the child `n`, the same one each time, so that the lines of the children of `n`
+        that it keeps are read through it before and after `n` is rendered.
+        """
+        c = self.children.get(id(n))
+        if c is None:
+            c = RenderNode(n, parent=self)
+            c.level = self.level + 1
+            self.children[id(n)] = c
         return c
 
     def to_str(self) -> str:

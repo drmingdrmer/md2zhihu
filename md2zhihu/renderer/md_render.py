@@ -294,10 +294,7 @@ class MDRender(object):
 
     def render(self, rnode) -> List[str]:
         # An emphasis chooses its marker by the chars of the nodes next to it, so those are rendered before it.
-        for n in rnode.node["children"]:
-            if n["type"] not in emphasis_types:
-                child = rnode.new_child(n)
-                self.render_child(child)
+        self.render_plain_nodes(rnode)
 
         rst = []
         for n in rnode.node["children"]:
@@ -306,6 +303,19 @@ class MDRender(object):
             rst.extend(lines)
 
         return rst
+
+    def render_plain_nodes(self, rnode) -> None:
+        """
+        Render the children of `rnode` but strong emphases and emphases, and in the same way the children of those.
+        joins_sibling() reads the nodes in the emphasis after the one that it marks, before render() renders it,
+        such as "c" of "_*b*c_" after "*a*".
+        """
+        for n in rnode.node["children"]:
+            child = rnode.new_child(n)
+            if n["type"] in emphasis_types:
+                self.render_plain_nodes(child)
+            else:
+                self.render_child(child)
 
     def render_child(self, rnode) -> List[str]:
         """
@@ -585,9 +595,21 @@ def joins_sibling(rnode, step: int) -> bool:
     if not touches_letter(rnode) or not touches_letter(other):
         return False
 
-    edge = edge_child(rnode.node, step)
-    other_edge = edge_child(sibling, -step)
+    edge = written_edge(rnode, step)
+    other_edge = written_edge(other, -step)
     return edge["type"] not in emphasis_types and other_edge["type"] not in emphasis_types
+
+
+def written_edge(rnode, step: int) -> dict:
+    """
+    Return the first node that the strong emphasis or the emphasis `rnode` writes in its markers, if `step` is -1,
+    or the last one, if `step` is 1: its child there, or the child there of a child that joins_parent() writes
+    without markers, such as the text "a" of "*_a_*" between letters.
+    """
+    edge = rnode.new_child(edge_child(rnode.node, step))
+    while joins_parent(edge):
+        edge = edge.new_child(edge_child(edge.node, step))
+    return edge.node
 
 
 def edge_child(node, step: int) -> dict:
