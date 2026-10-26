@@ -574,7 +574,7 @@ def joins_parent(rnode) -> bool:
         neighbor = next_to(rnode, step)
         if neighbor is None:
             continue
-        edge = edge_child(rnode.node, step)
+        edge = written_edge(rnode, step)
         if neighbor["type"] in emphasis_types or edge["type"] in emphasis_types:
             return False
     return True

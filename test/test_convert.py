@@ -686,6 +686,9 @@ plain_text_neighbors = {
     ("weibo", "`x`*a*_*b*c_`y`\n"): "x*abc*y\n",
     ("weibo", "`x`_c*a*_*b*`y`\n"): "x*cab*y\n",
     ("weibo", "`x`**__a__**__b__`y`\n"): "x**ab**y\n",
+    # So is an emphasis in an emphasis of its type, where such an emphasis is at its edge next to the other children.
+    ("weibo", "`x`_*_a_*`b`_`y`\n"): "x*ab*y\n",
+    ("weibo", "`x`_`b`*_a_*_`y`\n"): "x*ba*y\n",
 }
 
 # Text that would become markdown where md2zhihu writes it, as (platform, markdown): the markdown that md2zhihu writes.
