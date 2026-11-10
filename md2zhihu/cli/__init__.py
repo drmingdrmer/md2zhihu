@@ -89,7 +89,8 @@ def check_md_output(parser: argparse.ArgumentParser, md_output: str) -> None:
     """Exit with a usage error if the -o path has a placeholder that Config can not fill in."""
     try:
         md_output.format(title="x")
-    except (KeyError, IndexError, ValueError):
+    except (KeyError, IndexError, ValueError, AttributeError):
+        # AttributeError is an attribute on the placeholder, such as {title.foo}.
         rule = "the only placeholder is {title}, and a brace in a name must be doubled, as {{ or }}"
         parser.error(f"-o {md_output}: {rule}")
 
