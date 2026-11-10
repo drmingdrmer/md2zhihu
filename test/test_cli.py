@@ -43,6 +43,10 @@ bad_args = {
     "unknown-placeholder": (["a.md", "-o", "out/{name}.md"], "-o out/{name}.md: " + placeholder_rule),
     "positional-placeholder": (["a.md", "-o", "out/{0}.md"], "-o out/{0}.md: " + placeholder_rule),
     "single-brace": (["a.md", "-o", "out/{"], "-o out/{: " + placeholder_rule),
+    "attribute-placeholder": (
+        ["a.md", "-o", "out/{title.foo}.md"],
+        "-o out/{title.foo}.md: " + placeholder_rule,
+    ),
     "bad-embed-regex": (["a.md", "--embed", "["], "--embed [: unterminated character set at position 0"),
     "protected-branch": (
         ["a.md", "-r", "git@github.com:x/y.git@main"],
