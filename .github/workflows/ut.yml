@@ -137,3 +137,35 @@ jobs:
         # The action commits nothing, and adds nothing to the index.
         test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
         test "$(git status --porcelain)" = "?? _md2zhihu/"
+
+    - name: Publish the output with the step in README.md
+      run: |
+        set -x
+        # The step pushes to origin, which goes to a local repo. The checkout is shallow,
+        # so the local repo receives a commit without its parents.
+        remote="$RUNNER_TEMP/origin.git"
+        git init -q --bare "$remote"
+        git -C "$remote" config receive.shallowUpdate true
+        git remote set-url --push origin "$remote"
+
+        # The commands of the step after "# Publish:" in the workflow of README.md,
+        # with the expression of the branch name replaced by the variable that holds it.
+        step=$(awk '/# Publish:/ { found = 1; next } found && /^```/ { exit } found && !/- run: \|/ { print }' README.md \
+          | sed 's/^          //; s/\$[{][{] github.ref_name [}][}]/$GITHUB_REF_NAME/g')
+        test -n "$step"
+        bash -eo pipefail -c "$step"
+
+        # The step pushes one commit on top of the checked-out one, to the branch that asset_url_prefix names.
+        branch="$GITHUB_REF_NAME-md2zhihu"
+        test "$(git -C "$remote" for-each-ref --format='%(refname)')" = "refs/heads/$branch"
+        test "$(git -C "$remote" rev-parse "$branch^")" = "$GITHUB_SHA"
+
+        # jsDelivr serves the file <path> of the branch at <prefix><path>, so each image URL in the markdown names a
+        # file on the branch, with the content that md2zhihu wrote.
+        prefix="https://cdn.jsdelivr.net/gh/$GITHUB_REPOSITORY@$branch/"
+        urls=$(grep -o "$prefix[^)\" ]*" _md2zhihu/transparent.md)
+        test "$(echo "$urls" | wc -l)" -eq 3
+        for url in $urls; do
+          path="${url#"$prefix"}"
+          git -C "$remote" show "$branch:$path" | cmp - "$path"
+        done
