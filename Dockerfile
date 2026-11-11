@@ -13,8 +13,9 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright \
 
 COPY packages.txt /tmp/
 # puppeteer, which mermaid-cli uses, needs unzip to extract its browser.
+# playwright's node loads libatomic.so.1, and `playwright install` runs that node before --with-deps can install it.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git ca-certificates python3 python3-venv unzip $(cat /tmp/packages.txt) \
+    && apt-get install -y --no-install-recommends git ca-certificates python3 python3-venv unzip libatomic1 $(cat /tmp/packages.txt) \
     && rm -rf /var/lib/apt/lists/* /tmp/packages.txt
 
 # k3down2 runs `npm exec -- mmdc`, which finds a global mmdc in any directory,

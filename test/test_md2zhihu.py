@@ -987,6 +987,12 @@ def normalize_pandoc_output(want, got):
 
     if 'align="' in got:
         want = re.sub(r'style="text-align: (left|right|center);"', r'align="\1"', want)
+
+    # Pandoc 3.2 drops class="header", class="odd" and class="even" from <tr>.
+    row_class = re.compile(r'(<tr) class="(?:header|odd|even)"')
+    has_row_class = row_class.search(got) is not None
+    if not has_row_class:
+        want = row_class.sub(r"\1", want)
     return want
 
 
