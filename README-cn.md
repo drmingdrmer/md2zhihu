@@ -127,7 +127,7 @@ jobs:
 -   `image`:
 
     运行 md2zhihu 的 docker 镜像。每次运行前，action 都从镜像所在的仓库拉取它。
-    设为一个发布版本，例如 `ghcr.io/drmingdrmer/md2zhihu:v0.18`，就会一直使用这个版本。
+    设为一个发布版本，例如 `ghcr.io/drmingdrmer/md2zhihu:v0.22`，就会一直使用这个版本。
 
     **required**: False
     **default**: `ghcr.io/drmingdrmer/md2zhihu:latest`
