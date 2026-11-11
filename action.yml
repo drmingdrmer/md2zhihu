@@ -1,6 +1,6 @@
 name: 'md2zhihu'
 description: >
-  Convert markdown for Zhihu, WeChat, or Weibo, and upload local images to a git repo.
+  Convert markdown for Zhihu, WeChat, or Weibo, and write it with its images into a folder of the workspace.
 
 branding:
   icon: upload-cloud
@@ -18,33 +18,22 @@ inputs:
     required: false
     default: '_md2zhihu'
 
-  asset_repo:
+  asset_url_prefix:
     description: |-
-      Specify the git repo for asset storage.
+      The public URL of `output_dir` once a later step of the workflow publishes it.
+      md2zhihu puts it before each relative URL of the converted markdown, such as `post/<hash>-a.png` of an image of `post.md`,
+      so that a platform such as zhihu.com loads the image from there.
+      The action pushes nothing, so the URL works only after the workflow publishes `output_dir` at that place.
 
-      The converted markdown will reference images in this repo. Supported providers include `github.com` and `gitee.com`.
-      When this option is absent, assets are pushed to the current repo `https://github.com/{{ github.repository }}.git`.
+      The default is the URL that jsDelivr serves `_md2zhihu/` at, on the branch `<branch>-md2zhihu` of this repo,
+      which the example workflow in README.md pushes.
+      Change it together with `output_dir`, or with the branch that the workflow pushes.
 
-      To push assets to `gitee.com`:
-
-      1. On gitee.com, create a access token at https://gitee.com/personal_access_tokens, to enable pushing assets to gitee.com;
-         The token must enable `projects` privileges.
-
-      2. Add a secret to the GitHub markdown repository that contains your gitee.com username and token (e.g., `GITEE_AUTH=drdrxp:abcd...xyz`) at `https://github.com/<username>/<repo>/settings/secrets/actions`.
-
-      3. Set `asset_repo` to the gitee.com repo push URL with the auth token, such as:
-         `asset_repo: https://[dollar]{{ secrets.GITEE_AUTH }}@gitee.com/<owner>/<repo>.git`
+      A relative link to another file, such as `../other.md`, also gets the prefix.
+      Set it to "" to keep every relative URL as it is.
 
     required: false
-    default: 'https://github.com/${{ github.repository }}.git'
-
-  asset_branch:
-    description: |-
-      The branch in which assets are stored.
-      The converted markdown references images at this location.
-      This branch must NOT be removed otherwise the assets will not be accessed.
-    required: false
-    default: '${{ github.ref_name }}-md2zhihu-asset'
+    default: 'https://cdn.jsdelivr.net/gh/${{ github.repository }}@${{ github.ref_name }}-md2zhihu/_md2zhihu/'
 
   target_platform:
     description: |-
@@ -57,37 +46,31 @@ inputs:
     required: false
     default: 'zhihu'
 
-  output_branch:
-    description: |-
-      Commit and push the "output_dir" to a branch of this repo.
-      Set this to "" to disable push, in which case, user commit and push it manually.
-
-    required: false
-    default: '${{ github.ref_name }}-md2zhihu'
-
   image:
     description: |-
       The docker image that runs md2zhihu. The action pulls it from its registry before each run.
-      Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.22`, to keep using that release.
+      Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.23`, to keep using that release.
+      An image of 0.22 or earlier can not run this action. To keep the push of 0.22, use `drmingdrmer/md2zhihu@v0.22`.
 
     required: false
     default: 'ghcr.io/drmingdrmer/md2zhihu:latest'
 
-outputs:
-  converted_branch:
-    description: "The url of the branch of converted markdowns"
-    value: ${{ steps.convert.outputs.converted_branch }}
 runs:
   using: "composite"
   steps:
     - name: convert
       id: convert
       run: |
-        echo 'asset_repo: ${{ inputs.asset_repo }}'
-
         # globstar: "**" in the pattern matches any number of folders, not just one, as "*" does.
         # nullglob: a pattern that matches no file passes no file, and md2zhihu fails because it gets no input.
         shopt -s globstar nullglob
+
+        # The rule leaves each URL with a scheme or a host, such as https: and data:, a path from the root,
+        # and a reference to a query or a fragment, such as "#intro", and puts the prefix before every other URL.
+        rewrite=()
+        if [ -n "$ASSET_URL_PREFIX" ]; then
+          rewrite=(--rewrite-if-not '^([A-Za-z][A-Za-z0-9+.-]*:|//|/|[?#]|$)' '^' "$ASSET_URL_PREFIX")
+        fi
 
         # The image holds md2zhihu and every tool it runs.
         # --pull always: a self-hosted runner keeps images, and would run an old `latest`.
@@ -96,34 +79,14 @@ runs:
         docker run --rm --pull always \
           --user "$(id -u):$(id -g)" \
           -v "$PWD:$PWD" -w "$PWD" \
-          -e GITHUB_USERNAME -e GITHUB_TOKEN \
           '${{ inputs.image }}' \
           md2zhihu \
-          --repo '${{ inputs.asset_repo }}@${{ inputs.asset_branch }}' \
           --code-width 600 \
           --platform ${{ inputs.target_platform }} \
+          --output-dir ${{ inputs.output_dir }} \
           --md-output ${{ inputs.output_dir }}/ \
+          "${rewrite[@]}" \
           ${{ inputs.pattern }}
-
-        if [ ".${{ inputs.output_branch }}" == "." ]; then
-          echo "output branch is empty, skip push"
-        else
-          git add ${{ inputs.output_dir }}
-
-          if git diff-index --quiet HEAD --; then
-            echo "Nothing to commit"
-          else
-            # Commit as the user that git knows, or as md2zhihu for what git has no config for, as on a fresh runner.
-            identity=()
-            git config user.name > /dev/null || identity+=(-c user.name=md2zhihu)
-            git config user.email > /dev/null || identity+=(-c user.email=noreply@localhost)
-            git "${identity[@]}" \
-              commit \
-              -m "md2zhihu built"
-          fi
-
-          git push -f origin HEAD:refs/heads/${{ inputs.output_branch }}
-
-          echo "converted_branch=https://github.com/${{ github.repository }}/tree/${{ inputs.output_branch }}" >> "$GITHUB_OUTPUT"
-        fi
+      env:
+        ASSET_URL_PREFIX: ${{ inputs.asset_url_prefix }}
       shell: bash

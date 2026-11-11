@@ -23,6 +23,7 @@ from ..renderer import MDRender
 from ..renderer import RenderNode
 from ..renderer.md_render import escape_plain
 from ..renderer.md_render import inline_children
+from ..renderer.md_render import link_destination
 from ..renderer.refs import render_ref_definitions
 from ..types import Ref
 from ..types import RefDict
@@ -74,7 +75,8 @@ def typ_text_to_jpg(
     fn = asset_fn(txt, "jpg", conversion_key(typ, opt, shown_files))
     fwrite(mdrender.conf.asset_output_dir, fn, d)
 
-    return [r"![]({})".format(mdrender.conf.img_url(fn)), ""]
+    url = mdrender.destination(mdrender.conf.img_url(fn))
+    return [r"![]({})".format(link_destination(url)), ""]
 
 
 def k3down2_convert(mdrender: "MDRender", typ: str, txt: str, output_typ: str, opt: Optional[dict] = None) -> Any:
@@ -295,11 +297,12 @@ def table_to_barehtml(mdrender, rnode) -> List[str]:
     mdr = MDRender(mdrender.conf, features=features, linked_files=mdrender.linked_files)
 
     md = mdr.render_node(rnode)
-    # The definition of a reference in the table points at the copy of a local file, as a link in the table does.
+    # The definition of a reference in the table points at the copy of a local file, as a link in the table does,
+    # and the rewrite rules change it, as they change the link.
     refs: RefDict = {}
     for name, ref in kept_refs([rnode.node]).items():
         url = store_linked_file(mdrender.conf, ref.url, mdrender.linked_files)
-        refs[name] = Ref(url, ref.title)
+        refs[name] = Ref(mdr.destination(url), ref.title)
     md += render_ref_definitions(refs)
     md = "\n".join(md)
 
@@ -309,7 +312,8 @@ def table_to_barehtml(mdrender, rnode) -> List[str]:
 
 
 def table_to_jpg(mdrender, rnode):
-    mdr = MDRender(mdrender.conf, features=table_features)
+    # The browser loads the local images of the table by their paths, so the rewrite rules leave them as they are.
+    mdr = MDRender(mdrender.conf, features=table_features, rewrite=False)
 
     md = mdr.render_node(rnode)
     refs = kept_refs([rnode.node])

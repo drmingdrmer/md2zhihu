@@ -3,6 +3,7 @@ import importlib.metadata
 
 from ..config import default_code_width
 from ..config import default_plain_code_width
+from ..config.rewrite import RewriteRule
 
 epilog = """\
 platforms:
@@ -23,19 +24,54 @@ platforms:
 
 examples:
   md2zhihu a.md                     convert to _md2/a.md, with images in _md2/a/
-  md2zhihu a.md -r .                also push _md2 to the remote of the git repo
-                                    in the working directory
-  md2zhihu a.md -r git@gitee.com:me/assets.git -b blog
-                                    push _md2 to branch blog of a gitee.com repo
+                                    and the URL a/<image> in _md2/a.md
+  md2zhihu a.md --rewrite-if '^a/' '^' 'https://cdn.example/_md2/'
+                                    refer to each image by its URL after you
+                                    publish _md2 at https://cdn.example/_md2/,
+                                    such as https://cdn.example/_md2/a/<image>
   md2zhihu _drafts/*.md --jekyll -o _posts/
                                     keep the front matter and the date prefix
 
 output layout, with the defaults:
-  _md2/        -d, --output-dir: the folder that --repo pushes
+  _md2/        -d, --output-dir: the folder of the output
     a.md       -o, --md-output: <output-dir>/<name>.md
     a/         --asset-output-dir: <asset-output-dir>/<name>/ holds the images
                and the linked files
+
+rewrite rules:
+  --rewrite, --rewrite-if and --rewrite-if-not change the destination of each
+  link and image of the output, such as the URL of a stored image, of a remote
+  image, or of a link to another page, but no other text. The rules apply in
+  the order of the command line, each to the URL that the rule before it made,
+  after md2zhihu has stored the images and the linked files. A rule sees the
+  whole URL, with its query and fragment.
 """
+
+# The usage error of the removed flags --repo and --branch, which tells how to publish the output instead.
+removed_push = (
+    "is removed: md2zhihu writes the output to --output-dir and pushes nothing;"
+    " publish the folder yourself, such as with git push, and use --rewrite-if to refer to the images by the URL"
+    " that they get there, or keep md2zhihu 0.22 for the push"
+)
+
+
+class AppendRule(argparse.Action):
+    """
+    Append a RewriteRule to the one list that --rewrite, --rewrite-if and --rewrite-if-not share,
+    so that the rules keep the order of the command line.
+    `const` is None for --rewrite, which has no selector, and else whether the rule applies to the URLs
+    that the selector does not match.
+    """
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        rules = getattr(namespace, self.dest, None) or []
+        if self.const is None:
+            pattern, repl = values
+            rule = RewriteRule(pattern, repl)
+        else:
+            selector, pattern, repl = values
+            rule = RewriteRule(pattern, repl, selector=selector, negate=self.const)
+        setattr(namespace, self.dest, rules + [rule])
 
 
 class SmartFormatter(argparse.RawDescriptionHelpFormatter):
@@ -52,7 +88,7 @@ def create_parser() -> argparse.ArgumentParser:
         # Python 3.14 derives the default name from a "python -m" run, such as "python -m pytest".
         prog="md2zhihu",
         description="Convert markdown into one file that zhihu.com and other platforms can import,\n"
-        "and store its images in a git repo.",
+        "and write it with its images into a local folder.",
         epilog=epilog,
         formatter_class=SmartFormatter,
     )
@@ -67,7 +103,7 @@ def create_parser() -> argparse.ArgumentParser:
         action="store",
         default="_md2",
         metavar="DIR",
-        help="The folder of the output, which --repo pushes. Default: %(default)s",
+        help="The folder of the output. Default: %(default)s",
     )
 
     where_to_write.add_argument(
@@ -88,41 +124,14 @@ def create_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         help="The folder of the images, and of the local files that links refer to, such as [a](paper.pdf)."
         " Those of a.md go into its subfolder a/."
-        " With --repo, it must be inside <output-dir>."
         " Default: <output-dir>",
     )
 
-    where_to_store = parser.add_argument_group("where to store the images")
+    where_to_store = parser.add_argument_group("how to refer to the images")
 
-    where_to_store.add_argument(
-        "-r",
-        "--repo",
-        action="store",
-        required=False,
-        metavar="URL",
-        help="Push <output-dir> to this public git repo on github.com or gitee.com,"
-        " and refer to each image and linked file by its URL in the repo."
-        ' URL is a git URL, "." for the remote of the git repo in the working directory,'
-        ' or the name of one of its remotes, such as "origin".'
-        " An https URL needs a token: in the URL, as https://user:token@gitee.com/me/assets.git,"
-        " or for github.com in the environment variables GITHUB_USERNAME and GITHUB_TOKEN."
-        " Without a token, md2zhihu pushes over ssh."
-        " zhihu.com loads images from gitee.com, so use a gitee.com repo for -p zhihu."
-        " Without --repo, the markdown refers to its images and linked files by relative path.",
-    )
-
-    where_to_store.add_argument(
-        "-b",
-        "--branch",
-        action="store",
-        metavar="NAME",
-        help="The branch that --repo pushes to."
-        " Each run force-pushes <output-dir> as a new commit, which replaces everything on the branch,"
-        ' so use a branch for md2zhihu only. "main" and "master" are refused.'
-        " Default: _md2zhihu_<folder>_<hash>, made from the absolute path of the working directory,"
-        " so a run in another folder pushes to another branch; -v prints it."
-        ' The old form "--repo URL@NAME" still works.',
-    )
+    # The flags of the push that md2zhihu 0.22 and earlier did. run() rejects them, and --help does not show them.
+    where_to_store.add_argument("-r", "--repo", action="store", metavar="URL", help=argparse.SUPPRESS)
+    where_to_store.add_argument("-b", "--branch", action="store", metavar="NAME", help=argparse.SUPPRESS)
 
     where_to_store.add_argument(
         "--download",
@@ -134,12 +143,38 @@ def create_parser() -> argparse.ArgumentParser:
 
     where_to_store.add_argument(
         "--rewrite",
-        action="append",
+        action=AppendRule,
+        dest="rewrite",
         nargs=2,
-        required=False,
         metavar=("REGEX", "REPLACEMENT"),
-        help="Change the URL of each image or linked file that md2zhihu stores with re.sub(REGEX, REPLACEMENT, url),"
-        ' such as --rewrite "^/asset/" "/resource/". Repeat it to give more than one rule.',
+        help="Change the destination of each link and image with re.sub(REGEX, REPLACEMENT, url),"
+        ' such as --rewrite "^/asset/" "/resource/". Repeat it to give more than one rule.'
+        " It changes every destination, such as the URL of a remote image too;"
+        " --rewrite-if and --rewrite-if-not choose the destinations to change.",
+    )
+
+    where_to_store.add_argument(
+        "--rewrite-if",
+        action=AppendRule,
+        dest="rewrite",
+        const=False,
+        nargs=3,
+        metavar=("SELECTOR", "REGEX", "REPLACEMENT"),
+        help="As --rewrite, but only for a destination in which re.search(SELECTOR, url) finds a match,"
+        " such as --rewrite-if '^a/' '^' 'https://cdn.example/' for the stored images of a.md."
+        " A match of SELECTOR alone does not change the destination.",
+    )
+
+    where_to_store.add_argument(
+        "--rewrite-if-not",
+        action=AppendRule,
+        dest="rewrite",
+        const=True,
+        nargs=3,
+        metavar=("SELECTOR", "REGEX", "REPLACEMENT"),
+        help="As --rewrite, but only for a destination in which re.search(SELECTOR, url) finds no match,"
+        " such as --rewrite-if-not '^([A-Za-z][A-Za-z0-9+.-]*:|//|/|[?#]|$)' '^' 'https://cdn.example/'"
+        " for every relative destination: a stored image, and also a link such as ../b.md.",
     )
 
     what_to_convert = parser.add_argument_group("what to convert")
@@ -242,7 +277,7 @@ def create_parser() -> argparse.ArgumentParser:
         "-v",
         "--verbose",
         action="store_true",
-        help="Also print the settings in effect, such as the branch that --repo pushes to.",
+        help="Also print the settings in effect.",
     )
 
     parser.add_argument(

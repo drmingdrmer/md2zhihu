@@ -20,15 +20,10 @@ import md2zhihu
 from md2zhihu.cli import MessageFormatter
 from md2zhihu.cli import use_color
 from md2zhihu.cli.args import create_parser
+from md2zhihu.cli.args import removed_push
 
 # The rule that a bad -o path breaks.
 placeholder_rule = "the only placeholder is {title}, and a brace in a name must be doubled, as {{ or }}"
-
-# The rule that a --repo URL breaks when md2zhihu can not read the host from it.
-repo_url_rule = (
-    "can not find the host, owner and repo in the URL;"
-    " use a URL such as git@github.com:me/assets.git or https://github.com/me/assets.git"
-)
 
 # Bad arguments, as name: (md2zhihu arguments, the error message).
 # The working directory holds a.md, b.md and the folder docs.
@@ -48,44 +43,19 @@ bad_args = {
         "-o out/{title.foo}.md: " + placeholder_rule,
     ),
     "bad-embed-regex": (["a.md", "--embed", "["], "--embed [: unterminated character set at position 0"),
-    "protected-branch": (
-        ["a.md", "-r", "git@github.com:x/y.git@main"],
-        "--repo git@github.com:x/y.git@main: Cannot force push to protected branch: main. Use a different branch name.",
+    "removed-repo": (["a.md", "-r", "git@github.com:x/y.git"], "--repo: " + removed_push),
+    "removed-repo-long": (["a.md", "--repo", "."], "--repo: " + removed_push),
+    "removed-branch": (["a.md", "-b", "b"], "--branch: " + removed_push),
+    "bad-rewrite-regex": (["a.md", "--rewrite", "[", "x"], "--rewrite [ x: unterminated character set at position 0"),
+    "bad-rewrite-group": (["a.md", "--rewrite", "(a)", r"\2"], r"--rewrite (a) \2: invalid group reference 2 at position 1"),
+    "bad-rewrite-group-name": (["a.md", "--rewrite", "a", r"\g<x>"], r"--rewrite a \g<x>: unknown group name 'x'"),
+    "bad-rewrite-if-selector": (
+        ["a.md", "--rewrite-if", "(", "a", "b"],
+        "--rewrite-if ( a b: missing ), unterminated subpattern at position 0",
     ),
-    "token-in-url": (
-        ["a.md", "-r", "https://someone:TOKEN@github.com/x/y.git@master"],
-        "--repo https://***@github.com/x/y.git@master: Cannot force push to protected branch: master. Use a different branch name.",
-    ),
-    "bad-url": (["a.md", "-r", "not a url"], "--repo not a url: unknown url: not a url;"),
-    "unsupported-host": (
-        ["a.md", "-r", "git@example.com:x/y.git"],
-        "--repo git@example.com:x/y.git: unsupported git host: example.com, supported: github.com, gitee.com",
-    ),
-    "no-repo-name": (
-        ["a.md", "-r", "https://someone:TOKEN@gitee.com/onlyuser"],
-        "--repo https://***@gitee.com/onlyuser: " + repo_url_rule,
-    ),
-    "http-token": (
-        ["a.md", "-r", "http://someone:TOKEN@gitee.com/x/y.git"],
-        "--repo http://***@gitee.com/x/y.git: " + repo_url_rule,
-    ),
-    "branch-twice": (
-        ["a.md", "-r", "git@github.com:x/y.git@b", "-b", "c"],
-        "--repo git@github.com:x/y.git@b --branch c: the branch is given twice: b in the URL, and c",
-    ),
-    "protected-branch-flag": (
-        ["a.md", "-r", "git@github.com:x/y.git", "-b", "main"],
-        "--repo git@github.com:x/y.git --branch main: Cannot force push to protected branch: main."
-        " Use a different branch name.",
-    ),
-    "branch-without-repo": (["a.md", "-b", "b"], "--branch b: is the branch that --repo pushes to, so it needs --repo"),
-    "not-in-git": (
-        ["a.md", "-r", "."],
-        "--repo .: fatal: not a git repository (or any of the parent directories): .git",
-    ),
-    "asset-dir-outside": (
-        ["a.md", "-d", "out", "--asset-output-dir", "elsewhere", "-r", "git@github.com:x/y.git@b"],
-        "--asset-output-dir elsewhere: is outside --output-dir out, which is the only folder that --repo pushes",
+    "bad-rewrite-if-not-regex": (
+        ["a.md", "--rewrite-if-not", "x", "*", "b"],
+        "--rewrite-if-not x * b: nothing to repeat at position 0",
     ),
 }
 
@@ -195,13 +165,6 @@ code_width_args = [
     (["--code-width", "800", "--plain-code-width", "1200"], 1200, 800),
 ]
 
-# The git config of the user, and the committer of the assets that md2zhihu pushes.
-identity_cases = {
-    "user": ({"user.name": "Ann", "user.email": "ann@example.com"}, "Ann <ann@example.com>"),
-    "name-only": ({"user.name": "Ann"}, "Ann <noreply@localhost>"),
-    "no-config": ({}, "md2zhihu <noreply@localhost>"),
-}
-
 # The lines that md2zhihu prints for the message "x", as (log level, color, line).
 formatted_messages = [
     (logging.INFO, False, "x"),
@@ -243,8 +206,6 @@ def usage_error(message):
 def test_bad_argument(name, tmp_path, monkeypatch, capsys):
     args, want = bad_args[name]
     monkeypatch.chdir(tmp_path)
-    # "--repo ." must not find a git repo in a parent folder of tmp_path.
-    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
     (tmp_path / "a.md").write_text("# a\n")
     (tmp_path / "b.md").write_text("# b\n")
     (tmp_path / "docs").mkdir()
@@ -375,17 +336,6 @@ def test_missing_mathjax(tmp_path):
     assert proc.stderr == "md2zhihu: error: rendering tex_inline in 'a.md' " + reason + "\n"
 
 
-def test_repo_without_remote(tmp_path, monkeypatch, capsys):
-    monkeypatch.chdir(tmp_path)
-    subprocess.run(["git", "init", "-q"], check=True)
-    (tmp_path / "a.md").write_text("# a\n")
-
-    code, err = run_failing(monkeypatch, capsys, ["a.md", "-r", "."])
-
-    assert code == 2
-    assert err == usage_error("--repo .: the git repo in the working directory has no remote")
-
-
 def test_output(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "a.md").write_text("see [x][y]\n")
@@ -396,12 +346,7 @@ def test_output(tmp_path, monkeypatch, capsys):
 
     out, err = capsys.readouterr()
     assert out == ""
-    assert err == (
-        "md2zhihu: warning: undefined reference [x][y] in 'a.md'\n"
-        "a.md -> _md2/a.md\n"
-        "b.md -> _md2/b.md\n"
-        "no --repo, so images are referenced by relative path\n"
-    )
+    assert err == ("md2zhihu: warning: undefined reference [x][y] in 'a.md'\na.md -> _md2/a.md\nb.md -> _md2/b.md\n")
 
 
 @pytest.mark.parametrize("order", [["first", "second"], ["second", "first"]])
@@ -454,7 +399,7 @@ def test_main_twice(tmp_path, monkeypatch, capsys):
     md2zhihu.main()
 
     err = capsys.readouterr().err
-    assert err == "a.md -> _md2/a.md\nno --repo, so images are referenced by relative path\n"
+    assert err == "a.md -> _md2/a.md\n"
     assert logger.handlers == handlers
     assert logger.level == level
 
@@ -470,7 +415,7 @@ def test_asset_output_dir_only(tmp_path, monkeypatch):
 
     # The image URL is the path from the markdown to the image. bff139fa05ac583f is from an md5 of the image.
     assert (tmp_path / "posts" / "a.md").read_text() == "![](../res/a/bff139fa05ac583f-x.png)\n\n\n"
-    # Without --repo, md2zhihu writes nothing in --output-dir, so it does not create the default _md2.
+    # md2zhihu writes nothing in --output-dir, so it does not create the default _md2.
     assert sorted(os.listdir(tmp_path)) == ["posts", "res", "src"]
 
 
@@ -482,14 +427,7 @@ def test_verbose_output(tmp_path, monkeypatch, capsys):
     md2zhihu.main()
 
     err = capsys.readouterr().err
-    assert err == (
-        "--platform: github\n"
-        "--output-dir: _md2\n"
-        "--md-output: out/\n"
-        "--asset-output-dir: _md2\n"
-        "a.md -> out/a.md\n"
-        "no --repo, so images are referenced by relative path\n"
-    )
+    assert err == ("--platform: github\n--output-dir: _md2\n--md-output: out/\n--asset-output-dir: _md2\na.md -> out/a.md\n")
 
 
 @pytest.mark.parametrize("level, color, want", formatted_messages)
@@ -518,7 +456,8 @@ def test_usage(monkeypatch):
     # The options of each group in --help are adjacent.
     assert got == (
         "usage: md2zhihu [-h] [-d DIR] [-o PATH] [--asset-output-dir DIR]"
-        " [-r URL] [-b NAME] [--download] [--rewrite REGEX REPLACEMENT]"
+        " [--download] [--rewrite REGEX REPLACEMENT] [--rewrite-if SELECTOR REGEX REPLACEMENT]"
+        " [--rewrite-if-not SELECTOR REGEX REPLACEMENT]"
         " [-p PLATFORM] [--keep-front-matter] [--jekyll] [--embed REGEX] [--refs YAML] [--code-width PIXELS]"
         " [--plain-code-width PIXELS]"
         " [-v] [--version] MARKDOWN [MARKDOWN ...]\n"
@@ -568,65 +507,3 @@ def test_code_width(platform, args, plain_width, code_width, tmp_path, monkeypat
     md2zhihu.main()
 
     assert widths == [plain_width, code_width]
-
-
-@pytest.mark.parametrize("name", sorted(identity_cases))
-def test_commit_identity(name, tmp_path, monkeypatch):
-    config, want = identity_cases[name]
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "a.md").write_text("# a\n")
-    bare = str(tmp_path / "assets.git")
-    subprocess.run(["git", "init", "-q", "--bare", bare], check=True)
-
-    # git reads only these config entries. The first one makes it push to the local bare repo.
-    entries = {"url." + bare + ".insteadOf": "git@github.com:x/y.git", **config}
-    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
-    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
-    monkeypatch.setenv("GIT_CONFIG_COUNT", str(len(entries)))
-    for i, (key, value) in enumerate(entries.items()):
-        monkeypatch.setenv(f"GIT_CONFIG_KEY_{i}", key)
-        monkeypatch.setenv(f"GIT_CONFIG_VALUE_{i}", value)
-    monkeypatch.setattr(sys, "argv", ["md2zhihu", "a.md", "-r", "git@github.com:x/y.git@b"])
-
-    md2zhihu.main()
-
-    log = subprocess.run(
-        ["git", "--git-dir", bare, "log", "-1", "--format=%an <%ae>", "b"], capture_output=True, text=True, check=True
-    )
-    assert log.stdout == want + "\n"
-
-
-# Two ways to name the branch b of push_url, as name: md2zhihu arguments.
-push_url = "https://someone:TOKEN@github.com/x/y.git"
-branch_args = {
-    "in-url": ["-r", push_url + "@b"],
-    "flag": ["-r", push_url, "-b", "b"],
-}
-
-
-@pytest.mark.parametrize("name", sorted(branch_args))
-def test_push(name, tmp_path, monkeypatch, capsys):
-    args = branch_args[name]
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "a.md").write_text("# a\n")
-    bare = str(tmp_path / "assets.git")
-    subprocess.run(["git", "init", "-q", "--bare", bare], check=True)
-
-    # git pushes to the local bare repo instead of github.com.
-    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
-    monkeypatch.setenv("GIT_CONFIG_KEY_0", "url." + bare + ".insteadOf")
-    monkeypatch.setenv("GIT_CONFIG_VALUE_0", push_url)
-    monkeypatch.setattr(sys, "argv", ["md2zhihu", "a.md"] + args)
-
-    md2zhihu.main()
-
-    err = capsys.readouterr().err
-    assert err == "a.md -> _md2/a.md\npushed _md2 to https://***@github.com/x/y.git, branch b\n"
-    # md2zhihu removes the .git that it created.
-    assert sorted(os.listdir(tmp_path / "_md2")) == ["a", "a.md"]
-
-    log = subprocess.run(
-        ["git", "--git-dir", bare, "log", "-1", "--format=%B", "b"], capture_output=True, text=True, check=True
-    )
-    assert "TOKEN" not in log.stdout
-    assert "\nasset_repo: https://***@github.com/x/y.git, branch b\n" in log.stdout

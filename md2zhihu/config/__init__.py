@@ -6,13 +6,15 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import List
 from typing import Optional
-from typing import Union
 
 from k3handy import pjoin
 
 from ..platform import platform_feature_dict
-from .asset_repo import AssetRepo
 from .local_repo import LocalRepo
+from .rewrite import RewriteRule
+from .rewrite import RuleLike
+from .rewrite import rewrite_url
+from .rewrite import to_rule
 
 # The width of the image of a code block with a language, such as ```python, and of one without, such as an ASCII diagram.
 default_code_width = 600
@@ -28,7 +30,7 @@ class Options:
 
     platform: str
 
-    # The folder of the output, which asset_repo pushes.
+    # The folder of the output.
     output_dir: str
 
     # Each input stores its images in a folder named after the input, in this folder.
@@ -38,9 +40,6 @@ class Options:
     # ``{title}`` in it is replaced with the article name.
     md_output: str
 
-    # The repo that output_dir is pushed to. Without it, the markdown refers to each image by its relative path.
-    asset_repo: Optional[AssetRepo] = None
-
     # None stands for the default width, which Config fills in.
     code_width: Optional[int] = None
     plain_code_width: Optional[int] = None
@@ -48,7 +47,8 @@ class Options:
     keep_meta: bool = False
     ref_files: List[str] = field(default_factory=list)
     jekyll: bool = False
-    rewrite: List[List[str]] = field(default_factory=list)
+    # The rules that change each URL destination of the output, applied in order.
+    rewrite: List[RewriteRule] = field(default_factory=list)
     download: bool = False
 
 
@@ -60,7 +60,6 @@ class Config(object):
         platform,
         output_dir,
         asset_output_dir,
-        asset_repo=None,
         md_output_path=None,
         code_width=None,
         keep_meta=None,
@@ -83,9 +82,6 @@ class Config(object):
 
             output_dir(str): the output dir path to which converted/generated file saves.
 
-            asset_repo(AssetRepo): git repo to upload output files, i.e.
-                    result markdown, moved image or generated images.
-
             md_output_path(str): when present, specifies the path of the result markdown or result dir.
                     ``{title}`` in it is replaced with the article name.
 
@@ -97,6 +93,9 @@ class Config(object):
 
             keep_meta(bool): whether to keep the jekyll meta file header.
 
+            rewrite(list): the rules that change each URL destination of the output, in order:
+                    each a RewriteRule, or [pattern, repl] for an unconditional rule.
+
         """
 
         if keep_meta is None:
@@ -105,8 +104,7 @@ class Config(object):
         if ref_files is None:
             ref_files = []
 
-        if rewrite is None:
-            rewrite = []
+        rules: List[RuleLike] = rewrite or []
 
         assert md_output_path is not None
 
@@ -115,13 +113,12 @@ class Config(object):
             output_dir=output_dir,
             asset_output_dir=asset_output_dir,
             md_output=md_output_path,
-            asset_repo=asset_repo,
             code_width=code_width,
             plain_code_width=plain_code_width,
             keep_meta=keep_meta,
             ref_files=ref_files,
             jekyll=jekyll,
-            rewrite=rewrite,
+            rewrite=[to_rule(r) for r in rules],
             download=download,
         )
         self._set_input(src_path, options)
@@ -175,23 +172,16 @@ class Config(object):
         else:
             self.md_output_base = os.path.split(os.path.abspath(self.md_output_path))[0]
 
-        self.asset_repo: Union[LocalRepo, AssetRepo]
-        if options.asset_repo is None:
-            # The URL of an asset is its path from the markdown, so that it does not depend on output_dir.
-            self.asset_repo = LocalRepo(self.md_output_path, self.asset_output_dir)
-            self.rel_dir = ""
-        else:
-            # The repo holds output_dir, so the URL of an asset has the path of the asset in output_dir.
-            self.asset_repo = options.asset_repo
-            self.rel_dir = os.path.relpath(self.asset_output_dir, options.output_dir)
+        # The URL of an asset is its path from the markdown, so that it does not depend on output_dir.
+        self.asset_repo = LocalRepo(self.md_output_path, self.asset_output_dir)
 
-    def img_url(self, fn):
-        url = self.asset_repo.path_pattern.format(path=pjoin(self.rel_dir, fn))
+    def img_url(self, fn: str) -> str:
+        """Return the URL of the asset `fn` in the asset dir, relative to the output markdown, before any rewrite rule."""
+        return self.asset_repo.path_pattern.format(path=fn)
 
-        for pattern, repl in self.options.rewrite:
-            url = re.sub(pattern, repl, url)
-
-        return url
+    def rewrite_url(self, url: str) -> str:
+        """Return the URL destination `url` of the output, changed by the rewrite rules of the run."""
+        return rewrite_url(self.options.rewrite, url)
 
     def relpath_from_cwd(self, p):
         """

@@ -3,10 +3,10 @@ import logging
 from . import platform
 from .asset import save_image_to_asset_dir
 from .cli import main
-from .config import AssetRepo
 from .config import Config
 from .config import LocalRepo
 from .config import Options
+from .config import RewriteRule
 from .converters import block_code_graphviz_to_jpg
 from .converters import block_code_mermaid_to_jpg
 from .converters import block_code_to_fixwidth_jpg

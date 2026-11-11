@@ -283,13 +283,13 @@ class Article(object):
     def stored_refs(self, linked_files: Dict[str, str]) -> RefDict:
         """
         Return the used references, with the URL of a local file replaced by the URL of its copy in the asset dir,
-        as every platform does for a link.
+        as every platform does for a link, and then changed by the rewrite rules, as the URL of a link is.
         `linked_files` is the `MDRender.linked_files` of the conversion that renders the references.
         """
         refs: RefDict = {}
         for ref_id, ref in self.used_refs.items():
             stored_url = store_linked_file(self.conf, ref.url, linked_files)
-            refs[ref_id] = Ref(stored_url, ref.title)
+            refs[ref_id] = Ref(self.conf.rewrite_url(stored_url), ref.title)
         return refs
 
 

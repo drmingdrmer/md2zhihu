@@ -100,17 +100,31 @@ emphasis_types = ("strong", "emphasis")
 class MDRender(object):
     # platform specific renderer
 
-    def __init__(self, conf, features: dict, linked_files: Optional[Dict[str, str]] = None):
+    def __init__(self, conf, features: dict, linked_files: Optional[Dict[str, str]] = None, rewrite: bool = True):
         """
         `linked_files` maps the path of each copy that store_linked_file makes in the run to the path of the file that
         it copies. The articles of a run share it, because two articles can share an asset folder,
         such as two posts of one name with --jekyll.
+        With `rewrite`, the rewrite rules of the run change the destination of each link and image that it writes.
+        Without it, each destination stays a URL that md2zhihu can read, such as the path of a local image
+        in a table that a browser renders into an image.
         """
         self.conf = conf
         self.features = features
         if linked_files is None:
             linked_files = {}
         self.linked_files: Dict[str, str] = linked_files
+        self.rewrite = rewrite
+
+    def destination(self, url: str) -> str:
+        """
+        Return the URL that the output has as the destination `url` of a link or an image.
+        The rewrite rules change the written URL, not the node, so that each written URL is changed once,
+        also of a node that is written more than once, such as by render() and then by chunks().
+        """
+        if not self.rewrite:
+            return url
+        return self.conf.rewrite_url(url)
 
     def render_node(self, rnode):
         """
@@ -200,7 +214,7 @@ class MDRender(object):
 
         if typ == "image":
             title = link_title(n["title"])
-            src = link_destination(n["src"])
+            src = link_destination(self.destination(n["src"]))
             return ["![{alt}]({src}{title})".format(alt=n["alt"], src=src, title=title)]
 
         if typ == "list":
@@ -259,7 +273,7 @@ class MDRender(object):
         if typ == "link":
             lines = self.render(rnode)
             lines[0] = "[" + lines[0]
-            lines[-1] = lines[-1] + "](" + link_destination(n["link"]) + link_title(n["title"]) + ")"
+            lines[-1] = lines[-1] + "](" + link_destination(self.destination(n["link"])) + link_title(n["title"]) + ")"
 
             return lines
 

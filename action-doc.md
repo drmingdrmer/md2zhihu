@@ -12,34 +12,22 @@
     **required**: False
     **default**: `_md2zhihu`
 
--   `asset_repo`:
+-   `asset_url_prefix`:
 
-    Specify the git repo for asset storage.
+    The public URL of `output_dir` once a later step of the workflow publishes it.
+    md2zhihu puts it before each relative URL of the converted markdown, such as `post/<hash>-a.png` of an image of `post.md`,
+    so that a platform such as zhihu.com loads the image from there.
+    The action pushes nothing, so the URL works only after the workflow publishes `output_dir` at that place.
 
-    The converted markdown will reference images in this repo. Supported providers include `github.com` and `gitee.com`.
-    When this option is absent, assets are pushed to the current repo `https://github.com/{{ github.repository }}.git`.
+    The default is the URL that jsDelivr serves `_md2zhihu/` at, on the branch `<branch>-md2zhihu` of this repo,
+    which the example workflow in README.md pushes.
+    Change it together with `output_dir`, or with the branch that the workflow pushes.
 
-    To push assets to `gitee.com`:
-
-    1. On gitee.com, create a access token at https://gitee.com/personal_access_tokens, to enable pushing assets to gitee.com;
-       The token must enable `projects` privileges.
-
-    2. Add a secret to the GitHub markdown repository that contains your gitee.com username and token (e.g., `GITEE_AUTH=drdrxp:abcd...xyz`) at `https://github.com/<username>/<repo>/settings/secrets/actions`.
-
-    3. Set `asset_repo` to the gitee.com repo push URL with the auth token, such as:
-       `asset_repo: https://[dollar]{{ secrets.GITEE_AUTH }}@gitee.com/<owner>/<repo>.git`
+    A relative link to another file, such as `../other.md`, also gets the prefix.
+    Set it to "" to keep every relative URL as it is.
 
     **required**: False
-    **default**: `https://github.com/${{ github.repository }}.git`
-
--   `asset_branch`:
-
-    The branch in which assets are stored.
-    The converted markdown references images at this location.
-    This branch must NOT be removed otherwise the assets will not be accessed.
-
-    **required**: False
-    **default**: `${{ github.ref_name }}-md2zhihu-asset`
+    **default**: `https://cdn.jsdelivr.net/gh/${{ github.repository }}@${{ github.ref_name }}-md2zhihu/_md2zhihu/`
 
 -   `target_platform`:
 
@@ -52,18 +40,11 @@
     **required**: False
     **default**: `zhihu`
 
--   `output_branch`:
-
-    Commit and push the "output_dir" to a branch of this repo.
-    Set this to "" to disable push, in which case, user commit and push it manually.
-
-    **required**: False
-    **default**: `${{ github.ref_name }}-md2zhihu`
-
 -   `image`:
 
     The docker image that runs md2zhihu. The action pulls it from its registry before each run.
-    Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.22`, to keep using that release.
+    Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.23`, to keep using that release.
+    An image of 0.22 or earlier can not run this action. To keep the push of 0.22, use `drmingdrmer/md2zhihu@v0.22`.
 
     **required**: False
     **default**: `ghcr.io/drmingdrmer/md2zhihu:latest`

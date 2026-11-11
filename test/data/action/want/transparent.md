@@ -20,9 +20,9 @@ Table should pass through:
 </tr>
 </table>
 
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@action_test/transparent/graphLRA--B-5aa891fa11324350.jpg)
+![](https://cdn.jsdelivr.net/gh/OWNER/REPO@BRANCH-md2zhihu/_md2zhihu/transparent/graphLRA--B-5aa891fa11324350.jpg)
 
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@action_test/transparent/digraphGa-b-1d1e266ebb4e46bd.jpg)
+![](https://cdn.jsdelivr.net/gh/OWNER/REPO@BRANCH-md2zhihu/_md2zhihu/transparent/digraphGa-b-1d1e266ebb4e46bd.jpg)
 
 Inline math <img src="https://www.zhihu.com/equation?tex=%20x%20%3D%20y%20" alt=" x = y " class="ee_img tr_noresize" eeimg="1"> should pass through.
 
@@ -39,7 +39,7 @@ func main() {
 ```
 
 Image should be processed:
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/md2test@action_test/transparent/18b61671112f3aeb-slim.jpg)
+![](https://cdn.jsdelivr.net/gh/OWNER/REPO@BRANCH-md2zhihu/_md2zhihu/transparent/18b61671112f3aeb-slim.jpg)
 
 Reference link [slim](https://github.com/openacid/slim "slim") should pass through unchanged.
 

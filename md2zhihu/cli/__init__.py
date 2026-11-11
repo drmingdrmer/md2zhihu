@@ -2,7 +2,6 @@ import argparse
 import logging
 import os
 import re
-import subprocess
 import sys
 from typing import Dict
 from typing import List
@@ -10,20 +9,19 @@ from typing import Optional
 
 from k3fs import fread
 
-from ..config import AssetRepo
 from ..config import Config
 from ..config import Options
+from ..config.rewrite import RewriteRule
 from ..errors import UserError
 from ..parser import Article
 from ..parser import ParserConfig
-from ..publish import push
 from ..utils import debug
-from ..utils import mask_url_credential
 from ..utils import msg
 from .args import create_parser
+from .args import removed_push
 
 # The parent logger of every md2zhihu module. The md2zhihu command prints what it logs.
-# Other libraries log through other loggers, such as k3handy, which logs each command with the token in a push URL.
+# Other libraries log through other loggers, such as k3handy, whose messages md2zhihu does not print.
 logger = logging.getLogger("md2zhihu")
 
 # The ANSI color of the "md2zhihu: warning:" or "md2zhihu: error:" prefix, by log level.
@@ -104,37 +102,34 @@ def check_embed_patterns(parser: argparse.ArgumentParser, patterns: List[str]) -
             parser.error(f"--embed {pattern}: {e}")
 
 
-def check_asset_output_dir(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
-    """Exit with a usage error if --repo would not push the images, because they are outside --output-dir."""
-    if args.repo is None:
-        return
-
-    rel = os.path.relpath(args.asset_output_dir, args.output_dir)
-    outside = rel == os.pardir or rel.startswith(os.pardir + os.sep)
-    if outside:
-        rule = f"is outside --output-dir {args.output_dir}, which is the only folder that --repo pushes"
-        parser.error(f"--asset-output-dir {args.asset_output_dir}: {rule}")
+def check_removed_flags(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """Exit with a usage error if a flag of the push that md2zhihu no longer does is given, such as --repo."""
+    removed = [("--repo", args.repo), ("--branch", args.branch)]
+    for flag, value in removed:
+        if value is not None:
+            parser.error(f"{flag}: {removed_push}")
 
 
-def new_asset_repo(parser: argparse.ArgumentParser, url: Optional[str], branch: Optional[str]) -> Optional[AssetRepo]:
-    """Build the repo that --repo and --branch name, or exit with a usage error if they are bad."""
-    if url is None:
-        if branch is not None:
-            parser.error(f"--branch {branch}: is the branch that --repo pushes to, so it needs --repo")
-        return None
+def check_rewrite_rules(parser: argparse.ArgumentParser, rules: List[RewriteRule]) -> None:
+    """Exit with a usage error if a rewrite rule has a selector or a regex that is not a regex, or a bad replacement."""
+    for rule in rules:
+        if rule.selector is None:
+            given = f"--rewrite {rule.pattern} {rule.repl}"
+        else:
+            flag = "--rewrite-if-not" if rule.negate else "--rewrite-if"
+            given = f"{flag} {rule.selector} {rule.pattern} {rule.repl}"
 
-    try:
-        return AssetRepo(url, branch=branch)
-    except ValueError as e:
-        reason = str(e)
-    except subprocess.CalledProcessError as e:
-        # A shortcut such as "--repo ." runs git, which fails outside a git repo.
-        reason = e.stderr.strip()
-
-    given = f"--repo {url}"
-    if branch is not None:
-        given += f" --branch {branch}"
-    parser.error(mask_url_credential(f"{given}: {reason}"))
+        try:
+            if rule.selector is not None:
+                re.compile(rule.selector)
+            # re reads the replacement before it searches, so a replacement that refers to a group that the regex
+            # does not have, such as \2 of a regex with one group, fails also on an empty string.
+            re.compile(rule.pattern).sub(rule.repl, "")
+        except re.error as e:
+            parser.error(f"{given}: {e}")
+        except IndexError as e:
+            # re raises IndexError for an unknown group name, such as \g<x>.
+            parser.error(f"{given}: {e.args[0]}")
 
 
 def file_identity(path: str) -> tuple:
@@ -228,26 +223,23 @@ def run():
     check_src_paths(parser, args.src_path)
     check_md_output(parser, args.md_output)
     check_embed_patterns(parser, args.embed)
-    check_asset_output_dir(parser, args)
-    asset_repo = new_asset_repo(parser, args.repo, args.branch)
+    check_removed_flags(parser, args)
+
+    # A repeated flag that is not given, such as --refs, is None.
+    ref_files = args.refs or []
+    rewrite: List[RewriteRule] = args.rewrite or []
+    check_rewrite_rules(parser, rewrite)
 
     debug("--platform: ", args.platform)
     debug("--output-dir: ", args.output_dir)
     debug("--md-output: ", args.md_output)
     debug("--asset-output-dir: ", args.asset_output_dir)
-    if asset_repo is not None:
-        debug("--repo: ", asset_repo.url, ", branch ", asset_repo.branch)
-
-    # A repeated flag that is not given, such as --refs, is None.
-    ref_files = args.refs or []
-    rewrite = args.rewrite or []
 
     options = Options(
         platform=args.platform,
         output_dir=args.output_dir,
         asset_output_dir=args.asset_output_dir,
         md_output=args.md_output,
-        asset_repo=asset_repo,
         code_width=args.code_width,
         plain_code_width=args.plain_code_width,
         keep_meta=args.keep_front_matter,
@@ -269,23 +261,7 @@ def run():
     # With --jekyll, posts of one name and two dates share an asset folder,
     # so the run keeps every copy of a linked file, and one copy can not replace another.
     linked_files: Dict[str, str] = {}
-    stat = []
     for conf in confs:
         convert_md(parser_config, conf, linked_files)
 
         msg(conf.src_path, " -> ", conf.md_output_path)
-
-        stat.append([conf.src_path, conf.md_output_path])
-
-    if options.asset_repo is None:
-        msg("no --repo, so images are referenced by relative path")
-    else:
-        push(options, stat)
-        msg(
-            "pushed ",
-            options.output_dir,
-            " to ",
-            options.asset_repo.url,
-            ", branch ",
-            options.asset_repo.branch,
-        )
