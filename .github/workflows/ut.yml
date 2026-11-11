@@ -3,6 +3,10 @@ name: unit_test
 on:
   push:
   pull_request:
+  # A week with no push still runs, so a new runner image or pandoc shows up here.
+  # Monday 02:00 UTC is 10:00 in China. GitHub may start the run later.
+  schedule:
+    - cron: "0 2 * * 1"
 
 jobs:
   unit_test:
