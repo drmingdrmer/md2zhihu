@@ -2,14 +2,14 @@
 
     file pattern to convert
 
-    **required**: True
+    **required**: False
     **default**: `**/*.md`
 
 -   `output_dir`:
 
     dir to store converted markdown.
 
-    **required**: True
+    **required**: False
     **default**: `_md2zhihu`
 
 -   `asset_repo`:
@@ -27,7 +27,7 @@
     2. Add a secret to the GitHub markdown repository that contains your gitee.com username and token (e.g., `GITEE_AUTH=drdrxp:abcd...xyz`) at `https://github.com/<username>/<repo>/settings/secrets/actions`.
 
     3. Set `asset_repo` to the gitee.com repo push URL with the auth token, such as:
-       `asset_repo: https://[dollar]{{ secrets.GITEE_AUTH }}@gitee.com/drdrxp/bed.git`
+       `asset_repo: https://[dollar]{{ secrets.GITEE_AUTH }}@gitee.com/<owner>/<repo>.git`
 
     **required**: False
     **default**: `https://github.com/${{ github.repository }}.git`
@@ -38,7 +38,7 @@
     The converted markdown references images at this location.
     This branch must NOT be removed otherwise the assets will not be accessed.
 
-    **required**: True
+    **required**: False
     **default**: `${{ github.ref_name }}-md2zhihu-asset`
 
 -   `target_platform`:
@@ -49,7 +49,7 @@
     `simple` converts almost everything to images and removes most text styles.
     E.g. inline code block is converted to normal text.
 
-    **required**: True
+    **required**: False
     **default**: `zhihu`
 
 -   `output_branch`:
@@ -57,13 +57,13 @@
     Commit and push the "output_dir" to a branch of this repo.
     Set this to "" to disable push, in which case, user commit and push it manually.
 
-    **required**: True
+    **required**: False
     **default**: `${{ github.ref_name }}-md2zhihu`
 
 -   `image`:
 
     The docker image that runs md2zhihu. The action pulls it from its registry before each run.
-    Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.18`, to keep using that release.
+    Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.21`, to keep using that release.
 
     **required**: False
     **default**: `ghcr.io/drmingdrmer/md2zhihu:latest`

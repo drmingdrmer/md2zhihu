@@ -1,6 +1,6 @@
 name: 'md2zhihu'
 description: >
-  Convert markdown to a single-file by uploading local assets.
+  Convert markdown for Zhihu, WeChat, or Weibo, and upload local images to a git repo.
 
 branding:
   icon: upload-cloud
@@ -9,13 +9,13 @@ branding:
 inputs:
   pattern:
     description: 'file pattern to convert'
-    required: true
+    required: false
     default: '**/*.md'
 
   output_dir:
     description: |-
       dir to store converted markdown.
-    required: true
+    required: false
     default: '_md2zhihu'
 
   asset_repo:
@@ -33,7 +33,7 @@ inputs:
       2. Add a secret to the GitHub markdown repository that contains your gitee.com username and token (e.g., `GITEE_AUTH=drdrxp:abcd...xyz`) at `https://github.com/<username>/<repo>/settings/secrets/actions`.
 
       3. Set `asset_repo` to the gitee.com repo push URL with the auth token, such as:
-         `asset_repo: https://[dollar]{{ secrets.GITEE_AUTH }}@gitee.com/drdrxp/bed.git`
+         `asset_repo: https://[dollar]{{ secrets.GITEE_AUTH }}@gitee.com/<owner>/<repo>.git`
 
     required: false
     default: 'https://github.com/${{ github.repository }}.git'
@@ -43,7 +43,7 @@ inputs:
       The branch in which assets are stored.
       The converted markdown references images at this location.
       This branch must NOT be removed otherwise the assets will not be accessed.
-    required: true
+    required: false
     default: '${{ github.ref_name }}-md2zhihu-asset'
 
   target_platform:
@@ -54,7 +54,7 @@ inputs:
       `simple` converts almost everything to images and removes most text styles.
       E.g. inline code block is converted to normal text.
 
-    required: true
+    required: false
     default: 'zhihu'
 
   output_branch:
@@ -62,13 +62,13 @@ inputs:
       Commit and push the "output_dir" to a branch of this repo.
       Set this to "" to disable push, in which case, user commit and push it manually.
 
-    required: true
+    required: false
     default: '${{ github.ref_name }}-md2zhihu'
 
   image:
     description: |-
       The docker image that runs md2zhihu. The action pulls it from its registry before each run.
-      Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.18`, to keep using that release.
+      Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.21`, to keep using that release.
 
     required: false
     default: 'ghcr.io/drmingdrmer/md2zhihu:latest'

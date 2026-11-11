@@ -1,12 +1,10 @@
 # md2zhihu
 
-中文介绍在: [md2zhihu-中文介绍](README-cn.md).
+中文介绍在: [md2zhihu-中文介绍](https://github.com/drmingdrmer/md2zhihu/blob/main/README-cn.md).
 
 Converts markdown into a single-file version without local asset dependencies,
-which can be directly imported into [zhihu.com](zhihu.com) or other social
+which can be directly imported into [zhihu.com](https://www.zhihu.com) or other social
 platforms with a single click.
-
-[md2zhihu on Marketplace](https://github.com/marketplace/actions/md2zhihu)
 
 |           | md                    | imported               |
 | :--       | :-:                   | :-:                    |
@@ -21,10 +19,7 @@ Use it remotely with GitHub Action:
 ## 1. Use it remotely with GitHub Action:
 
 This is the recommended method since you do not need to install anything
-locally. Only `git` is required. See: [md2zhihu on
-Marketplace](https://github.com/marketplace/actions/md2zhihu)
-
-**Note**: use `asset_repo` to specify a gitee.com repo so that zhihu.com load images from it when importing.
+locally. Only `git` is required.
 
 Add the action configuration into the git repository where your markdown files
 are located for conversion:
@@ -36,26 +31,22 @@ on: [push]
 jobs:
   md2zhihu:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-    - uses: actions/checkout@v2
-    - uses: drmingdrmer/md2zhihu@main
-      env:
-        GITHUB_USERNAME: ${{ github.repository_owner }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        pattern: >
-            _posts/*.md
-            _posts/*.markdown
-
-        asset_repo: https://${{ secrets.GITEE_PUSH_DRDRXP_REPO }}@gitee.com/drdrxp/bed.git
+      - uses: actions/checkout@v7
+      - uses: drmingdrmer/md2zhihu@v0.21
+        env:
+          GITHUB_USERNAME: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-The conversion will be triggered on the next push:
+A push runs this workflow. It converts each markdown file and saves the
+result in `_md2zhihu`. It pushes that directory to a branch named after
+the branch that was pushed, with `-md2zhihu` added. A push to `main`
+creates `main-md2zhihu`:
 
-It will convert markdown files in the `_posts/` directory and save them in the `_md2zhihu` directory.
-A new branch `master-md2zhihu` containing these outputs will be created:
-
-Branch `master`:
+Branch `main`:
 ```
 ▾ _posts/
     2013-01-31-jobq.markdown
@@ -63,7 +54,7 @@ Branch `master`:
     ...
 ```
 
-Branch `master-md2zhihu`:
+Branch `main-md2zhihu`:
 ```
 ▾ _posts/
     2013-01-31-jobq.md
@@ -80,7 +71,7 @@ has all its assets stored remotely on gitee.com, so it can be safely used
 anywhere without worrying about handling its dependency assets.
 
 There are two ways to get the converted markdown files:
-- `git fetch` and `git merge` the branch `master-md2zhihu`.
+- `git fetch` and `git merge` the branch `main-md2zhihu`.
 - Or access this branch directly on the web:
   [single-file example](https://github.com/drmingdrmer/drmingdrmer.github.io/blob/master/_md2zhihu/dict-cmp.md)
 
@@ -90,14 +81,14 @@ There are two ways to get the converted markdown files:
 
     File pattern to convert
 
-    **required**: True
+    **required**: False
     **default**: `**/*.md`
 
 -   `output_dir`:
 
     Directory to store converted markdown
 
-    **required**: True
+    **required**: False
     **default**: `_md2zhihu`
 
 -   `asset_repo`:
@@ -120,7 +111,7 @@ There are two ways to get the converted markdown files:
        - uses: drmingdrmer/md2zhihu@main
          with:
            pattern: _posts/*.md
-           asset_repo: https://${{ secrets.GITEE_AUTH }}@gitee.com/drdrxp/bed.git
+           asset_repo: https://${{ secrets.GITEE_AUTH }}@gitee.com/<owner>/<repo>.git
        ```
 
     **required**: False
@@ -130,7 +121,7 @@ There are two ways to get the converted markdown files:
 
     The branch name in which assets are stored.
 
-    **required**: True
+    **required**: False
     **default**: `${{ github.ref_name }}-md2zhihu-asset`
 
 -   `output_branch`:
@@ -138,7 +129,7 @@ There are two ways to get the converted markdown files:
     The branch name to which output markdowns are stored.
     Set this to "" to disable push, in which case, user commit and push it manually.
 
-    **required**: True
+    **required**: False
     **default**: `${{ github.ref_name }}-md2zhihu`
 
 -   `target_platform`:
@@ -147,13 +138,13 @@ There are two ways to get the converted markdown files:
     specified platform.
     the currently supported platforms are zhihu, wechat, weibo, simple. `simple` converts almost everything to images and removes most text styles. E.g. inline code block is converted to normal text.
 
-    **required**: True
+    **required**: False
     **default**: `zhihu`
 
 -   `image`:
 
     The docker image that runs md2zhihu. The action pulls it from its registry before each run.
-    Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.18`, to keep using that release.
+    Set it to a release, such as `ghcr.io/drmingdrmer/md2zhihu:v0.21`, to keep using that release.
 
     **required**: False
     **default**: `ghcr.io/drmingdrmer/md2zhihu:latest`
@@ -163,7 +154,7 @@ There are two ways to get the converted markdown files:
 
 **System requirements**
 
-MaxOS
+macOS
 
 ```sh
 # For rendering table to html, and graphviz to images
@@ -192,7 +183,7 @@ And the assets it references are uploaded to the git repo found in current dir.
 md2zhihu your_great_work.md -r git@github.com:drmingdrmer/md2test.git -b test
 ```
 
-And you need **write access** on the git repo otherwise the assests can not be
+And you need **write access** on the git repo otherwise the assets can not be
 uploaded.
 
 **Other options**: `md2zhihu --help`
@@ -204,8 +195,8 @@ uploaded.
   Try:
 
   - `pip install --verbose md2zhihu` Confirm that install done successfully.
-  - `which md2zhihu` Confirm that the binary can be found: e.g.: `/Users/drdrxp/xp/py3virtual/p38/bin/md2zhihu`.
-  - `echo $PATH` Confirmat that the install path is included in `PATH`: `...:/Users/drdrxp/xp/py3virtual/p38/bin:...`
+  - `which md2zhihu` Confirm that the binary can be found. The path it prints is the install path.
+  - `echo $PATH` Confirm that this path is included in `PATH`.
 
 - Github workflow complains about permission: **remote: Permission to ... denied to github-actions**
 
